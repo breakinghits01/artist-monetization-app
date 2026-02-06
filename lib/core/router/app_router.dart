@@ -6,7 +6,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
-import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/home/presentation/screens/dashboard_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/discover/screens/discover_screen.dart';

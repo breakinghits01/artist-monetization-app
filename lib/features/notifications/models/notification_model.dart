@@ -158,7 +158,7 @@ class MockNotifications {
         title: 'Tokyo Nights',
         albumArt: 'https://picsum.photos/seed/album3/300/300',
       ),
-      message: 'generous_fan sent you a tip of \$5.00',
+      message: 'generous_fan sent you a tip of 50 tokens',
       metadata: {'amount': 5.0},
       isRead: true,
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
