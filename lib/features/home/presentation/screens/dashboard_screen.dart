@@ -7,6 +7,9 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../discover/screens/discover_screen.dart';
 import '../../../connect/screens/connect_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../player/widgets/player_wrapper.dart';
+import '../../../player/widgets/mini_player.dart';
+import '../../../player/providers/audio_player_provider.dart';
 import '../../widgets/wallet_header.dart';
 import '../../widgets/story_circles.dart';
 import '../../widgets/treasure_chest_card.dart';
@@ -41,72 +44,93 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = ref.watch(currentUserProvider);
+    final currentSong = ref.watch(currentSongProvider);
+    final isPlayerExpanded = ref.watch(playerExpandedProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.music_note, color: theme.colorScheme.primary),
+    return PlayerWrapper(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.music_note, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                _getAppBarTitle(),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          centerTitle: true,
+          actions: [
+            const ThemeSwitcher(),
             const SizedBox(width: 8),
-            Text(
-              _getAppBarTitle(),
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Logout',
+              onPressed: () => _showLogoutDialog(context, ref),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => context.push('/profile'),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: theme.colorScheme.primary,
+                backgroundImage: user?['profileImage'] != null
+                    ? NetworkImage(user!['profileImage'] as String)
+                    : null,
+                child: user?['profileImage'] == null
+                    ? Icon(
+                        Icons.person,
+                        size: 20,
+                        color: theme.colorScheme.onPrimary,
+                      )
+                    : null,
               ),
             ),
+            const SizedBox(width: 16),
           ],
         ),
-        centerTitle: true,
-        actions: [
-          const ThemeSwitcher(),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => context.push('/profile'),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: theme.colorScheme.primary,
-              backgroundImage: user?['profileImage'] != null
-                  ? NetworkImage(user!['profileImage'] as String)
-                  : null,
-              child: user?['profileImage'] == null
-                  ? Icon(
-                      Icons.person,
-                      size: 20,
-                      color: theme.colorScheme.onPrimary,
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: 'Discover',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'Connect',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        body: _screens[_selectedIndex],
+        // Bottom area with mini player + navigation bar
+        bottomNavigationBar: isPlayerExpanded
+            ? null
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Mini player sits here if there's a song playing
+                  if (currentSong != null) const MiniPlayer(),
+                  // Navigation bar below mini player
+                  NavigationBar(
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: _onItemTapped,
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home),
+                        label: 'Home',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.explore_outlined),
+                        selectedIcon: Icon(Icons.explore),
+                        label: 'Discover',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.people_outline),
+                        selectedIcon: Icon(Icons.people),
+                        label: 'Connect',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.person_outline),
+                        selectedIcon: Icon(Icons.person),
+                        label: 'Profile',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -124,6 +148,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       default:
         return 'Dynamic Artist';
     }
+  }
+
+  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+    // Capture context before async operations
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = GoRouter.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              
+              // Perform logout
+              await ref.read(authProvider.notifier).logout();
+              
+              // Show success snackbar
+              scaffoldMessenger.showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: const [
+                      Icon(Icons.logout_rounded, color: Colors.white, size: 24),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Logged Out Successfully',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: Colors.blueGrey.shade700,
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                ),
+              );
+              
+              // Navigate to login
+              await Future.delayed(const Duration(milliseconds: 500));
+              navigator.go('/login');
+            },
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -184,7 +272,7 @@ class _DashboardTab extends ConsumerWidget {
           const SliverToBoxAdapter(child: DashboardMasonryGrid()),
 
           // Bottom spacing
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
     );

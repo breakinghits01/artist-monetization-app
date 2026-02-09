@@ -37,6 +37,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
+    // Show loading feedback
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Creating your account...'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+
     try {
       await ref.read(authProvider.notifier).register(
         username: _usernameController.text.trim(),
@@ -45,20 +55,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         role: _selectedRole,
       );
 
+      print('🔥 REGISTRATION SUCCESS');
+      
+      // Registration successful - show success message with dialog (more reliable)
       if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${AppConstants.registerSuccessMessage}\nPlease login with your new account',
-            ),
+        print('🔥 Showing SUCCESS dialog');
+        
+        ScaffoldMessenger.of(context).clearSnackBars();
+        
+        // Show success dialog
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 48),
+                const SizedBox(height: 16),
+                const Text(
+                  'Registration successful!',
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Please login with your new account',
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         );
         
-        // Redirect to login screen
-        context.go(AppConstants.loginRoute);
+        // Auto close after 2 seconds
+        await Future.delayed(const Duration(seconds: 2));
+        
+        if (mounted) {
+          Navigator.of(context).pop(); // Close dialog
+          context.go(AppConstants.loginRoute);
+        }
       }
     } on ApiException catch (e) {
       if (mounted) {

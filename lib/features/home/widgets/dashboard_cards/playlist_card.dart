@@ -1,26 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/dashboard_card_model.dart';
+import '../../../player/providers/audio_player_provider.dart';
+import '../../../player/data/sample_songs.dart';
 
 /// Playlist card widget
-class PlaylistCard extends StatelessWidget {
+class PlaylistCard extends ConsumerWidget {
   final DashboardCardModel card;
 
   const PlaylistCard({super.key, required this.card});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardHeight = screenWidth > 900 ? 200.0 : 160.0;
 
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: isDark ? 4 : 2,
       child: InkWell(
         onTap: () {
-          // Navigate to playlist
+          _playSampleSong(ref);
         },
         child: Container(
-          height: 160,
+          height: cardHeight,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -88,26 +93,26 @@ class PlaylistCard extends StatelessWidget {
               Positioned(
                 right: 12,
                 top: 12,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: Icon(
+                child: GestureDetector(
+                  onTap: () => _playSampleSong(ref),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Icon(
                       Icons.play_arrow,
                       color: theme.colorScheme.primary,
+                      size: 24,
                     ),
-                    onPressed: () {
-                      // Play playlist
-                    },
                   ),
                 ),
               ),
@@ -117,4 +122,13 @@ class PlaylistCard extends StatelessWidget {
       ),
     );
   }
+
+  void _playSampleSong(WidgetRef ref) {
+    // Get a sample song from our collection
+    final sampleSong = SampleSongs.getRandom();
+    
+    // Play the song
+    ref.read(audioPlayerProvider.notifier).playSong(sampleSong);
+  }
 }
+

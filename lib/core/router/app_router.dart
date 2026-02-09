@@ -176,10 +176,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         return AppConstants.loginRoute;
       }
 
-      // If authenticated and trying to access auth route
-      if (isAuthenticated && isAuthRoute) {
-        return AppConstants.homeRoute;
-      }
+      // Don't auto-redirect authenticated users from auth routes
+      // Let the screens handle navigation with proper success messages
+      // This allows snackbars to be visible before navigation
 
       return null; // No redirect needed
     },

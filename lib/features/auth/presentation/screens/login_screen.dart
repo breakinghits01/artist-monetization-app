@@ -32,39 +32,81 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
+    // Capture context BEFORE async operations
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = GoRouter.of(context);
+
     try {
+      print('🚀 Starting login...');
+      
+      // Perform login
       await ref.read(authProvider.notifier).login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(AppConstants.loginSuccessMessage),
-            backgroundColor: Colors.green,
+      print('✅ LOGIN SUCCESS - NOW SHOWING GREEN SNACKBAR');
+      
+      // Show snackbar using captured messenger (works even if widget unmounts)
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.check_circle_rounded, color: Colors.white, size: 24),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Login Successful',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
-        // Navigation handled automatically by router
-      }
+          backgroundColor: Colors.green.shade600,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
+        ),
+      );
+      
+      print('✅ Green snackbar shown! Waiting 3 seconds before navigation...');
+      
+      // Wait to show success message before navigating
+      await Future.delayed(const Duration(seconds: 3));
+      
+      print('🏠 Navigating to home...');
+      
+      // Navigate using captured navigator
+      navigator.go(AppConstants.homeRoute);
     } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      print('❌ API Exception: ${e.message}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Login failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      print('❌ Unexpected error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Login failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     }
   }
 
