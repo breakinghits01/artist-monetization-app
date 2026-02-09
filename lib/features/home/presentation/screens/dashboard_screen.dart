@@ -101,7 +101,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Mini player sits here if there's a song playing
-                  if (currentSong != null) const MiniPlayer(),
+                  if (currentSong != null) ...[
+                    const MiniPlayer(),
+                    const SizedBox(height: 0), // No gap needed, they should touch
+                  ],
                   // Navigation bar below mini player
                   NavigationBar(
                     selectedIndex: _selectedIndex,
