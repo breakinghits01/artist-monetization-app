@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/song_model.dart';
+import '../../../player/models/song_model.dart';
+import '../../../player/data/sample_songs.dart';
+import '../../../player/providers/audio_player_provider.dart';
+import '../../providers/liked_songs_provider.dart';
 import '../../models/user_profile_model.dart';
 import '../../widgets/profile_header.dart';
 import '../../widgets/song_card.dart';
@@ -17,7 +20,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   late TabController _tabController;
   String _sortBy = 'Recent';
   
-  final List<Song> _songs = MockSongs.songs;
+  final List<SongModel> _songs = SampleSongs.songs; // Using real player songs
   final UserProfile _profile = MockUserProfile.profile;
 
   @override
@@ -37,26 +40,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     super.dispose();
   }
 
-  void _handleSongPlay(Song song) {
+  void _handleSongPlay(SongModel song) {
+    // Actually play the song through the audio player
+    ref.read(audioPlayerProvider.notifier).playSong(song);
+    
+    // Show feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Playing: ${song.title}'),
+        content: Row(
+          children: [
+            const Icon(Icons.play_circle_filled, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Playing: ${song.title}',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
         behavior: SnackBarBehavior.floating,
         backgroundColor: Theme.of(context).colorScheme.primary,
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
-  void _handleSongLike(Song song) {
-    setState(() {
-      final index = _songs.indexWhere((s) => s.id == song.id);
-      if (index != -1) {
-        _songs[index] = song.copyWith(isLiked: !song.isLiked);
-      }
-    });
+  void _handleSongLike(SongModel song) {
+    // Toggle like state in provider
+    ref.read(likedSongsProvider.notifier).toggleLike(song.id);
   }
 
-  void _handleSongOptions(Song song) {
+  void _handleSongOptions(SongModel song) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -73,18 +89,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  List<Song> _getSortedSongs() {
-    final songs = List<Song>.from(_songs);
+  List<SongModel> _getSortedSongs() {
+    final songs = List<SongModel>.from(_songs);
     switch (_sortBy) {
       case 'Most Played':
-        songs.sort((a, b) => b.playCount.compareTo(a.playCount));
+        // TODO: Add playCount to SongModel or use analytics
+        songs.shuffle(); // Temp: random order
         break;
       case 'A-Z':
         songs.sort((a, b) => a.title.compareTo(b.title));
         break;
       case 'Recent':
       default:
-        songs.sort((a, b) => b.releaseDate.compareTo(a.releaseDate));
+        songs.shuffle(); // Temp: random order (no date in SongModel yet)
     }
     return songs;
   }
@@ -230,6 +247,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   List<Widget> _buildSongsSliverGrid() {
     final sortedSongs = _getSortedSongs();
+    final currentSong = ref.watch(currentSongProvider);
+    final likedSongIds = ref.watch(likedSongsProvider);
     
     return [
       SliverPadding(
@@ -252,8 +271,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final song = sortedSongs[index];
+                  final isCurrentlyPlaying = currentSong?.id == song.id;
+                  final isLiked = likedSongIds.contains(song.id);
+                  
                   return SongCard(
                     song: song,
+                    isCurrentlyPlaying: isCurrentlyPlaying,
+                    isLiked: isLiked,
                     onPlay: () => _handleSongPlay(song),
                     onLike: () => _handleSongLike(song),
                     onOptions: () => _handleSongOptions(song),
@@ -314,7 +338,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  Widget _buildSongOptionsSheet(Song song) {
+  Widget _buildSongOptionsSheet(SongModel song) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -346,6 +370,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ListTile(
               leading: Icon(Icons.add_to_photos, color: theme.colorScheme.primary),
               title: const Text('Add to Playlist'),
+              subtitle: const Text('Coming soon'),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/song_model.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../player/models/song_model.dart';
 
 class SongCard extends ConsumerStatefulWidget {
-  final Song song;
+  final SongModel song;
+  final bool isCurrentlyPlaying;
+  final bool isLiked;
   final VoidCallback? onPlay;
   final VoidCallback? onLike;
   final VoidCallback? onOptions;
@@ -11,6 +14,8 @@ class SongCard extends ConsumerStatefulWidget {
   const SongCard({
     super.key,
     required this.song,
+    this.isCurrentlyPlaying = false,
+    this.isLiked = false,
     this.onPlay,
     this.onLike,
     this.onOptions,
@@ -40,13 +45,10 @@ class _SongCardState extends ConsumerState<SongCard>
     super.dispose();
   }
 
-  String _formatPlayCount(int count) {
-    if (count >= 1000000) {
-      return '${(count / 1000000).toStringAsFixed(1)}M';
-    } else if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(1)}K';
-    }
-    return count.toString();
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -103,29 +105,78 @@ class _SongCardState extends ConsumerState<SongCard>
                           height: 150,
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: theme.colorScheme.secondary.withOpacity(0.3),
-                              width: 1,
+                              color: widget.isCurrentlyPlaying
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.secondary.withOpacity(0.3),
+                              width: widget.isCurrentlyPlaying ? 3 : 1,
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Image.network(
-                            widget.song.albumArt,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: theme.colorScheme.surfaceContainerHighest,
-                                child: Icon(
-                                  Icons.music_note,
-                                  size: 60,
-                                  color: theme.colorScheme.primary,
+                          child: widget.song.albumArt != null
+                              ? CachedNetworkImage(
+                                  imageUrl: widget.song.albumArt!,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: theme.colorScheme.surfaceContainerHighest,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: theme.colorScheme.surfaceContainerHighest,
+                                    child: Icon(
+                                      Icons.music_note,
+                                      size: 60,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  child: Icon(
+                                    Icons.music_note,
+                                    size: 60,
+                                    color: theme.colorScheme.primary,
+                                  ),
                                 ),
-                              );
-                            },
-                          ),
                         ),
                       ),
+                      // Currently Playing Indicator
+                      if (widget.isCurrentlyPlaying)
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.play_arrow,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Playing',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       // Play Button Overlay
-                      if (_isHovered)
+                      if (_isHovered && !widget.isCurrentlyPlaying)
                         Positioned.fill(
                           child: Container(
                             decoration: BoxDecoration(
@@ -169,7 +220,7 @@ class _SongCardState extends ConsumerState<SongCard>
                         right: 8,
                         child: GestureDetector(
                           onTap: () {
-                            if (widget.song.isLiked) {
+                            if (widget.isLiked) {
                               _likeAnimationController.reverse();
                             } else {
                               _likeAnimationController.forward();
@@ -183,10 +234,10 @@ class _SongCardState extends ConsumerState<SongCard>
                               color: Colors.black.withOpacity(0.6),
                             ),
                             child: Icon(
-                              widget.song.isLiked
+                              widget.isLiked
                                   ? Icons.favorite
                                   : Icons.favorite_border,
-                              color: widget.song.isLiked
+                              color: widget.isLiked
                                   ? theme.colorScheme.primary
                                   : Colors.white,
                               size: 20,
@@ -226,28 +277,35 @@ class _SongCardState extends ConsumerState<SongCard>
                   Row(
                     children: [
                       // Genre Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF9C27B0).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFF9C27B0).withOpacity(0.4),
+                      if (widget.song.genre != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF9C27B0).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF9C27B0).withOpacity(0.4),
+                            ),
+                          ),
+                          child: Text(
+                            widget.song.genre!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF9C27B0),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          widget.song.genre,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF9C27B0),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
                       const Spacer(),
                       // Duration
+                      Text(
+                        _formatDuration(widget.song.duration),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                      ),
                       Icon(
                         Icons.access_time,
                         size: 14,
@@ -255,7 +313,7 @@ class _SongCardState extends ConsumerState<SongCard>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        widget.song.duration,
+                        _formatDuration(widget.song.duration),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
@@ -263,19 +321,20 @@ class _SongCardState extends ConsumerState<SongCard>
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Play Count and Options
+                  // Token Reward and Options
                   Row(
                     children: [
                       Icon(
-                        Icons.play_circle_outline,
+                        Icons.toll,
                         size: 16,
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: const Color(0xFFFFD700),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        _formatPlayCount(widget.song.playCount),
+                        '+${widget.song.tokenReward}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: const Color(0xFFFFD700),
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       const Spacer(),
