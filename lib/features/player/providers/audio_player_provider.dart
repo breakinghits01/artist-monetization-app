@@ -92,7 +92,14 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       await _audioPlayer.stop();
       
       print('🔗 Loading audio URL...');
-      await _audioPlayer.setUrl(song.audioUrl);
+      
+      // Add timeout to prevent hanging
+      await _audioPlayer.setUrl(song.audioUrl).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Audio loading timeout - URL may be invalid or slow');
+        },
+      );
       
       print('▶️ Playing audio...');
       await _audioPlayer.play();
@@ -107,7 +114,8 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     } catch (e) {
       print('❌ Error playing song: $e');
       state = state.copyWith(isLoading: false, isPlaying: false);
-      // TODO: Show error to user
+      // Show error to user
+      // TODO: Add proper error notification
     }
   }
 

@@ -1,0 +1,167 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/upload_state.dart';
+import '../models/upload_session.dart';
+import '../models/song_metadata.dart';
+import '../services/upload_service.dart';
+import '../../player/models/song_model.dart';
+import '../../profile/providers/user_songs_provider.dart';
+
+/// Upload service provider
+final uploadServiceProvider = Provider<UploadService>((ref) {
+  return UploadService();
+});
+
+/// Upload state provider
+final uploadProvider = StateNotifierProvider<UploadNotifier, UploadState>((ref) {
+  return UploadNotifier(ref);
+});
+
+/// Upload notifier
+class UploadNotifier extends StateNotifier<UploadState> {
+  final Ref _ref;
+
+  UploadNotifier(this._ref) : super(const UploadState.idle());
+
+  /// Reset to idle state
+  void reset() {
+    state = const UploadState.idle();
+  }
+
+  /// Initiate upload from file path
+  Future<void> initiateUpload(String filePath) async {
+    try {
+      state = UploadState.validating(fileName: filePath.split('/').last);
+
+      final uploadService = _ref.read(uploadServiceProvider);
+      final session = await uploadService.initiateUpload(filePath);
+
+      state = UploadState.uploading(session: session);
+
+      // Start upload with progress tracking
+      await _startUpload(session, filePath);
+    } catch (e) {
+      state = UploadState.error(message: e.toString());
+    }
+  }
+
+  /// Start upload with progress tracking
+  Future<void> _startUpload(UploadSession session, String filePath) async {
+    try {
+      final uploadService = _ref.read(uploadServiceProvider);
+      final stream = uploadService.uploadWithProgress(session, filePath);
+
+      await for (final progress in stream) {
+        // Update progress
+        final updatedSession = session.copyWith(
+          uploadProgress: progress,
+          uploadStatus: progress >= 100 ? 'processing' : 'uploading',
+        );
+
+        if (progress >= 100) {
+          state = UploadState.processing(session: updatedSession);
+          
+          // Process audio
+          await uploadService.processAudio(updatedSession);
+          
+          // Mark as completed
+          final completedSession = updatedSession.copyWith(
+            uploadStatus: 'completed',
+            completedAt: DateTime.now(),
+          );
+          state = UploadState.completed(session: completedSession);
+        } else {
+          state = UploadState.uploading(session: updatedSession);
+        }
+      }
+    } catch (e) {
+      state = UploadState.error(
+        message: 'Upload failed: ${e.toString()}',
+        session: session,
+      );
+    }
+  }
+
+  /// Submit metadata and create song
+  Future<void> submitMetadata(UploadSession session, SongMetadata metadata) async {
+    try {
+      final uploadService = _ref.read(uploadServiceProvider);
+      final songData = await uploadService.createSong(session, metadata);
+
+      // Convert to SongModel
+      final song = SongModel(
+        id: songData['id'],
+        title: songData['title'],
+        artist: 'Current User', // TODO: Get from auth provider
+        artistId: 'current-user-id', // TODO: Get from auth provider
+        albumArt: songData['coverArt'] ?? 'https://via.placeholder.com/300',
+        duration: Duration(seconds: songData['duration'] as int),
+        audioUrl: songData['audioUrl'],
+        genre: songData['genre'],
+        tokenReward: metadata.price,
+      );
+
+      state = UploadState.published(song: song);
+
+      // Refresh user songs list in profile
+      _ref.read(userSongsProvider.notifier).refresh();
+    } catch (e) {
+      state = UploadState.error(
+        message: 'Failed to publish song: ${e.toString()}',
+        session: session,
+      );
+    }
+  }
+
+  /// Save as draft
+  Future<void> saveDraft(UploadSession session, SongMetadata metadata) async {
+    try {
+      final uploadService = _ref.read(uploadServiceProvider);
+      final songData = await uploadService.createSong(
+        session,
+        metadata,
+        isDraft: true,
+      );
+
+      // Convert to SongModel
+      final song = SongModel(
+        id: songData['id'],
+        title: songData['title'],
+        artist: 'Current User',
+        artistId: 'current-user-id',
+        albumArt: songData['coverArt'] ?? 'https://via.placeholder.com/300',
+        duration: Duration(seconds: songData['duration'] as int),
+        audioUrl: songData['audioUrl'],
+        genre: songData['genre'],
+        tokenReward: metadata.price,
+      );
+
+      // Refresh user songs list to show draft
+      _ref.read(userSongsProvider.notifier).refresh();
+      
+      state = UploadState.published(song: song);
+    } catch (e) {
+      state = UploadState.error(
+        message: 'Failed to save draft: ${e.toString()}',
+        session: session,
+      );
+    }
+  }
+
+  /// Cancel upload
+  Future<void> cancelUpload() async {
+    try {
+      final currentState = state;
+      if (currentState is UploadStateUploading || currentState is UploadStateProcessing) {
+        final uploadService = _ref.read(uploadServiceProvider);
+        final session = currentState is UploadStateUploading 
+            ? currentState.session 
+            : (currentState as UploadStateProcessing).session;
+        
+        await uploadService.cancelUpload(session);
+        state = const UploadState.idle();
+      }
+    } catch (e) {
+      state = UploadState.error(message: 'Failed to cancel upload: ${e.toString()}');
+    }
+  }
+}

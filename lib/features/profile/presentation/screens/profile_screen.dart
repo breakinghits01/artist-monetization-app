@@ -4,6 +4,7 @@ import '../../../player/models/song_model.dart';
 import '../../../player/data/sample_songs.dart';
 import '../../../player/providers/audio_player_provider.dart';
 import '../../providers/liked_songs_provider.dart';
+import '../../providers/user_songs_provider.dart';
 import '../../models/user_profile_model.dart';
 import '../../widgets/profile_header.dart';
 import '../../widgets/song_card.dart';
@@ -20,7 +21,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   late TabController _tabController;
   String _sortBy = 'Recent';
   
-  final List<SongModel> _songs = SampleSongs.songs; // Using real player songs
+  // Cache sorted songs to prevent re-shuffling on rebuild
+  List<SongModel>? _cachedSortedSongs;
+  String? _lastSortBy;
+  
   final UserProfile _profile = MockUserProfile.profile;
 
   @override
@@ -90,20 +94,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   List<SongModel> _getSortedSongs() {
-    final songs = List<SongModel>.from(_songs);
+    // Get songs from provider (uploaded songs + sample songs)
+    final userSongsState = ref.watch(userSongsProvider);
+    final uploadedSongs = userSongsState.songs;
+    
+    // Combine uploaded songs with sample songs (for demo purposes)
+    final allSongs = [...uploadedSongs, ...SampleSongs.songs];
+    
+    // Return cached songs if sort hasn't changed
+    if (_cachedSortedSongs != null && _lastSortBy == _sortBy) {
+      return _cachedSortedSongs!;
+    }
+    
+    final songs = List<SongModel>.from(allSongs);
     switch (_sortBy) {
       case 'Most Played':
         // TODO: Add playCount to SongModel or use analytics
-        songs.shuffle(); // Temp: random order
+        // For now, keep original order (don't shuffle)
         break;
       case 'A-Z':
         songs.sort((a, b) => a.title.compareTo(b.title));
         break;
       case 'Recent':
       default:
-        songs.shuffle(); // Temp: random order (no date in SongModel yet)
+        // Keep original order (newest first)
+        // Don't shuffle - maintain stable order
+        break;
     }
+    
+    // Cache the result
+    _cachedSortedSongs = songs;
+    _lastSortBy = _sortBy;
+    
     return songs;
+  }
+
+  @override
+  void didUpdateWidget(ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Clear cache when widget updates
+    _cachedSortedSongs = null;
   }
 
   @override
@@ -191,6 +221,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ],
                 ),
               ),
+              sortBy: _sortBy, // Pass sortBy to delegate
             ),
           ),
           // Tab Content
@@ -222,7 +253,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final isSelected = _sortBy == label;
 
     return GestureDetector(
-      onTap: () => setState(() => _sortBy = label),
+      onTap: () {
+        setState(() {
+          _sortBy = label;
+          // Clear cache to force re-sort
+          _cachedSortedSongs = null;
+        });
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -399,8 +436,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 // Sticky Tab Bar Delegate
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget tabBar;
+  final String sortBy;
 
-  _StickyTabBarDelegate({required this.tabBar});
+  _StickyTabBarDelegate({required this.tabBar, required this.sortBy});
 
   @override
   double get minExtent => 105;
@@ -419,6 +457,6 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_StickyTabBarDelegate oldDelegate) {
-    return false;
+    return sortBy != oldDelegate.sortBy; // Rebuild when sort changes
   }
 }

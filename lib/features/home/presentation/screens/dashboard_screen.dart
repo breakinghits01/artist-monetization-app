@@ -7,6 +7,7 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../discover/screens/discover_screen.dart';
 import '../../../connect/screens/connect_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../upload/presentation/upload_screen.dart';
 import '../../../player/widgets/player_wrapper.dart';
 import '../../../player/widgets/mini_player.dart';
 import '../../../player/providers/audio_player_provider.dart';
@@ -32,6 +33,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final List<Widget> _screens = [
     const _DashboardTab(),
     const DiscoverScreen(),
+    const UploadScreen(),
     const ConnectScreen(),
     const ProfileScreen(),
   ];
@@ -121,6 +123,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         label: 'Discover',
                       ),
                       NavigationDestination(
+                        icon: Icon(Icons.cloud_upload_outlined),
+                        selectedIcon: Icon(Icons.cloud_upload),
+                        label: 'Upload',
+                      ),
+                      NavigationDestination(
                         icon: Icon(Icons.people_outline),
                         selectedIcon: Icon(Icons.people),
                         label: 'Connect',
@@ -145,8 +152,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case 1:
         return 'Discover';
       case 2:
-        return 'Connect';
+        return 'Upload Music';
       case 3:
+        return 'Connect';
+      case 4:
         return 'Profile';
       default:
         return 'Dynamic Artist';
