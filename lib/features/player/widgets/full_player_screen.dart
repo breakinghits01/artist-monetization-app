@@ -75,9 +75,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.keyboard_arrow_down, size: 32),
-        onPressed: () {
-          ref.read(playerExpandedProvider.notifier).state = false;
-        },
+        onPressed: () => _closePlayer(),
       ),
       actions: [
         IconButton(
@@ -584,6 +582,14 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
         ],
       ),
     );
+  }
+
+  void _closePlayer() async {
+    // Reverse animation before closing
+    await _controller.reverse();
+    if (mounted) {
+      ref.read(playerExpandedProvider.notifier).state = false;
+    }
   }
 
   void _showMoreOptions(BuildContext context) {

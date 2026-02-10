@@ -20,35 +20,43 @@ class PlayerWrapper extends ConsumerWidget {
       children: [
         child,
         // Full player (when expanded) with smooth animation
-        if (isExpanded)
-          Positioned.fill(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                // Slide and fade transition
-                final offsetAnimation = Tween<Offset>(
-                  begin: const Offset(0.0, 1.0),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                ));
+        Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            reverseDuration: const Duration(milliseconds: 400),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              // Slide and fade transition
+              final slideAnimation = Tween<Offset>(
+                begin: const Offset(0.0, 1.0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              ));
 
-                return SlideTransition(
-                  position: offsetAnimation,
-                  child: FadeTransition(
-                    opacity: animation,
-                    child: child,
-                  ),
-                );
-              },
-              child: isExpanded
-                  ? const FullPlayerScreen(key: ValueKey('fullPlayer'))
-                  : const SizedBox.shrink(key: ValueKey('noPlayer')),
-            ),
+              final fadeAnimation = Tween<double>(
+                begin: 0.0,
+                end: 1.0,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              ));
+
+              return SlideTransition(
+                position: slideAnimation,
+                child: FadeTransition(
+                  opacity: fadeAnimation,
+                  child: child,
+                ),
+              );
+            },
+            child: isExpanded
+                ? const FullPlayerScreen(key: ValueKey('fullPlayer'))
+                : const SizedBox.shrink(key: ValueKey('noPlayer')),
           ),
+        ),
       ],
     );
   }
