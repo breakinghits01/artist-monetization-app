@@ -80,6 +80,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   /// Play a song
   Future<void> playSong(SongModel song) async {
     try {
+      print('🎵 Starting to play: ${song.title} - ${song.audioUrl}');
       state = state.copyWith(isLoading: true);
       _ref.read(currentSongProvider.notifier).state = song;
       _hasRewardedCurrentSong = false;
@@ -87,13 +88,25 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Reset token earn state
       _ref.read(tokenEarnProvider.notifier).reset();
 
+      // Stop current playback first
+      await _audioPlayer.stop();
+      
+      print('🔗 Loading audio URL...');
       await _audioPlayer.setUrl(song.audioUrl);
+      
+      print('▶️ Playing audio...');
       await _audioPlayer.play();
 
-      state = state.copyWith(isLoading: false);
+      // Ensure state reflects that we're playing
+      state = state.copyWith(
+        isLoading: false,
+        isPlaying: true,
+      );
+      
+      print('✅ Playback started successfully');
     } catch (e) {
-      state = state.copyWith(isLoading: false);
-      print('Error playing song: $e');
+      print('❌ Error playing song: $e');
+      state = state.copyWith(isLoading: false, isPlaying: false);
       // TODO: Show error to user
     }
   }
@@ -101,16 +114,25 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   /// Play/Pause toggle
   Future<void> playPause() async {
     if (_audioPlayer.playing) {
+      print('⏸️ Pausing playback...');
       await _audioPlayer.pause();
+      state = state.copyWith(isPlaying: false);
+      print('✅ Playback paused');
     } else {
+      print('▶️ Resuming playback...');
       await _audioPlayer.play();
+      state = state.copyWith(isPlaying: true);
+      print('✅ Playback resumed');
     }
   }
 
   /// Pause playback
   Future<void> pause() async {
     if (_audioPlayer.playing) {
+      print('⏸️ Pausing playback...');
       await _audioPlayer.pause();
+      state = state.copyWith(isPlaying: false);
+      print('✅ Playback paused');
     }
   }
 

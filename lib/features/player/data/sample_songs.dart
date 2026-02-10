@@ -1,6 +1,6 @@
 import '../models/song_model.dart';
 
-/// Sample songs with real audio URLs for testing
+/// Sample songs with web-compatible audio URLs for testing
 class SampleSongs {
   static final List<SongModel> songs = [
     SongModel(
@@ -8,7 +8,7 @@ class SampleSongs {
       title: 'Summer Vibes',
       artist: 'Bensound',
       artistId: 'artist_bensound',
-      audioUrl: 'https://www.bensound.com/bensound-music/bensound-summer.mp3',
+      audioUrl: 'https://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Sevish_-__nbsp_.mp3',
       duration: const Duration(minutes: 2, seconds: 49),
       tokenReward: 5,
       genre: 'Pop',
@@ -20,7 +20,7 @@ class SampleSongs {
       title: 'Acoustic Breeze',
       artist: 'Bensound',
       artistId: 'artist_bensound',
-      audioUrl: 'https://www.bensound.com/bensound-music/bensound-acousticbreeze.mp3',
+      audioUrl: 'https://commondatastorage.googleapis.com/codeskulptor-assets/week7-brrring.m4a',
       duration: const Duration(minutes: 2, seconds: 37),
       tokenReward: 5,
       genre: 'Acoustic',
@@ -32,7 +32,7 @@ class SampleSongs {
       title: 'Creative Minds',
       artist: 'Bensound',
       artistId: 'artist_bensound',
-      audioUrl: 'https://www.bensound.com/bensound-music/bensound-creativeminds.mp3',
+      audioUrl: 'https://commondatastorage.googleapis.com/codeskulptor-demos/pyman_assets/thequest.ogg',
       duration: const Duration(minutes: 2, seconds: 25),
       tokenReward: 5,
       genre: 'Electronic',
@@ -44,7 +44,7 @@ class SampleSongs {
       title: 'Funky Element',
       artist: 'Bensound',
       artistId: 'artist_bensound',
-      audioUrl: 'https://www.bensound.com/bensound-music/bensound-funkyelement.mp3',
+      audioUrl: 'https://commondatastorage.googleapis.com/codeskulptor-demos/riceracer_assets/music/race1.ogg',
       duration: const Duration(minutes: 3, seconds: 8),
       tokenReward: 5,
       genre: 'Funk',
@@ -56,7 +56,7 @@ class SampleSongs {
       title: 'Ukulele Dreams',
       artist: 'Bensound',
       artistId: 'artist_bensound',
-      audioUrl: 'https://www.bensound.com/bensound-music/bensound-ukulele.mp3',
+      audioUrl: 'https://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Kangaroo_MusiQue_-_The_Neverwritten_Role_Playing_Game.mp3',
       duration: const Duration(minutes: 2, seconds: 26),
       tokenReward: 5,
       genre: 'Acoustic',
@@ -68,7 +68,7 @@ class SampleSongs {
       title: 'Tenderness',
       artist: 'Bensound',
       artistId: 'artist_bensound',
-      audioUrl: 'https://www.bensound.com/bensound-music/bensound-tenderness.mp3',
+      audioUrl: 'https://commondatastorage.googleapis.com/codeskulptor-assets/Epoq-Lepidoptera.ogg',
       duration: const Duration(minutes: 2, seconds: 3),
       tokenReward: 5,
       genre: 'Ambient',

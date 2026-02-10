@@ -10,11 +10,45 @@ import '../../../shared/widgets/token_icon.dart';
 import 'glass_container.dart';
 
 /// Full player screen with expanded controls
-class FullPlayerScreen extends ConsumerWidget {
+class FullPlayerScreen extends ConsumerStatefulWidget {
   const FullPlayerScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FullPlayerScreen> createState() => _FullPlayerScreenState();
+}
+
+class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.95,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final song = ref.watch(currentSongProvider);
 
     if (song == null) {
@@ -25,14 +59,17 @@ class FullPlayerScreen extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: _buildAppBar(context, ref),
-      body: _buildBody(context, ref, song),
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: _buildAppBar(context),
+        body: _buildBody(context, song),
+      ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, WidgetRef ref) {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -46,14 +83,14 @@ class FullPlayerScreen extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.more_vert),
           onPressed: () {
-            _showMoreOptions(context, ref);
+            _showMoreOptions(context);
           },
         ),
       ],
     );
   }
 
-  Widget _buildBody(BuildContext context, WidgetRef ref, SongModel song) {
+  Widget _buildBody(BuildContext context, SongModel song) {
     final theme = Theme.of(context);
     final playerState = ref.watch(audioPlayerProvider);
     final tokenState = ref.watch(tokenEarnProvider);
@@ -549,7 +586,7 @@ class FullPlayerScreen extends ConsumerWidget {
     );
   }
 
-  void _showMoreOptions(BuildContext context, WidgetRef ref) {
+  void _showMoreOptions(BuildContext context) {
     // TODO: Show bottom sheet with more options
   }
 }
