@@ -5,6 +5,7 @@ import '../models/song_metadata.dart';
 import '../services/upload_service.dart';
 import '../../player/models/song_model.dart';
 import '../../profile/providers/user_songs_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 /// Upload service provider
 final uploadServiceProvider = Provider<UploadService>((ref) {
@@ -87,14 +88,19 @@ class UploadNotifier extends StateNotifier<UploadState> {
       final uploadService = _ref.read(uploadServiceProvider);
       final songData = await uploadService.createSong(session, metadata);
 
+      // Get actual user info from auth provider
+      final currentUser = _ref.read(currentUserProvider);
+      final userId = currentUser?['_id'] ?? currentUser?['id'] ?? 'unknown';
+      final userName = currentUser?['username'] ?? currentUser?['name'] ?? 'Current User';
+
       // Convert to SongModel
       final song = SongModel(
         id: songData['id'],
         title: songData['title'],
-        artist: 'Current User', // TODO: Get from auth provider
-        artistId: 'current-user-id', // TODO: Get from auth provider
+        artist: userName,
+        artistId: userId,
         albumArt: songData['coverArt'] ?? 'https://via.placeholder.com/300',
-        duration: Duration(seconds: songData['duration'] as int),
+        duration: Duration(seconds: (songData['duration'] ?? 180) as int),
         audioUrl: songData['audioUrl'],
         genre: songData['genre'],
         tokenReward: metadata.price,
@@ -102,8 +108,8 @@ class UploadNotifier extends StateNotifier<UploadState> {
 
       state = UploadState.published(song: song);
 
-      // Refresh user songs list in profile
-      _ref.read(userSongsProvider.notifier).refresh();
+      // Add song to user's song list
+      _ref.read(userSongsProvider.notifier).addSong(song);
     } catch (e) {
       state = UploadState.error(
         message: 'Failed to publish song: ${e.toString()}',
@@ -135,8 +141,8 @@ class UploadNotifier extends StateNotifier<UploadState> {
         tokenReward: metadata.price,
       );
 
-      // Refresh user songs list to show draft
-      _ref.read(userSongsProvider.notifier).refresh();
+      // Add song to user's song list
+      _ref.read(userSongsProvider.notifier).addSong(song);
       
       state = UploadState.published(song: song);
     } catch (e) {

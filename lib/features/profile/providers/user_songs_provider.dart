@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+import 'dart:convert';
 import '../../../core/config/api_config.dart';
 import '../../player/models/song_model.dart';
+import '../../auth/providers/auth_provider.dart';
 
 /// User songs state
 class UserSongsState {
@@ -28,26 +31,64 @@ class UserSongsState {
   }
 }
 
-/// User songs provider - fetches songs from backend
+/// User songs provider - fetches from backend with local cache
 final userSongsProvider = StateNotifierProvider<UserSongsNotifier, UserSongsState>((ref) {
-  return UserSongsNotifier();
+  return UserSongsNotifier(ref);
 });
 
 class UserSongsNotifier extends StateNotifier<UserSongsState> {
-  UserSongsNotifier() : super(const UserSongsState()) {
-    fetchUserSongs();
+  static const String _storageKey = 'user_uploaded_songs_cache';
+  static const String _oldStorageKey = 'user_uploaded_songs'; // Old key for migration
+  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
+  final Ref _ref;
+  
+  UserSongsNotifier(this._ref) : super(const UserSongsState()) {
+    _migrateOldCache();
+    _loadFromBackend();
   }
 
-  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
-
-  /// Fetch user's songs (including drafts and published)
-  Future<void> fetchUserSongs() async {
-    state = state.copyWith(isLoading: true, error: null);
-
+  /// Migrate songs from old cache key to new key
+  Future<void> _migrateOldCache() async {
     try {
-      // TODO: Add auth token
+      final prefs = await SharedPreferences.getInstance();
+      final oldCacheExists = prefs.containsKey(_oldStorageKey);
+      final newCacheExists = prefs.containsKey(_storageKey);
+      
+      if (oldCacheExists && !newCacheExists) {
+        print('📦 Migrating songs from old cache...');
+        final oldData = prefs.getString(_oldStorageKey);
+        if (oldData != null) {
+          await prefs.setString(_storageKey, oldData);
+          await prefs.remove(_oldStorageKey);
+          print('✅ Migration complete');
+        }
+      }
+    } catch (e) {
+      print('⚠️ Cache migration failed: $e');
+    }
+  }
+
+  /// Load songs from backend (primary source - REQUIRED)
+  Future<void> _loadFromBackend() async {
+    state = state.copyWith(isLoading: true);
+    
+    try {
+      // Get actual user ID from auth provider
+      final currentUser = _ref.read(currentUserProvider);
+      final userId = currentUser?['_id'] ?? currentUser?['id'];
+      
+      if (userId == null) {
+        print('⚠️ No user ID found - user not logged in');
+        state = state.copyWith(isLoading: false, songs: []);
+        return;
+      }
+      
+      final endpoint = '${ApiConfig.songsEndpoint}/artist/$userId';
+      print('🌐 Fetching songs from database: ${ApiConfig.baseUrl}$endpoint');
+      print('👤 User ID: $userId');
+      
       final response = await _dio.get(
-        '/api/songs/user',
+        endpoint,
         options: Options(
           headers: {
             'Authorization': 'Bearer ${ApiConfig.tempToken}',
@@ -55,32 +96,116 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
         ),
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final songsData = response.data['songs'] as List;
-        final songs = songsData.map((json) => _parseSong(json)).toList();
+      if (response.statusCode == 200) {
+        final data = response.data;
         
-        state = state.copyWith(songs: songs, isLoading: false);
+        // Parse response - handle different formats
+        List<dynamic> songsList = [];
+        if (data is Map) {
+          if (data['success'] == true) {
+            if (data['data'] is Map && data['data']['songs'] != null) {
+              songsList = data['data']['songs'] as List;
+            } else if (data['data'] is List) {
+              songsList = data['data'] as List;
+            } else if (data['songs'] != null) {
+              songsList = data['songs'] as List;
+            }
+          }
+        } else if (data is List) {
+          songsList = data;
+        }
+        
+        final songs = songsList.map((json) => _parseSong(json)).toList();
+        state = state.copyWith(songs: songs, isLoading: false, error: null);
+        
+        // Save to cache for offline viewing only
+        await _saveToCache(songs);
+        print('✅ Loaded ${songs.length} songs from database');
       } else {
-        throw Exception('Failed to fetch songs');
+        throw Exception('Unexpected status: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        // User has no songs yet - this is normal for new users
+        print('ℹ️ No songs found in database (new user)');
+        state = state.copyWith(songs: [], isLoading: false, error: null);
+        await clearCache(); // Clear stale cache
+      } else {
+        print('⚠️ Cannot connect to database: ${e.message}');
+        print('📦 Loading from offline cache (data may be outdated)');
+        
+        await _loadFromCache();
+        state = state.copyWith(
+          isLoading: false, 
+          error: 'Offline mode - showing cached songs'
+        );
       }
     } catch (e) {
-      print('Error fetching user songs: $e');
+      print('❌ Error loading from database: $e');
+      print('📦 Falling back to cache');
+      
+      await _loadFromCache();
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
-        songs: [], // Empty list on error
+        error: 'Offline mode'
       );
     }
   }
 
-  /// Refresh songs list
-  Future<void> refresh() => fetchUserSongs();
+  /// Load from local cache (fallback)
+  Future<void> _loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final songsJson = prefs.getString(_storageKey);
+      
+      if (songsJson != null) {
+        final List<dynamic> songsList = jsonDecode(songsJson);
+        final songs = songsList.map((json) => _parseSong(json)).toList();
+        state = state.copyWith(songs: songs);
+        print('📦 Loaded ${songs.length} songs from cache');
+      }
+    } catch (e) {
+      print('❌ Error loading from cache: $e');
+    }
+  }
 
-  /// Add a new song to the list (called after upload)
-  void addSong(SongModel song) {
-    state = state.copyWith(
-      songs: [song, ...state.songs],
-    );
+  /// Save to cache for offline access
+  Future<void> _saveToCache(List<SongModel> songs) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final songsJson = jsonEncode(
+        songs.map((song) => _songToJson(song)).toList(),
+      );
+      await prefs.setString(_storageKey, songsJson);
+    } catch (e) {
+      print('❌ Error saving to cache: $e');
+    }
+  }
+
+  /// Refresh songs from backend
+  Future<void> refresh() async {
+    print('🔄 Refreshing songs from backend...');
+    await _loadFromBackend();
+  }
+
+  /// Add a new song (optimistic update, then refresh from database)
+  Future<void> addSong(SongModel song) async {
+    // Show in UI immediately (optimistic update)
+    final updatedSongs = [song, ...state.songs];
+    state = state.copyWith(songs: updatedSongs);
+    print('✅ Song added to UI: ${song.title}');
+    
+    // Refresh from database to get real data
+    print('🔄 Refreshing from database to confirm...');
+    await Future.delayed(const Duration(milliseconds: 500));
+    await refresh();
+  }
+
+  /// Clear cache (for testing)
+  Future<void> clearCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_storageKey);
+    print('🗑️ Cache cleared');
   }
 
   /// Parse song from API response
@@ -88,13 +213,28 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
     return SongModel(
       id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? 'Untitled',
-      artist: json['artist']?['name'] ?? json['artistName'] ?? 'Unknown Artist',
+      artist: json['artist']?['name'] ?? json['artistName'] ?? 'Current User',
       artistId: json['artist']?['_id'] ?? json['artistId'] ?? '',
       albumArt: json['coverArt'] ?? json['albumArt'] ?? 'https://via.placeholder.com/300',
       duration: Duration(seconds: json['duration'] ?? 180),
-      audioUrl: json['audioUrl'] ?? json['fileUrl'] ?? '',
+      audioUrl: json['fileUrl'] ?? json['audioUrl'] ?? '',
       genre: json['genre'] ?? 'Unknown',
       tokenReward: json['price'] ?? json['tokenReward'] ?? 10,
     );
+  }
+
+  /// Convert song to JSON
+  Map<String, dynamic> _songToJson(SongModel song) {
+    return {
+      'id': song.id,
+      'title': song.title,
+      'artist': song.artist,
+      'artistId': song.artistId,
+      'albumArt': song.albumArt,
+      'duration': song.duration.inSeconds,
+      'audioUrl': song.audioUrl,
+      'genre': song.genre,
+      'tokenReward': song.tokenReward,
+    };
   }
 }

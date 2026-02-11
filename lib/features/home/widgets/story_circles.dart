@@ -10,7 +10,6 @@ class StoryCircles extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stories = ref.watch(storiesProvider);
-    final theme = Theme.of(context);
 
     return stories.when(
       data: (storiesList) {

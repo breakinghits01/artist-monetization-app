@@ -1,11 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
+import 'package:dio/dio.dart';
+import '../../../core/config/api_config.dart';
 import '../models/upload_session.dart';
 import '../models/song_metadata.dart';
 import 'file_validator.dart';
 
 /// Upload service for handling file uploads
 class UploadService {
+  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
+  
   /// Validate and initiate upload
   Future<UploadSession> initiateUpload(String filePath) async {
     try {
@@ -83,42 +87,73 @@ class UploadService {
     }
   }
 
-  /// Create song from upload session (mock implementation)
+  /// Create song from upload session - MUST save to database
   Future<Map<String, dynamic>> createSong(
     UploadSession session,
     SongMetadata metadata, {
     bool isDraft = false,
   }) async {
+    // Prepare song data for backend (using actual schema)
+    final songData = {
+      'title': metadata.title,
+      'genre': metadata.genre ?? 'Pop',
+      'description': metadata.description ?? '',
+      'price': metadata.price,
+      'duration': 180, // TODO: Extract from actual audio file
+      'audioUrl': session.tempStoragePath ?? session.filePath,
+      'coverArt': metadata.coverArtUrl ?? 'https://via.placeholder.com/300',
+      'exclusive': metadata.exclusive ?? false,
+      // Note: Backend schema doesn't have 'status' field yet
+    };
+
+    debugPrint('📤 Uploading song to database: ${songData['title']}');
+
     try {
-      // In a real app, this would:
-      // 1. Upload audio file to server/CDN
-      // 2. Upload cover art if provided
-      // 3. Send metadata to backend API with draft status
-      // 4. Get song ID and details back
-      
-      // For now, return mock data
-      final song = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'title': metadata.title,
-        'genre': metadata.genre ?? 'Pop',
-        'description': metadata.description ?? '',
-        'price': metadata.price,
-        'audioUrl': session.tempStoragePath ?? session.filePath,
-        'coverArt': metadata.coverArtUrl,
-        'duration': 180, // Mock 3 minutes
-        'exclusive': metadata.exclusive,
-        'isDraft': isDraft,
-        'status': isDraft ? 'draft' : 'published',
-        'createdAt': DateTime.now().toIso8601String(),
-      };
-      
-      debugPrint('Song created (${isDraft ? 'draft' : 'published'}): ${song['id']}');
-      return song;
+      // POST to backend API - this is REQUIRED
+      final response = await _dio.post(
+        ApiConfig.songsEndpoint,
+        data: songData,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${ApiConfig.tempToken}',
+          },
+        ),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = response.data;
+        debugPrint('✅ Song saved to database successfully!');
+        
+        // Extract song from response
+        final song = data['data']?['song'] ?? data['song'] ?? data['data'] ?? data;
+        
+        return {
+          'id': song['_id'] ?? song['id'],
+          'title': song['title'] ?? '',
+          'genre': song['genre'] ?? 'Pop',
+          'description': song['description'] ?? '',
+          'price': (song['price'] ?? 10).toInt(),
+          'audioUrl': song['audioUrl'] ?? '',
+          'coverArt': song['coverArt'] ?? 'https://via.placeholder.com/300',
+          'duration': (song['duration'] ?? 180).toInt(),
+          'exclusive': song['exclusive'] ?? false,
+          'playCount': (song['playCount'] ?? 0).toInt(),
+          'createdAt': song['createdAt'] ?? DateTime.now().toIso8601String(),
+        };
+      } else {
+        throw Exception('Backend returned status ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Failed to save to database: ${e.message}');
+      debugPrint('❌ Response: ${e.response?.data}');
+      throw Exception('Cannot save song - backend is required. Please check your API connection.');
     } catch (e) {
-      debugPrint('Error creating song: $e');
-      rethrow;
+      debugPrint('❌ Unexpected error: $e');
+      throw Exception('Failed to save song: $e');
     }
   }
+
 
   /// Cancel upload and cleanup
   Future<void> cancelUpload(UploadSession session) async {

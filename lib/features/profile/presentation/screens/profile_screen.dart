@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../player/models/song_model.dart';
 import '../../../player/data/sample_songs.dart';
@@ -94,15 +95,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   List<SongModel> _getSortedSongs() {
-    // Get songs from provider (uploaded songs + sample songs)
+    // Get songs from provider (uploaded songs only)
     final userSongsState = ref.watch(userSongsProvider);
     final uploadedSongs = userSongsState.songs;
     
-    // Combine uploaded songs with sample songs (for demo purposes)
-    final allSongs = [...uploadedSongs, ...SampleSongs.songs];
+    debugPrint('🎵 Uploaded songs count: ${uploadedSongs.length}');
+    if (uploadedSongs.isNotEmpty) {
+      debugPrint('🎵 First uploaded song: ${uploadedSongs.first.title}');
+    }
     
-    // Return cached songs if sort hasn't changed
-    if (_cachedSortedSongs != null && _lastSortBy == _sortBy) {
+    // Show ONLY uploaded songs (no sample songs)
+    final allSongs = uploadedSongs;
+    
+    debugPrint('🎵 Total songs to display: ${allSongs.length}');
+    
+    // Return cached songs if sort hasn't changed AND song count matches
+    if (_cachedSortedSongs != null && 
+        _lastSortBy == _sortBy && 
+        _cachedSortedSongs!.length == allSongs.length) {
       return _cachedSortedSongs!;
     }
     
@@ -287,46 +297,209 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final currentSong = ref.watch(currentSongProvider);
     final likedSongIds = ref.watch(likedSongsProvider);
     
+    // Show empty state if no songs
+    if (sortedSongs.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: _buildEmptyState(
+            icon: Icons.music_note_outlined,
+            title: 'No Songs Yet',
+            subtitle: 'Upload your first song to get started',
+          ),
+        ),
+      ];
+    }
+    
     return [
       SliverPadding(
-        padding: const EdgeInsets.all(24),
-        sliver: SliverLayoutBuilder(
-          builder: (context, constraints) {
-            final crossAxisCount = constraints.crossAxisExtent > 900
-                ? 4
-                : constraints.crossAxisExtent > 600
-                    ? 3
-                    : 2;
-
-            return SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                childAspectRatio: 0.65,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final song = sortedSongs[index];
-                  final isCurrentlyPlaying = currentSong?.id == song.id;
-                  final isLiked = likedSongIds.contains(song.id);
-                  
-                  return SongCard(
-                    song: song,
-                    isCurrentlyPlaying: isCurrentlyPlaying,
-                    isLiked: isLiked,
-                    onPlay: () => _handleSongPlay(song),
-                    onLike: () => _handleSongLike(song),
-                    onOptions: () => _handleSongOptions(song),
-                  );
-                },
-                childCount: sortedSongs.length,
-              ),
-            );
-          },
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final song = sortedSongs[index];
+              final isCurrentlyPlaying = currentSong?.id == song.id;
+              final isLiked = likedSongIds.contains(song.id);
+              
+              return _buildSongListItem(
+                song: song,
+                isCurrentlyPlaying: isCurrentlyPlaying,
+                isLiked: isLiked,
+              );
+            },
+            childCount: sortedSongs.length,
+          ),
         ),
       ),
     ];
+  }
+
+  Widget _buildSongListItem({
+    required SongModel song,
+    required bool isCurrentlyPlaying,
+    required bool isLiked,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isCurrentlyPlaying 
+            ? theme.colorScheme.primary.withOpacity(0.1)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Stack(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: theme.colorScheme.primary.withOpacity(0.1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: song.albumArt != null && song.albumArt!.isNotEmpty
+                    ? Image.network(
+                        song.albumArt!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            Icons.music_note,
+                            color: theme.colorScheme.primary,
+                            size: 30,
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    : Icon(
+                        Icons.music_note,
+                        color: theme.colorScheme.primary,
+                        size: 30,
+                      ),
+              ),
+            ),
+            if (isCurrentlyPlaying)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.pause,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        title: Text(
+          song.title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: isCurrentlyPlaying ? FontWeight.bold : FontWeight.w500,
+            color: isCurrentlyPlaying ? theme.colorScheme.primary : null,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Row(
+          children: [
+            if (song.genre != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  song.genre!,
+                  style: theme.textTheme.labelSmall,
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              _formatDuration(song.duration),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (song.tokenReward != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.monetization_on, size: 14, color: Colors.amber),
+                    const SizedBox(width: 4),
+                    Text(
+                      '+${song.tokenReward}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.amber,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            IconButton(
+              icon: Icon(
+                isLiked ? Icons.favorite : Icons.favorite_border,
+                color: isLiked ? Colors.red : null,
+                size: 20,
+              ),
+              onPressed: () => _handleSongLike(song),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.more_vert, size: 20),
+              onPressed: () => _handleSongOptions(song),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
+        onTap: () => _handleSongPlay(song),
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   Widget _buildEmptyState({

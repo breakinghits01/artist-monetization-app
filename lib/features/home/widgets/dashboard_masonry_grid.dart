@@ -69,7 +69,6 @@ class DashboardMasonryGrid extends ConsumerWidget {
       case DashboardCardType.earningOpportunity:
       case DashboardCardType.yourCollection:
       case DashboardCardType.topTippers:
-      default:
         return _DefaultCard(card: card);
     }
   }

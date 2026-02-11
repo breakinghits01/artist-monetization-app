@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 /// Application Constants
 class AppConstants {
   AppConstants._();
