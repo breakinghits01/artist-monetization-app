@@ -106,10 +106,17 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
         ),
       ),
       child: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: 16,
+              bottom: MediaQuery.of(context).padding.bottom + 60,
+            ),
+            child: Column(
             children: [
               const SizedBox(height: 20),
               // Album art
@@ -134,6 +141,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
               // Action buttons
               _buildActionButtons(context, ref, song, theme),
             ],
+          ),
           ),
         ),
       ),

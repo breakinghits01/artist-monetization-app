@@ -100,6 +100,17 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
     }
   }
 
+  /// Get playlist by ID with full details
+  Future<PlaylistModel?> getPlaylistById(String playlistId) async {
+    try {
+      final playlist = await _service.getPlaylistById(playlistId);
+      return playlist;
+    } catch (e) {
+      debugPrint('❌ Error getting playlist: $e');
+      return null;
+    }
+  }
+
   /// Add song to playlist
   Future<bool> addSongToPlaylist(String playlistId, String songId) async {
     try {

@@ -10,6 +10,9 @@ import '../../models/user_profile_model.dart';
 import '../../widgets/profile_header.dart';
 import '../../widgets/song_card.dart';
 import '../../../playlist/widgets/add_to_playlist_sheet.dart';
+import '../../../playlist/providers/playlists_provider.dart';
+import '../../../playlist/widgets/create_playlist_dialog.dart';
+import '../../../playlist/screens/playlist_detail_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -36,7 +39,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {});
+        // Load playlists when switching to playlists tab
+        if (_tabController.index == 2) {
+          Future.microtask(() {
+            ref.read(playlistsProvider.notifier).loadPlaylists();
+          });
+        }
       }
+    });
+    
+    // Load playlists on initial load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(playlistsProvider.notifier).loadPlaylists();
     });
   }
 
@@ -247,13 +261,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               ),
             )
           else
-            SliverToBoxAdapter(
-              child: _buildEmptyState(
-                icon: Icons.playlist_play,
-                title: 'No Playlists',
-                subtitle: 'Create your first playlist',
-              ),
-            ),
+            _buildPlaylistsTab(),
         ],
       ),
     );
@@ -683,6 +691,303 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_StickyTabBarDelegate oldDelegate) {
-    return sortBy != oldDelegate.sortBy; // Rebuild when sort changes
+    return sortBy != oldDelegate.sortBy;
+  }
+}
+
+// Playlists tab widget
+extension _PlaylistsTab on _ProfileScreenState {
+  Widget _buildPlaylistsTab() {
+    final playlistsState = ref.watch(playlistsProvider);
+    final theme = Theme.of(context);
+
+    if (playlistsState.isLoading) {
+      return const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (playlistsState.error != null) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error: ${playlistsState.error}'),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () {
+                  ref.read(playlistsProvider.notifier).loadPlaylists();
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (playlistsState.playlists.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.playlist_play,
+                size: 80,
+                color: theme.colorScheme.primary.withOpacity(0.3),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'No Playlists',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Create your first playlist',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () async {
+                  final result = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => const CreatePlaylistDialog(),
+                  );
+                  if (result == true) {
+                    ref.read(playlistsProvider.notifier).loadPlaylists();
+                  }
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Create Playlist'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.all(16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.0,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final playlist = playlistsState.playlists[index];
+            return _buildPlaylistCard(playlist);
+          },
+          childCount: playlistsState.playlists.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaylistCard(playlist) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: isDark ? 4 : 2,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PlaylistDetailScreen(
+                playlistId: playlist.id,
+                playlistName: playlist.name,
+              ),
+            ),
+          );
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primary.withOpacity(0.6),
+                theme.colorScheme.secondary.withOpacity(0.8),
+              ],
+            ),
+          ),
+          child: Stack(
+            children: [
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Playlist icon
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.playlist_play,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    const Spacer(),
+                    // Playlist name
+                    Text(
+                      playlist.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // Song count
+                    Text(
+                      '${playlist.songCount} songs',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // More options button
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onPressed: () {
+                    _showPlaylistOptions(playlist);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPlaylistOptions(playlist) {
+    final theme = Theme.of(context);
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Icon(Icons.edit, color: theme.colorScheme.primary),
+                title: const Text('Edit Playlist'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: Edit playlist
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.share, color: theme.colorScheme.primary),
+                title: const Text('Share'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: Share playlist
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Delete', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deletePlaylist(playlist);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deletePlaylist(playlist) async {
+    if (!mounted) return;
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Playlist'),
+        content: Text('Delete "${playlist.name}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm == true && mounted) {
+      try {
+        await ref.read(playlistsProvider.notifier).deletePlaylist(playlist.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Playlist deleted'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete: $e'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
   }
 }
