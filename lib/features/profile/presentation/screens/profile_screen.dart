@@ -9,6 +9,7 @@ import '../../providers/user_songs_provider.dart';
 import '../../models/user_profile_model.dart';
 import '../../widgets/profile_header.dart';
 import '../../widgets/song_card.dart';
+import '../../../playlist/widgets/add_to_playlist_sheet.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -343,13 +344,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isCurrentlyPlaying 
-            ? theme.colorScheme.primary.withOpacity(0.1)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        gradient: isCurrentlyPlaying 
+            ? LinearGradient(
+                colors: [
+                  theme.colorScheme.primary.withOpacity(0.15),
+                  theme.colorScheme.primary.withOpacity(0.05),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              )
+            : null,
+        color: isCurrentlyPlaying ? null : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isCurrentlyPlaying 
+              ? theme.colorScheme.primary.withOpacity(0.3)
+              : theme.colorScheme.outline.withOpacity(0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          if (isCurrentlyPlaying)
+            BoxShadow(
+              color: theme.colorScheme.primary.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+        ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         leading: Stack(
           children: [
             Container(
@@ -357,7 +380,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               height: 56,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primary.withOpacity(0.2),
+                    theme.colorScheme.secondary.withOpacity(0.1),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -400,13 +437,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black45,
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.black.withOpacity(0.6),
+                        Colors.black.withOpacity(0.4),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
-                    Icons.pause,
+                    Icons.pause_circle_filled,
                     color: Colors.white,
-                    size: 24,
+                    size: 28,
                   ),
                 ),
               ),
@@ -580,8 +624,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ListTile(
               leading: Icon(Icons.add_to_photos, color: theme.colorScheme.primary),
               title: const Text('Add to Playlist'),
-              subtitle: const Text('Coming soon'),
-              onTap: () => Navigator.pop(context),
+              subtitle: const Text('Add this song to a playlist'),
+              onTap: () {
+                Navigator.pop(context); // Close options sheet
+                // Show add to playlist sheet
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => AddToPlaylistSheet(songId: song.id),
+                );
+              },
             ),
             ListTile(
               leading: Icon(Icons.share, color: theme.colorScheme.secondary),
