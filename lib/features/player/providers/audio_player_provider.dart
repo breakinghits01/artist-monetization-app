@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import '../models/song_model.dart';
 import '../models/player_state.dart' as models;
 import '../../home/providers/wallet_provider.dart';
 import '../../../core/config/api_config.dart';
 import 'queue_provider.dart';
+import '../services/audio_service_handler.dart';
 
 /// Current song provider
 final currentSongProvider = StateProvider<SongModel?>((ref) => null);
@@ -33,11 +33,24 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   final Ref _ref;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final List<StreamSubscription> _subscriptions = [];
+  AudioServiceHandler? _audioServiceHandler;
   bool _hasRewardedCurrentSong = false;
   bool _isDisposed = false;
 
   AudioPlayerNotifier(this._ref) : super(const models.PlayerState()) {
     _initPlayer();
+    _initAudioService();
+  }
+
+  Future<void> _initAudioService() async {
+    try {
+      _audioServiceHandler = await initAudioService(_audioPlayer);
+      _audioServiceHandler!.onSkipToNext = () => playNext();
+      _audioServiceHandler!.onSkipToPrevious = () => playPrevious();
+      print('✅ Audio service initialized with custom controls');
+    } catch (e) {
+      print('⚠️ Audio service init failed: $e');
+    }
   }
 
   void _initPlayer() {
@@ -134,22 +147,14 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
             : '${ApiConfig.baseUrl}${song.albumArt}';
       }
       
-      // Create audio source with MediaItem tag for lock screen
-      final audioSource = AudioSource.uri(
-        Uri.parse(audioUrl),
-        tag: MediaItem(
-          id: song.id,
-          album: song.genre ?? 'Music',
-          title: song.title,
-          artist: song.artist,
-          duration: song.duration,
-          artUri: albumArtUrl != null ? Uri.parse(albumArtUrl) : null,
-        ),
-      );
-      
-      // Load and play audio
-      await _audioPlayer.setAudioSource(audioSource);
+      // Load audio - audio_service handler will manage lock screen
+      await _audioPlayer.setUrl(audioUrl);
       await _audioPlayer.play();
+
+      // Update audio service handler media item for lock screen
+      if (_audioServiceHandler != null) {
+        await _audioServiceHandler!.setMediaItem(song, artUri: albumArtUrl);
+      }
 
       // Clear loading state - playing state updated by playerStateStream listener
       state = state.copyWith(
@@ -362,6 +367,11 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       subscription.cancel();
     }
     _subscriptions.clear();
+    
+    // Dispose audio service handler
+    if (_audioServiceHandler != null) {
+      _audioServiceHandler!.dispose();
+    }
     
     // Dispose audio player
     _audioPlayer.dispose();

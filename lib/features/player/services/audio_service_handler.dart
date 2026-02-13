@@ -24,16 +24,28 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
       
       playbackState.add(playbackState.value.copyWith(
         controls: [
+          const MediaControl(
+            androidIcon: 'drawable/ic_shuffle',
+            label: 'Shuffle',
+            action: MediaAction.setShuffleMode,
+          ),
           MediaControl.skipToPrevious,
           if (playing) MediaControl.pause else MediaControl.play,
           MediaControl.skipToNext,
+          const MediaControl(
+            androidIcon: 'drawable/ic_repeat',
+            label: 'Repeat',
+            action: MediaAction.setRepeatMode,
+          ),
         ],
         systemActions: const {
           MediaAction.seek,
           MediaAction.seekForward,
           MediaAction.seekBackward,
+          MediaAction.setShuffleMode,
+          MediaAction.setRepeatMode,
         },
-        androidCompactActionIndices: const [0, 1, 2],
+        androidCompactActionIndices: const [1, 2, 3], // Previous, Play/Pause, Next in compact view
         processingState: const {
           ProcessingState.idle: AudioProcessingState.idle,
           ProcessingState.loading: AudioProcessingState.loading,
@@ -117,6 +129,31 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     if (onSkipToPrevious != null) {
       await onSkipToPrevious!();
     }
+  }
+
+  @override
+  Future<void> setRepeatMode(AudioServiceRepeatMode repeatMode) async {
+    print('🔁 Audio Service: Set repeat mode to $repeatMode');
+    switch (repeatMode) {
+      case AudioServiceRepeatMode.none:
+        await _player.setLoopMode(LoopMode.off);
+        break;
+      case AudioServiceRepeatMode.one:
+        await _player.setLoopMode(LoopMode.one);
+        break;
+      case AudioServiceRepeatMode.all:
+        await _player.setLoopMode(LoopMode.all);
+        break;
+      default:
+        await _player.setLoopMode(LoopMode.off);
+    }
+  }
+
+  @override
+  Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
+    print('🔀 Audio Service: Set shuffle mode to $shuffleMode');
+    final enabled = shuffleMode == AudioServiceShuffleMode.all;
+    await _player.setShuffleModeEnabled(enabled);
   }
 
   @override
