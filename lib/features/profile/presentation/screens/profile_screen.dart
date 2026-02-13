@@ -795,18 +795,12 @@ extension _PlaylistsTab on _ProfileScreenState {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.all(16),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.0,
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final playlist = playlistsState.playlists[index];
-            return _buildPlaylistCard(playlist);
+            return _buildPlaylistListItem(playlist);
           },
           childCount: playlistsState.playlists.length,
         ),
@@ -814,91 +808,128 @@ extension _PlaylistsTab on _ProfileScreenState {
     );
   }
 
-  Widget _buildPlaylistCard(playlist) {
+  Widget _buildPlaylistListItem(playlist) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: isDark ? 4 : 2,
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PlaylistDetailScreen(
-                playlistId: playlist.id,
-                playlistName: playlist.name,
-              ),
-            ),
-          );
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.primary.withOpacity(0.6),
-                theme.colorScheme.secondary.withOpacity(0.8),
-              ],
-            ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.primary.withOpacity(isDark ? 0.15 : 0.08),
+            theme.colorScheme.secondary.withOpacity(isDark ? 0.1 : 0.05),
+          ],
+        ),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Stack(
-            children: [
-              // Content
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Playlist icon
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.playlist_play,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                    const Spacer(),
-                    // Playlist name
-                    Text(
-                      playlist.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    // Song count
-                    Text(
-                      '${playlist.songCount} songs',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PlaylistDetailScreen(
+                  playlistId: playlist.id,
+                  playlistName: playlist.name,
                 ),
               ),
-              // More options button
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  icon: const Icon(Icons.more_vert, color: Colors.white),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Playlist icon with gradient background
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        theme.colorScheme.primary.withOpacity(0.8),
+                        theme.colorScheme.secondary,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.playlist_play,
+                    color: Colors.white,
+                    size: 36,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Playlist info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        playlist.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.music_note,
+                            size: 16,
+                            color: theme.colorScheme.primary.withOpacity(0.7),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${playlist.songCount} ${playlist.songCount == 1 ? 'song' : 'songs'}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // More options button
+                IconButton(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
                   onPressed: () {
                     _showPlaylistOptions(playlist);
                   },
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
