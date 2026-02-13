@@ -234,13 +234,23 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   }
 
   /// Handle song completion
-  void _onSongCompleted() {
+  void _onSongCompleted() async {
     final song = _ref.read(currentSongProvider);
     if (song != null && !_hasRewardedCurrentSong) {
       // Reward if not already done (in case they skipped past 80%)
       _rewardTokens(song.tokenReward);
       _hasRewardedCurrentSong = true;
     }
+
+    // Reset to beginning and pause
+    await _audioPlayer.seek(Duration.zero);
+    await _audioPlayer.pause();
+    
+    // Update state to show play button
+    state = state.copyWith(
+      isPlaying: false,
+      position: Duration.zero,
+    );
 
     // TODO: Play next song in queue
   }
