@@ -10,6 +10,7 @@ import '../../player/models/song_model.dart';
 import '../../player/providers/audio_player_provider.dart';
 import '../../player/widgets/mini_player.dart';
 import '../../player/widgets/player_wrapper.dart';
+import '../../player/widgets/audio_wave_indicator.dart';
 
 class PlaylistDetailScreen extends ConsumerStatefulWidget {
   final String playlistId;
@@ -85,18 +86,26 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 final songMap = Map<String, dynamic>.from(songData);
                 debugPrint('🗺️ Song map keys: ${songMap.keys.toList()}');
                 debugPrint('🔑 Song ID: ${songMap['_id'] ?? songMap['id']}');
+                debugPrint('🎵 Audio URL: ${songMap['audioUrl']}');
+                debugPrint('🎤 Artist: ${songMap['artistId']}');
                 
                 // Add id field if only _id exists
                 if (songMap['_id'] != null && songMap['id'] == null) {
                   songMap['id'] = songMap['_id'];
                 }
                 
-                if (songMap['id'] != null || songMap['_id'] != null) {
-                  final song = SongModel.fromJson(songMap);
-                  songs.add(song);
-                  debugPrint('✅ Added song: ${song.title}');
+                // Check if song has required fields
+                if ((songMap['id'] != null || songMap['_id'] != null) && songMap['audioUrl'] != null) {
+                  try {
+                    final song = SongModel.fromJson(songMap);
+                    songs.add(song);
+                    debugPrint('✅ Added song: ${song.title} - ${song.audioUrl}');
+                  } catch (e, stack) {
+                    debugPrint('❌ Error creating SongModel: $e');
+                    debugPrint('Stack: $stack');
+                  }
                 } else {
-                  debugPrint('⚠️ Skipping song - no ID found');
+                  debugPrint('⚠️ Skipping song - missing required fields (ID: ${songMap['_id']}, audioUrl: ${songMap['audioUrl']})');
                 }
               } else if (songData is String) {
                 // Song is just an ID - skip it
@@ -415,21 +424,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       child: const Icon(Icons.music_note, color: Colors.white, size: 28),
                     ),
             ),
-            // Playing indicator
-            if (isPlaying)
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.equalizer,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
+            // Playing indicator with wave animation
+            if (isCurrentSong)
+              _PlayingIndicatorOverlay(isPlaying: isPlaying),
           ],
         ),
         title: Text(
@@ -497,6 +494,72 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 },
               ),
               const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Playing indicator overlay with animated wave and hover pause button
+class _PlayingIndicatorOverlay extends ConsumerStatefulWidget {
+  final bool isPlaying;
+  
+  const _PlayingIndicatorOverlay({required this.isPlaying});
+
+  @override
+  ConsumerState<_PlayingIndicatorOverlay> createState() => _PlayingIndicatorOverlayState();
+}
+
+class _PlayingIndicatorOverlayState extends ConsumerState<_PlayingIndicatorOverlay> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final playerState = ref.watch(audioPlayerProvider);
+    
+    return Positioned.fill(
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.black.withOpacity(_isHovered ? 0.5 : 0.3),
+          ),
+          child: Stack(
+            children: [
+              // Animated wave indicator (always visible when playing)
+              if (!_isHovered || !kIsWeb)
+                Center(
+                  child: AudioWaveIndicator(
+                    isPlaying: playerState.isPlaying,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+              // Pause button (only on hover for web, or always for mobile)
+              if (_isHovered && kIsWeb)
+                Center(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        ref.read(audioPlayerProvider.notifier).playPause();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(
+                          Icons.pause_circle_filled,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

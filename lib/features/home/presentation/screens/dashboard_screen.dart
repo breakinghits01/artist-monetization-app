@@ -75,24 +75,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onPressed: () => _showLogoutDialog(context, ref),
             ),
             const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => context.push('/profile'),
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: theme.colorScheme.primary,
-                backgroundImage: user?['profileImage'] != null
-                    ? NetworkImage(user!['profileImage'] as String)
-                    : null,
-                child: user?['profileImage'] == null
-                    ? Icon(
-                        Icons.person,
-                        size: 20,
-                        color: theme.colorScheme.onPrimary,
-                      )
-                    : null,
-              ),
-            ),
-            const SizedBox(width: 16),
           ],
         ),
         body: _screens[_selectedIndex],
@@ -111,31 +93,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   NavigationBar(
                     selectedIndex: _selectedIndex,
                     onDestinationSelected: _onItemTapped,
+                    labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+                    height: 64,
                     destinations: const [
                       NavigationDestination(
-                        icon: Icon(Icons.home_outlined),
-                        selectedIcon: Icon(Icons.home),
-                        label: 'Home',
+                        icon: Icon(Icons.home_outlined, size: 28),
+                        selectedIcon: Icon(Icons.home_rounded, size: 28),
+                        label: '',
                       ),
                       NavigationDestination(
-                        icon: Icon(Icons.explore_outlined),
-                        selectedIcon: Icon(Icons.explore),
-                        label: 'Discover',
+                        icon: Icon(Icons.explore_outlined, size: 28),
+                        selectedIcon: Icon(Icons.explore_rounded, size: 28),
+                        label: '',
                       ),
                       NavigationDestination(
-                        icon: Icon(Icons.cloud_upload_outlined),
-                        selectedIcon: Icon(Icons.cloud_upload),
-                        label: 'Upload',
+                        icon: Icon(Icons.add_circle_outline, size: 28),
+                        selectedIcon: Icon(Icons.add_circle, size: 28),
+                        label: '',
                       ),
                       NavigationDestination(
-                        icon: Icon(Icons.people_outline),
-                        selectedIcon: Icon(Icons.people),
-                        label: 'Connect',
+                        icon: Icon(Icons.people_outline_rounded, size: 28),
+                        selectedIcon: Icon(Icons.people_rounded, size: 28),
+                        label: '',
                       ),
                       NavigationDestination(
-                        icon: Icon(Icons.person_outline),
-                        selectedIcon: Icon(Icons.person),
-                        label: 'Profile',
+                        icon: Icon(Icons.account_circle_outlined, size: 28),
+                        selectedIcon: Icon(Icons.account_circle, size: 28),
+                        label: '',
                       ),
                     ],
                   ),
