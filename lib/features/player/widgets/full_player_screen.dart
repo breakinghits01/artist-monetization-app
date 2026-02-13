@@ -106,83 +106,87 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
         ),
       ),
       child: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              top: 16,
-              bottom: MediaQuery.of(context).padding.bottom + 60,
-            ),
-            child: Column(
-            children: [
-              const SizedBox(height: 20),
-              // Album art
-              _buildAlbumArt(song, theme, playerState.isPlaying),
-              const SizedBox(height: 32),
-              // Song info
-              _buildSongInfo(song, theme, ref),
-              const SizedBox(height: 24),
-              // Token progress ring
-              if (tokenState.progress > 0)
-                _buildTokenProgress(context, theme, tokenState, song),
-              const SizedBox(height: 24),
-              // Progress slider
-              _buildProgressSlider(context, ref, playerState, theme),
-              const SizedBox(height: 32),
-              // Main controls
-              _buildMainControls(ref, playerState, theme),
-              const SizedBox(height: 24),
-              // Secondary controls
-              _buildSecondaryControls(ref, playerState, theme),
-              const SizedBox(height: 24),
-              // Action buttons
-              _buildActionButtons(context, ref, song, theme),
-            ],
-          ),
-          ),
+        bottom: true,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate available height
+            final availableHeight = constraints.maxHeight;
+            // Responsive album art size (smaller on short screens)
+            final albumArtSize = (availableHeight * 0.35).clamp(200.0, 300.0);
+            
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  const SizedBox(height: 8),
+                  // Album art - responsive size
+                  _buildAlbumArt(song, theme, playerState.isPlaying, albumArtSize),
+                  const SizedBox(height: 16),
+                  // Song info
+                  _buildSongInfo(song, theme, ref),
+                  // Token progress ring (compact)
+                  if (tokenState.progress > 0) ...[
+                    const SizedBox(height: 12),
+                    _buildTokenProgress(context, theme, tokenState, song),
+                  ],
+                  const SizedBox(height: 12),
+                  // Progress slider
+                  _buildProgressSlider(context, ref, playerState, theme),
+                  const SizedBox(height: 16),
+                  // Main controls
+                  _buildMainControls(ref, playerState, theme),
+                  const SizedBox(height: 12),
+                  // Secondary controls
+                  _buildSecondaryControls(ref, playerState, theme),
+                  const SizedBox(height: 12),
+                  // Action buttons
+                  _buildActionButtons(context, ref, song, theme),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildAlbumArt(SongModel song, ThemeData theme, bool isPlaying) {
+  Widget _buildAlbumArt(SongModel song, ThemeData theme, bool isPlaying, double size) {
     return Hero(
       tag: 'album_art_${song.id}',
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        width: 300,
-        height: 300,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
               color: theme.colorScheme.primary.withOpacity(0.4),
-              blurRadius: 40,
-              spreadRadius: 5,
-              offset: const Offset(0, 10),
+              blurRadius: 30,
+              spreadRadius: 3,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
               // Album image
               if (song.albumArt != null)
                 CachedNetworkImage(
                   imageUrl: song.albumArt!,
-                  width: 300,
-                  height: 300,
+                  width: size,
+                  height: size,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => _buildAlbumPlaceholder(theme),
+                  placeholder: (context, url) => _buildAlbumPlaceholder(theme, size),
                   errorWidget: (context, url, error) =>
-                      _buildAlbumPlaceholder(theme),
+                      _buildAlbumPlaceholder(theme, size),
                 )
               else
-                _buildAlbumPlaceholder(theme),
+                _buildAlbumPlaceholder(theme, size),
               // Playing animation overlay
               if (isPlaying)
                 Positioned.fill(
@@ -204,10 +208,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
     );
   }
 
-  Widget _buildAlbumPlaceholder(ThemeData theme) {
+  Widget _buildAlbumPlaceholder(ThemeData theme, double size) {
     return Container(
-      width: 300,
-      height: 300,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -217,7 +221,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
       ),
       child: Icon(
         Icons.music_note,
-        size: 120,
+        size: size * 0.4,
         color: theme.colorScheme.onPrimary.withOpacity(0.8),
       ),
     );
@@ -225,17 +229,18 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
 
   Widget _buildSongInfo(SongModel song, ThemeData theme, WidgetRef ref) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           song.title,
-          style: theme.textTheme.headlineMedium?.copyWith(
+          style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -245,17 +250,17 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
               },
               child: Text(
                 song.artist,
-                style: theme.textTheme.titleMedium?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: theme.colorScheme.primary.withOpacity(0.3),
                 ),
@@ -265,6 +270,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
+                  fontSize: 11,
                 ),
               ),
             ),
@@ -281,28 +287,28 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
     SongModel song,
   ) {
     return GlassContainer(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // Token icon
-          const TokenIcon(size: 32, withShadow: false),
-          const SizedBox(width: 12),
+          // Token icon - smaller
+          const TokenIcon(size: 28, withShadow: false),
+          const SizedBox(width: 10),
           // Progress info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      tokenState.hasRewarded
-                          ? '+${tokenState.tokensEarned} tokens earned!'
-                          : 'Earn ${song.tokenReward} tokens',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                Text(
+                  tokenState.hasRewarded
+                      ? '+${tokenState.tokensEarned} tokens earned!'
+                      : 'Earn ${song.tokenReward} tokens',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: tokenState.hasRewarded
+                        ? theme.colorScheme.primary
+                        : null,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 ClipRRect(
@@ -310,9 +316,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                   child: LinearProgressIndicator(
                     value: tokenState.progress,
                     minHeight: 6,
-                    backgroundColor: theme.colorScheme.onSurface.withOpacity(
-                      0.1,
-                    ),
+                    backgroundColor: theme.colorScheme.onSurface.withOpacity(0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       tokenState.hasRewarded
                           ? theme.colorScheme.secondary
@@ -327,6 +331,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                       : 'Listen to 80% to earn',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    fontSize: 10,
                   ),
                 ),
               ],
@@ -572,19 +577,20 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: theme.colorScheme.onSurface.withOpacity(0.1),
             ),
-            child: Icon(icon, color: theme.colorScheme.onSurface, size: 24),
+            child: Icon(icon, color: theme.colorScheme.onSurface, size: 22),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(0.7),
+              fontSize: 11,
             ),
           ),
         ],
