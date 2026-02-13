@@ -23,6 +23,11 @@ final selectedSortProvider = StateProvider<String>((ref) => 'createdAt');
 // Search query
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
+// Has more songs to load
+final hasMoreSongsProvider = Provider<bool>((ref) {
+  return ref.watch(songListProvider.notifier).hasMore;
+});
+
 class SongListNotifier extends StateNotifier<AsyncValue<List<SongModel>>> {
   final Ref _ref;
   int _currentPage = 1;
@@ -86,4 +91,8 @@ class SongListNotifier extends StateNotifier<AsyncValue<List<SongModel>>> {
     _hasMore = true;
     fetchSongs(refresh: true);
   }
+
+  // Expose hasMore state
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
 }

@@ -10,7 +10,7 @@ class SongModel {
   final String? description;
   final int playCount;
   final bool featured;
-  final Artist artist;
+  final Artist? artist;
   final DateTime createdAt;
 
   const SongModel({
@@ -25,11 +25,18 @@ class SongModel {
     this.description,
     required this.playCount,
     required this.featured,
-    required this.artist,
+    this.artist,
     required this.createdAt,
   });
 
   factory SongModel.fromJson(Map<String, dynamic> json) {
+    // Handle null artistId for old songs
+    Artist? artist;
+    final artistData = json['artistId'];
+    if (artistData != null && artistData is Map<String, dynamic>) {
+      artist = Artist.fromJson(artistData);
+    }
+
     return SongModel(
       id: json['_id'] ?? json['id'],
       title: json['title'],
@@ -42,7 +49,7 @@ class SongModel {
       description: json['description'],
       playCount: json['playCount'] ?? 0,
       featured: json['featured'] ?? false,
-      artist: Artist.fromJson(json['artistId']),
+      artist: artist,
       createdAt: DateTime.parse(json['createdAt']),
     );
   }
@@ -61,6 +68,50 @@ class SongModel {
     }
     return playCount.toString();
   }
+
+  /// Convert to player SongModel for compatibility with audio player
+  dynamic toPlayerModel() {
+    // Import player model dynamically to avoid circular dependency
+    return _PlayerSongModel(
+      id: id,
+      title: title,
+      artist: artist?.username ?? 'Unknown Artist',
+      artistId: artist?.id ?? '',
+      albumArt: coverArt,
+      audioUrl: audioUrl,
+      duration: Duration(seconds: duration),
+      tokenReward: price.toInt(),
+      genre: genre,
+      isPremium: exclusive,
+    );
+  }
+}
+
+// Internal wrapper to convert to player model
+class _PlayerSongModel {
+  final String id;
+  final String title;
+  final String artist;
+  final String artistId;
+  final String? albumArt;
+  final String audioUrl;
+  final Duration duration;
+  final int tokenReward;
+  final String? genre;
+  final bool isPremium;
+
+  const _PlayerSongModel({
+    required this.id,
+    required this.title,
+    required this.artist,
+    required this.artistId,
+    this.albumArt,
+    required this.audioUrl,
+    required this.duration,
+    this.tokenReward = 5,
+    this.genre,
+    this.isPremium = false,
+  });
 }
 
 class Artist {

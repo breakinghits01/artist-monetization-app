@@ -136,7 +136,7 @@ class SongCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 1),
                     Text(
-                      song.artist.username,
+                      song.artist?.username ?? 'Unknown Artist',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 11,
