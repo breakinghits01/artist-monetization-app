@@ -7,6 +7,7 @@ import '../providers/audio_player_provider.dart';
 import '../models/song_model.dart';
 import '../models/player_state.dart' as models;
 import '../../../shared/widgets/token_icon.dart';
+import '../../auth/providers/auth_provider.dart';
 import 'glass_container.dart';
 
 /// Full player screen with expanded controls
@@ -228,6 +229,9 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
   }
 
   Widget _buildSongInfo(SongModel song, ThemeData theme, WidgetRef ref) {
+    final currentUser = ref.watch(currentUserProvider);
+    final isOwnSong = currentUser?['_id'] == song.artistId || currentUser?['id'] == song.artistId;
+    
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -255,25 +259,28 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.3),
+            // Only show Follow button if user doesn't own the song
+            if (!isOwnSong) ...[
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                  ),
+                ),
+                child: Text(
+                  'Follow',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
                 ),
               ),
-              child: Text(
-                'Follow',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
-                ),
-              ),
-            ),
+            ],
           ],
         ),
       ],
