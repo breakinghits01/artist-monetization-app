@@ -155,11 +155,15 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
 
       // Update media item for lock screen and notification
       if (_audioServiceHandler != null) {
-        final albumArtUrl = song.albumArt != null && song.albumArt!.startsWith('http')
-            ? song.albumArt
-            : song.albumArt != null
-                ? '${ApiConfig.baseUrl}${song.albumArt}'
-                : null;
+        // Filter out placeholder URLs from database
+        String? albumArtUrl;
+        if (song.albumArt != null && 
+            !song.albumArt!.contains('placeholder') &&
+            !song.albumArt!.contains('picsum.photos')) {
+          albumArtUrl = song.albumArt!.startsWith('http')
+              ? song.albumArt
+              : '${ApiConfig.baseUrl}${song.albumArt}';
+        }
         
         await _audioServiceHandler!.setMediaItem(song, artUri: albumArtUrl);
         print('🎨 Updated lock screen media item');
