@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:audio_session/audio_session.dart';
 import '../models/song_model.dart';
 
 /// Callback for skip next from notification/lock screen
@@ -136,6 +137,25 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
 Future<AudioServiceHandler> initAudioService(AudioPlayer player) async {
   print('🎵 Initializing audio service...');
   
+  // Configure audio session for background playback
+  final session = await AudioSession.instance;
+  await session.configure(const AudioSessionConfiguration(
+    avAudioSessionCategory: AVAudioSessionCategory.playback,
+    avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
+    avAudioSessionMode: AVAudioSessionMode.spokenAudio,
+    avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
+    avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+    androidAudioAttributes: AndroidAudioAttributes(
+      contentType: AndroidAudioContentType.music,
+      flags: AndroidAudioFlags.none,
+      usage: AndroidAudioUsage.media,
+    ),
+    androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+    androidWillPauseWhenDucked: false,
+  ));
+  
+  print('✅ Audio session configured');
+  
   final handler = await AudioService.init(
     builder: () => AudioServiceHandler(player),
     config: AudioServiceConfig(
@@ -145,7 +165,7 @@ Future<AudioServiceHandler> initAudioService(AudioPlayer player) async {
       androidNotificationOngoing: true,
       androidNotificationIcon: 'mipmap/ic_launcher',
       androidShowNotificationBadge: true,
-      androidStopForegroundOnPause: false,
+      androidStopForegroundOnPause: true,
     ),
   );
   
