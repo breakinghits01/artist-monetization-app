@@ -9,11 +9,13 @@ import '../../../core/theme/app_colors_extension.dart';
 /// Song list tile for browse/discover screens
 class SongListTile extends ConsumerWidget {
   final SongModel song;
+  final List<SongModel>? allSongs; // For queue context
   final VoidCallback? onTap;
 
   const SongListTile({
     super.key,
     required this.song,
+    this.allSongs,
     this.onTap,
   });
 
@@ -146,7 +148,12 @@ class SongListTile extends ConsumerWidget {
             if (isCurrentSong) {
               ref.read(audioPlayerProvider.notifier).playPause();
             } else {
-              ref.read(audioPlayerProvider.notifier).playSong(song);
+              // Use queue if available, otherwise single song
+              if (allSongs != null && allSongs!.isNotEmpty) {
+                ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs!);
+              } else {
+                ref.read(audioPlayerProvider.notifier).playSong(song);
+              }
             }
           },
         ),
@@ -154,7 +161,12 @@ class SongListTile extends ConsumerWidget {
           if (isCurrentSong) {
             ref.read(audioPlayerProvider.notifier).playPause();
           } else {
-            ref.read(audioPlayerProvider.notifier).playSong(song);
+            // Use queue if available, otherwise single song
+            if (allSongs != null && allSongs!.isNotEmpty) {
+              ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs!);
+            } else {
+              ref.read(audioPlayerProvider.notifier).playSong(song);
+            }
           }
         },
       ),

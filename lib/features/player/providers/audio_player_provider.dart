@@ -5,6 +5,7 @@ import '../models/song_model.dart';
 import '../models/player_state.dart' as models;
 import '../../home/providers/wallet_provider.dart';
 import '../../../core/config/api_config.dart';
+import 'queue_provider.dart';
 
 /// Current song provider
 final currentSongProvider = StateProvider<SongModel?>((ref) => null);
@@ -12,10 +13,13 @@ final currentSongProvider = StateProvider<SongModel?>((ref) => null);
 /// Player expanded state
 final playerExpandedProvider = StateProvider<bool>((ref) => false);
 
-/// Audio player provider
+/// Audio player provider - kept alive for app lifetime, manual cleanup available
 final audioPlayerProvider =
     StateNotifierProvider<AudioPlayerNotifier, models.PlayerState>(
-      (ref) => AudioPlayerNotifier(ref),
+      (ref) {
+        final notifier = AudioPlayerNotifier(ref);
+        return notifier;
+      },
     );
 
 /// Token earn state provider
@@ -27,12 +31,9 @@ final tokenEarnProvider =
 class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   final Ref _ref;
   final AudioPlayer _audioPlayer = AudioPlayer();
-  StreamSubscription? _positionSubscription;
-  StreamSubscription? _durationSubscription;
-  StreamSubscription? _playerStateSubscription;
-  StreamSubscription? _bufferingSubscription;
-
+  final List<StreamSubscription> _subscriptions = [];
   bool _hasRewardedCurrentSong = false;
+  bool _isDisposed = false;
 
   AudioPlayerNotifier(this._ref) : super(const models.PlayerState()) {
     _initPlayer();
@@ -40,46 +41,61 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
 
   void _initPlayer() {
     // Listen to position changes
-    _positionSubscription = _audioPlayer.positionStream.listen((position) {
-      state = state.copyWith(position: position);
-      _checkTokenEligibility(position);
-    });
+    _subscriptions.add(
+      _audioPlayer.positionStream.listen((position) {
+        if (!_isDisposed) {
+          state = state.copyWith(position: position);
+          _checkTokenEligibility(position);
+        }
+      }),
+    );
 
     // Listen to duration changes
-    _durationSubscription = _audioPlayer.durationStream.listen((duration) {
-      if (duration != null) {
-        state = state.copyWith(duration: duration);
-      }
-    });
+    _subscriptions.add(
+      _audioPlayer.durationStream.listen((duration) {
+        if (!_isDisposed && duration != null) {
+          state = state.copyWith(duration: duration);
+        }
+      }),
+    );
 
     // Listen to player state changes
-    _playerStateSubscription = _audioPlayer.playerStateStream.listen((
-      playerState,
-    ) {
-      state = state.copyWith(
-        isPlaying: playerState.playing,
-        isLoading: playerState.processingState == ProcessingState.loading,
-      );
+    _subscriptions.add(
+      _audioPlayer.playerStateStream.listen((playerState) {
+        if (!_isDisposed) {
+          state = state.copyWith(
+            isPlaying: playerState.playing,
+            isLoading: playerState.processingState == ProcessingState.loading,
+          );
 
-      // Auto-play next song when current ends
-      if (playerState.processingState == ProcessingState.completed) {
-        _onSongCompleted();
-      }
-    });
+          // Auto-play next song when current ends
+          if (playerState.processingState == ProcessingState.completed) {
+            _onSongCompleted();
+          }
+        }
+      }),
+    );
 
     // Listen to buffering state
-    _bufferingSubscription = _audioPlayer.bufferedPositionStream.listen((
-      buffered,
-    ) {
-      final isBuffering =
-          buffered < state.position &&
-          _audioPlayer.processingState == ProcessingState.buffering;
-      state = state.copyWith(isBuffering: isBuffering);
-    });
+    _subscriptions.add(
+      _audioPlayer.bufferedPositionStream.listen((buffered) {
+        if (!_isDisposed) {
+          final isBuffering =
+              buffered < state.position &&
+              _audioPlayer.processingState == ProcessingState.buffering;
+          state = state.copyWith(isBuffering: isBuffering);
+        }
+      }),
+    );
   }
 
   /// Play a song
   Future<void> playSong(SongModel song) async {
+    if (_isDisposed) {
+      print('⚠️ Cannot play song - player is disposed');
+      return;
+    }
+    
     try {
       print('🎵 Starting to play: ${song.title} - ${song.audioUrl}');
       state = state.copyWith(isLoading: true);
@@ -104,11 +120,14 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         print('🔗 Using provided absolute URL: $audioUrl');
       }
       
-      // Add timeout to prevent hanging
+      print('🔗 Final URL: $audioUrl');
+      print('🔗 Base URL from config: ${ApiConfig.baseUrl}');
+      
+      // Add timeout to prevent hanging (increased to 30 seconds)
       await _audioPlayer.setUrl(audioUrl).timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 30),
         onTimeout: () {
-          throw Exception('Audio loading timeout - URL may be invalid or slow');
+          throw Exception('Audio loading timeout after 30s - URL: $audioUrl');
         },
       );
       
@@ -126,6 +145,56 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       state = state.copyWith(isLoading: false, isPlaying: false);
       // Show error to user
       // TODO: Add proper error notification
+    }
+  }
+
+  /// Play a song with queue context (creates queue from list)
+  Future<void> playSongWithQueue(
+    SongModel song, 
+    List<SongModel> allSongs,
+  ) async {
+    if (_isDisposed) {
+      print('⚠️ Cannot play with queue - player is disposed');
+      return;
+    }
+    
+    try {
+      print('📋 Playing with queue: ${allSongs.length} songs');
+      
+      // Find song index in list
+      final songIndex = allSongs.indexWhere((s) => s.id == song.id);
+      
+      // Set queue starting from this song
+      _ref.read(queueProvider.notifier).setQueue(
+        allSongs,
+        startIndex: songIndex >= 0 ? songIndex : 0,
+      );
+      
+      // Play the song
+      await playSong(song);
+    } catch (e) {
+      print('❌ Error playing with queue: $e');
+      state = state.copyWith(isLoading: false, isPlaying: false);
+    }
+  }
+
+  /// Play next song in queue
+  Future<void> playNext() async {
+    final nextSong = _ref.read(queueProvider.notifier).playNext();
+    if (nextSong != null) {
+      await playSong(nextSong);
+    } else {
+      print('⏹️ No next song available');
+    }
+  }
+
+  /// Play previous song
+  Future<void> playPrevious() async {
+    final previousSong = _ref.read(queueProvider.notifier).playPrevious();
+    if (previousSong != null) {
+      await playSong(previousSong);
+    } else {
+      print('⏹️ No previous song available');
     }
   }
 
@@ -242,26 +311,50 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       _hasRewardedCurrentSong = true;
     }
 
-    // Reset to beginning and pause
-    await _audioPlayer.seek(Duration.zero);
-    await _audioPlayer.pause();
+    // Auto-play next song in queue
+    print('🎵 Song completed, checking for next song...');
+    final queueNotifier = _ref.read(queueProvider.notifier);
+    final nextSong = queueNotifier.playNext();
     
-    // Update state to show play button
-    state = state.copyWith(
-      isPlaying: false,
-      position: Duration.zero,
-    );
+    if (nextSong != null) {
+      print('⏭️ Auto-playing next song: ${nextSong.title}');
+      await playSong(nextSong);
+    } else {
+      print('⏹️ Queue ended, stopping playback');
+      // Reset to beginning and pause
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.pause();
+      
+      // Update state to show play button
+      state = state.copyWith(
+        isPlaying: false,
+        position: Duration.zero,
+      );
+    }
+  }
 
-    // TODO: Play next song in queue
+  /// Cleanup method to prevent memory leaks
+  void disposePlayer() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    
+    print('🧹 Cleaning up audio player...');
+    
+    // Cancel all stream subscriptions
+    for (var subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
+    
+    // Dispose audio player
+    _audioPlayer.dispose();
+    
+    print('✅ Audio player cleaned up');
   }
 
   @override
   void dispose() {
-    _positionSubscription?.cancel();
-    _durationSubscription?.cancel();
-    _playerStateSubscription?.cancel();
-    _bufferingSubscription?.cancel();
-    _audioPlayer.dispose();
+    disposePlayer();
     super.dispose();
   }
 }

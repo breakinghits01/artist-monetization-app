@@ -60,8 +60,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   void _handleSongPlay(SongModel song) {
-    // Play the song through the audio player
-    ref.read(audioPlayerProvider.notifier).playSong(song);
+    // Get all songs for queue context
+    final allSongs = _getSortedSongs();
+    
+    // Play the song with queue context
+    ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs);
   }
 
   void _handleSongLike(SongModel song) {

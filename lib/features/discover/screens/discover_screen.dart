@@ -94,25 +94,30 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                   );
                 }
                 
+                // Convert all discover songs to player songs for queue
+                final allPlayerSongs = songs.map((song) {
+                  return PlayerSong.SongModel(
+                    id: song.id,
+                    title: song.title,
+                    artist: song.artist?.username ?? 'Unknown Artist',
+                    artistId: song.artist?.id ?? '',
+                    albumArt: song.coverArt,
+                    audioUrl: song.audioUrl,
+                    duration: Duration(seconds: song.duration),
+                    tokenReward: song.price.toInt(),
+                    genre: song.genre,
+                    isPremium: song.exclusive,
+                  );
+                }).toList();
+                
                 return SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final song = songs[index];
-                      // Convert discover model to player model
-                      // Handle null artist for old songs
-                      final playerSong = PlayerSong.SongModel(
-                        id: song.id,
-                        title: song.title,
-                        artist: song.artist?.username ?? 'Unknown Artist',
-                        artistId: song.artist?.id ?? '',
-                        albumArt: song.coverArt,
-                        audioUrl: song.audioUrl,
-                        duration: Duration(seconds: song.duration),
-                        tokenReward: song.price.toInt(),
-                        genre: song.genre,
-                        isPremium: song.exclusive,
+                      final playerSong = allPlayerSongs[index];
+                      return SongListTile(
+                        song: playerSong,
+                        allSongs: allPlayerSongs, // Pass queue context
                       );
-                      return SongListTile(song: playerSong);
                     },
                     childCount: songs.length,
                   ),

@@ -432,7 +432,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
           iconSize: 40,
           color: theme.colorScheme.onSurface,
           onPressed: () {
-            // TODO: Previous song
+            ref.read(audioPlayerProvider.notifier).playPrevious();
           },
         ),
         // Play/Pause
@@ -475,7 +475,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
           iconSize: 40,
           color: theme.colorScheme.onSurface,
           onPressed: () {
-            // TODO: Next song
+            ref.read(audioPlayerProvider.notifier).playNext();
           },
         ),
         // Repeat

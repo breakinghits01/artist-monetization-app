@@ -200,7 +200,7 @@ class MiniPlayer extends ConsumerWidget {
           iconSize: 28,
           color: theme.colorScheme.onSurface,
           onPressed: () {
-            // TODO: Previous song
+            ref.read(audioPlayerProvider.notifier).playPrevious();
           },
         ),
         // Play/Pause
@@ -241,7 +241,7 @@ class MiniPlayer extends ConsumerWidget {
           iconSize: 28,
           color: theme.colorScheme.onSurface,
           onPressed: () {
-            // TODO: Next song
+            ref.read(audioPlayerProvider.notifier).playNext();
           },
         ),
       ],

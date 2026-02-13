@@ -150,7 +150,12 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 
   void _playSong(SongModel song) {
-    ref.read(audioPlayerProvider.notifier).playSong(song);
+    // Play song with full playlist as queue
+    if (_songs.isNotEmpty) {
+      ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, _songs);
+    } else {
+      ref.read(audioPlayerProvider.notifier).playSong(song);
+    }
   }
 
   Future<void> _removeSong(String songId) async {
