@@ -5,6 +5,7 @@ import '../providers/audio_player_provider.dart';
 import '../models/song_model.dart';
 import '../models/player_state.dart' as models;
 import 'glass_container.dart';
+import '../../../core/theme/app_colors_extension.dart';
 
 /// Mini player that appears at bottom of screen
 class MiniPlayer extends ConsumerWidget {
@@ -99,10 +100,10 @@ class MiniPlayer extends ConsumerWidget {
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFFFD700),
+                  color: theme.colorScheme.tokenPrimary,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFFD700).withOpacity(0.6),
+                      color: theme.colorScheme.tokenPrimary.withOpacity(0.6),
                       blurRadius: 8,
                       spreadRadius: 2,
                     ),

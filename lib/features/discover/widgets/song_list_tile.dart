@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../player/models/song_model.dart';
 import '../../player/providers/audio_player_provider.dart';
 import '../../../shared/widgets/token_icon.dart';
+import '../../../core/theme/app_colors_extension.dart';
 
 /// Song list tile for browse/discover screens
 class SongListTile extends ConsumerWidget {
@@ -109,7 +110,7 @@ class SongListTile extends ConsumerWidget {
                 Text(
                   '+${song.tokenReward}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFFFFD700),
+                    color: theme.colorScheme.tokenPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

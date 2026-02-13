@@ -8,6 +8,7 @@ import '../models/song_model.dart';
 import '../models/player_state.dart' as models;
 import '../../../shared/widgets/token_icon.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/theme/app_colors_extension.dart';
 import 'glass_container.dart';
 
 /// Full player screen with expanded controls
@@ -327,7 +328,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                     valueColor: AlwaysStoppedAnimation<Color>(
                       tokenState.hasRewarded
                           ? theme.colorScheme.secondary
-                          : const Color(0xFFFFD700),
+                          : theme.colorScheme.tokenPrimary,
                     ),
                   ),
                 ),

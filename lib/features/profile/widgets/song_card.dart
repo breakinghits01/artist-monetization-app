@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../player/models/song_model.dart';
+import '../../../core/theme/app_colors_extension.dart';
 
 class SongCard extends ConsumerStatefulWidget {
   final SongModel song;
@@ -284,16 +285,16 @@ class _SongCardState extends ConsumerState<SongCard>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF9C27B0).withOpacity(0.2),
+                            color: theme.colorScheme.accentPurple.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFF9C27B0).withOpacity(0.4),
+                              color: theme.colorScheme.accentPurple.withOpacity(0.4),
                             ),
                           ),
                           child: Text(
                             widget.song.genre!,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF9C27B0),
+                              color: theme.colorScheme.accentPurple,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -327,13 +328,13 @@ class _SongCardState extends ConsumerState<SongCard>
                       Icon(
                         Icons.toll,
                         size: 16,
-                        color: const Color(0xFFFFD700),
+                        color: theme.colorScheme.tokenPrimary,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '+${widget.song.tokenReward}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFFFFD700),
+                          color: theme.colorScheme.tokenPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

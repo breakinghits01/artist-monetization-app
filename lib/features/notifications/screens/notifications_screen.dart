@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
 import '../providers/notification_provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../../core/theme/app_colors_extension.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -13,9 +14,9 @@ class NotificationsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E27),
+      backgroundColor: theme.colorScheme.backgroundDeep,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0E27),
+        backgroundColor: theme.colorScheme.backgroundDeep,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -45,7 +46,7 @@ class NotificationsScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        backgroundColor: const Color(0xFF1A1F3A),
+        backgroundColor: theme.colorScheme.surfaceVariant2,
         color: theme.colorScheme.primary,
         onRefresh: () async {
           await ref.read(notificationListProvider.notifier).fetchNotifications(refresh: true);
@@ -177,6 +178,8 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Dismissible(
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
@@ -194,13 +197,13 @@ class _NotificationCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: notification.isRead
-              ? const Color(0xFF1A1F3A)
-              : const Color(0xFF1A1F3A).withOpacity(0.7),
+              ? theme.colorScheme.surfaceVariant2
+              : theme.colorScheme.surfaceVariant2.withOpacity(0.7),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: notification.isRead
                 ? Colors.transparent
-                : Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                : theme.colorScheme.primary.withOpacity(0.3),
             width: 1,
           ),
         ),

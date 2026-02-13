@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors_extension.dart';
 
 /// Custom token icon widget - yellow circular coin
+/// Colors adapt to theme automatically
 class TokenIcon extends StatelessWidget {
   final double size;
   final bool withShadow;
@@ -9,20 +11,22 @@ class TokenIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFFAA00)],
+        gradient: LinearGradient(
+          colors: [colorScheme.tokenPrimary, colorScheme.tokenSecondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: withShadow
             ? [
                 BoxShadow(
-                  color: const Color(0xFFFFD700).withOpacity(0.4),
+                  color: colorScheme.tokenPrimary.withOpacity(0.4),
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),

@@ -6,6 +6,7 @@ import '../providers/activity_provider.dart';
 import '../widgets/artist_card.dart';
 import '../widgets/activity_item.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/theme/app_colors_extension.dart';
 
 class ConnectScreen extends ConsumerStatefulWidget {
   const ConnectScreen({super.key});
@@ -194,7 +195,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
                     color: isDark ? Colors.white.withOpacity(0.7) : Colors.black54,
                   ),
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF1A1F3A) : Colors.grey[100],
+                  fillColor: theme.colorScheme.surfaceVariant2,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -366,7 +367,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
         ref.read(selectedArtistSortProvider.notifier).state = value;
         ref.read(artistListProvider.notifier).refresh();
       },
-      backgroundColor: isDark ? const Color(0xFF1A1F3A) : Colors.grey[200],
+      backgroundColor: theme.colorScheme.surfaceVariant2,
       selectedColor: theme.colorScheme.primary,
       labelStyle: TextStyle(
         color: isSelected 

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// App Theme Configuration
 /// Provides light and dark theme with consistent styling
+/// Custom colors available via AppColors extension (app_colors_extension.dart)
 class AppTheme {
   // Private constructor to prevent instantiation
   AppTheme._();
@@ -19,6 +20,10 @@ class AppTheme {
   static const Color accent1 = Color(0xFF9C27B0); // Purple
   static const Color accent2 = Color(0xFF7B2CBF); // Deep purple
   static const Color accent3 = Color(0xFFFF10F0); // Hot magenta
+  
+  // Token Colors (for rewards and premium features)
+  static const Color tokenGold = Color(0xFFFFD700); // Gold
+  static const Color tokenGoldDark = Color(0xFFFFAA00); // Darker gold
   
   // Status Colors
   static const Color error = Color(0xFFFF4444);
