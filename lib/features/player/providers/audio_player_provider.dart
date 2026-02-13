@@ -6,6 +6,7 @@ import '../models/player_state.dart' as models;
 import '../../home/providers/wallet_provider.dart';
 import '../../../core/config/api_config.dart';
 import 'queue_provider.dart';
+import '../services/audio_service_handler.dart';
 
 /// Current song provider
 final currentSongProvider = StateProvider<SongModel?>((ref) => null);
@@ -32,11 +33,29 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   final Ref _ref;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final List<StreamSubscription> _subscriptions = [];
+  AudioServiceHandler? _audioServiceHandler;
   bool _hasRewardedCurrentSong = false;
   bool _isDisposed = false;
 
   AudioPlayerNotifier(this._ref) : super(const models.PlayerState()) {
     _initPlayer();
+    _initAudioService();
+  }
+
+  /// Initialize audio service for background playback
+  Future<void> _initAudioService() async {
+    try {
+      _audioServiceHandler = await initAudioService(_audioPlayer);
+      
+      // Connect skip callbacks to queue methods
+      _audioServiceHandler!.onSkipToNext = () => playNext();
+      _audioServiceHandler!.onSkipToPrevious = () => playPrevious();
+      
+      print('✅ Audio service ready for background playback');
+    } catch (e) {
+      print('⚠️ Failed to initialize audio service: $e');
+      // Continue without background service if initialization fails
+    }
   }
 
   void _initPlayer() {
@@ -133,6 +152,18 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       
       print('▶️ Playing audio...');
       await _audioPlayer.play();
+
+      // Update media item for lock screen and notification
+      if (_audioServiceHandler != null) {
+        final albumArtUrl = song.albumArt != null && song.albumArt!.startsWith('http')
+            ? song.albumArt
+            : song.albumArt != null
+                ? '${ApiConfig.baseUrl}${song.albumArt}'
+                : null;
+        
+        await _audioServiceHandler!.setMediaItem(song, artUri: albumArtUrl);
+        print('🎨 Updated lock screen media item');
+      }
 
       // Clear loading state - playing state updated by playerStateStream listener
       state = state.copyWith(
@@ -345,6 +376,12 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       subscription.cancel();
     }
     _subscriptions.clear();
+    
+    // Dispose audio service handler
+    if (_audioServiceHandler != null) {
+      _audioServiceHandler!.dispose();
+      print('🧹 Audio service handler disposed');
+    }
     
     // Dispose audio player
     _audioPlayer.dispose();

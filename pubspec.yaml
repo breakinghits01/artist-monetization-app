@@ -59,6 +59,7 @@ dependencies:
   # Audio Player
   just_audio: ^0.9.36
   just_audio_web: ^0.4.9
+  just_audio_background: ^0.0.1-beta.11
   audio_service: ^0.18.12
   audio_session: ^0.1.19
   rxdart: ^0.27.7
