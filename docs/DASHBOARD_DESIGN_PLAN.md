@@ -21,12 +21,12 @@
 │  👤    Dynamic Artist Monetization    💰│
 │        "Your Daily Music Treasure"       │
 │                                          │
-│  🎵 Coins: 1,250  💎 Gems: 45  🔔(3)    │
+│  🎵 Tokens: 1,250  🔔(3)                │
 └─────────────────────────────────────────┘
 ```
 **Unique Elements:**
-- **Wallet Display**: Show user's coins/gems prominently
-- **Daily Treasure Counter**: Animated coin collection
+- **Wallet Display**: Show user's tokens prominently
+- **Daily Treasure Counter**: Animated token collection
 - **Quick Stats**: Earnings, tips received, songs purchased
 - **Animated Background**: Subtle gradient waves based on time of day
 
@@ -60,9 +60,9 @@
 │    ║         [Animated Chest GIF]          ║    │
 │    ║                                        ║    │
 │    ║    Unlock in: 2h 34m                  ║    │
-│    ║    or Pay 50 coins to open now!       ║    │
+│    ║    or Pay 50 tokens to open now!      ║    │
 │    ║                                        ║    │
-│    ║  💰 10-500 coins | 💎 1-20 gems        ║    │
+│    ║  💰 10-500 tokens                      ║    │
 │    ║  🎵 Free song credits                  ║    │
 │    ╚═══════════════════════════════════════╝    │
 │                                                   │
