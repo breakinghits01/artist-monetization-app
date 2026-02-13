@@ -51,7 +51,45 @@ void didChangeAppLifecycleState(AppLifecycleState state) {
 - No audio focus handling
 - No notification controls (play/pause/skip)
 
-### 3. **Missing Configurations**
+### 3. **Queue Management Missing** ❌
+```dart
+// ISSUE: No playlist queue system
+// When playing a song, the next songs in the list don't auto-play
+void _onSongCompleted() async {
+  // Reset to beginning and pause
+  await _audioPlayer.seek(Duration.zero);
+  await _audioPlayer.pause();
+  
+  // TODO: Play next song in queue  ❌ NOT IMPLEMENTED!
+}
+```
+
+**Problems:**
+- Playing a song doesn't add the rest of the list to queue
+- Song completes and stops (doesn't auto-play next)
+- No concept of "current playlist" or "song queue"
+- Recent songs not managed as a playlist
+- Can't shuffle or repeat playlist
+
+### 4. **Previous/Next Buttons Not Working** ❌
+```dart
+// ISSUE: No queue means no previous/next functionality
+// Player UI has previous/next buttons but they do nothing
+skipForward() // ✅ Works (skips 10 seconds)
+skipBackward() // ✅ Works (skips 10 seconds back)
+
+// ❌ These don't exist:
+playNext() // Should play next song in queue
+playPrevious() // Should play previous song in queue
+```
+
+**Problems:**
+- Previous button doesn't work (no previous song tracking)
+- Next button doesn't work (no queue management)
+- No song history
+- Can't navigate between songs in a playlist/album
+
+### 5. **Missing Configurations**
 
 #### Android Issues:
 - ❌ No WAKE_LOCK permission
@@ -273,9 +311,289 @@ end
 
 ---
 
-### Phase 3: Audio Service Handler (Day 4-5) 🔧
+### Phase 3: Queue Management System (Day 4-5) 🎵
 
-#### 3.1 Create Audio Handler
+#### 3.1 Create Queue Provider
+```dart
+// lib/features/player/providers/queue_provider.dart
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/song_model.dart';
+
+/// Song queue state
+class QueueState {
+  final List<SongModel> queue;
+  final int currentIndex;
+  final List<SongModel> history;
+  final bool shuffle;
+  final LoopMode loopMode;
+  
+  const QueueState({
+    this.queue = const [],
+    this.currentIndex = -1,
+    this.history = const [],
+    this.shuffle = false,
+    this.loopMode = LoopMode.off,
+  });
+  
+  QueueState copyWith({
+    List<SongModel>? queue,
+    int? currentIndex,
+    List<SongModel>? history,
+    bool? shuffle,
+    LoopMode? loopMode,
+  }) {
+    return QueueState(
+      queue: queue ?? this.queue,
+      currentIndex: currentIndex ?? this.currentIndex,
+      history: history ?? this.history,
+      shuffle: shuffle ?? this.shuffle,
+      loopMode: loopMode ?? this.loopMode,
+    );
+  }
+  
+  bool get hasNext => currentIndex < queue.length - 1;
+  bool get hasPrevious => history.isNotEmpty || currentIndex > 0;
+  SongModel? get currentSong => 
+      currentIndex >= 0 && currentIndex < queue.length 
+          ? queue[currentIndex] 
+          : null;
+  SongModel? get nextSong => 
+      hasNext ? queue[currentIndex + 1] : null;
+}
+
+final queueProvider = StateNotifierProvider<QueueNotifier, QueueState>(
+  (ref) => QueueNotifier(),
+);
+
+class QueueNotifier extends StateNotifier<QueueState> {
+  QueueNotifier() : super(const QueueState());
+  
+  /// Set new queue and start playing from index
+  void setQueue(List<SongModel> songs, {int startIndex = 0}) {
+    state = state.copyWith(
+      queue: songs,
+      currentIndex: startIndex,
+      history: [],
+    );
+  }
+  
+  /// Add song to queue
+  void addToQueue(SongModel song) {
+    final newQueue = [...state.queue, song];
+    state = state.copyWith(queue: newQueue);
+  }
+  
+  /// Play next song in queue
+  SongModel? playNext() {
+    if (!state.hasNext) {
+      // Handle loop mode
+      if (state.loopMode == LoopMode.all && state.queue.isNotEmpty) {
+        // Loop to beginning
+        final newHistory = [...state.history, state.currentSong!];
+        state = state.copyWith(
+          currentIndex: 0,
+          history: newHistory,
+        );
+        return state.currentSong;
+      }
+      return null; // No next song
+    }
+    
+    // Add current to history
+    if (state.currentSong != null) {
+      final newHistory = [...state.history, state.currentSong!];
+      state = state.copyWith(
+        currentIndex: state.currentIndex + 1,
+        history: newHistory,
+      );
+    } else {
+      state = state.copyWith(currentIndex: state.currentIndex + 1);
+    }
+    
+    return state.currentSong;
+  }
+  
+  /// Play previous song
+  SongModel? playPrevious() {
+    if (!state.hasPrevious) return null;
+    
+    // Get from history if available
+    if (state.history.isNotEmpty) {
+      final previousSong = state.history.last;
+      final newHistory = state.history.sublist(0, state.history.length - 1);
+      
+      // Find song in queue
+      final index = state.queue.indexWhere((s) => s.id == previousSong.id);
+      if (index >= 0) {
+        state = state.copyWith(
+          currentIndex: index,
+          history: newHistory,
+        );
+        return state.currentSong;
+      }
+    }
+    
+    // Or go to previous index
+    if (state.currentIndex > 0) {
+      state = state.copyWith(currentIndex: state.currentIndex - 1);
+      return state.currentSong;
+    }
+    
+    return null;
+  }
+  
+  /// Toggle shuffle
+  void toggleShuffle() {
+    state = state.copyWith(shuffle: !state.shuffle);
+    if (state.shuffle) {
+      _shuffleQueue();
+    } else {
+      // TODO: Restore original order
+    }
+  }
+  
+  /// Toggle loop mode
+  void toggleLoop() {
+    final nextMode = state.loopMode == LoopMode.off
+        ? LoopMode.one
+        : state.loopMode == LoopMode.one
+        ? LoopMode.all
+        : LoopMode.off;
+    state = state.copyWith(loopMode: nextMode);
+  }
+  
+  void _shuffleQueue() {
+    if (state.queue.isEmpty) return;
+    
+    final currentSong = state.currentSong;
+    final remainingSongs = [...state.queue];
+    
+    if (currentSong != null) {
+      remainingSongs.removeWhere((s) => s.id == currentSong.id);
+    }
+    
+    remainingSongs.shuffle();
+    
+    final newQueue = currentSong != null 
+        ? [currentSong, ...remainingSongs]
+        : remainingSongs;
+    
+    state = state.copyWith(
+      queue: newQueue,
+      currentIndex: 0,
+    );
+  }
+  
+  /// Clear queue
+  void clear() {
+    state = const QueueState();
+  }
+}
+```
+
+#### 3.2 Update Audio Player Provider with Queue
+```dart
+// Update audio_player_provider.dart
+
+class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
+  final Ref _ref;
+  
+  /// Play a song and set queue from list
+  Future<void> playSongWithQueue(
+    SongModel song, 
+    List<SongModel> allSongs,
+  ) async {
+    try {
+      // Find song index in list
+      final songIndex = allSongs.indexWhere((s) => s.id == song.id);
+      
+      // Set queue starting from this song
+      _ref.read(queueProvider.notifier).setQueue(
+        allSongs,
+        startIndex: songIndex >= 0 ? songIndex : 0,
+      );
+      
+      // Play the song
+      await playSong(song);
+    } catch (e) {
+      print('Error playing with queue: $e');
+    }
+  }
+  
+  /// Play next song in queue
+  Future<void> playNext() async {
+    final nextSong = _ref.read(queueProvider.notifier).playNext();
+    if (nextSong != null) {
+      await playSong(nextSong);
+    }
+  }
+  
+  /// Play previous song
+  Future<void> playPrevious() async {
+    final previousSong = _ref.read(queueProvider.notifier).playPrevious();
+    if (previousSong != null) {
+      await playSong(previousSong);
+    }
+  }
+  
+  /// Handle song completion - auto-play next
+  void _onSongCompleted() async {
+    final song = _ref.read(currentSongProvider);
+    if (song != null && !_hasRewardedCurrentSong) {
+      _rewardTokens(song.tokenReward);
+      _hasRewardedCurrentSong = true;
+    }
+    
+    // Auto-play next song in queue
+    final queueState = _ref.read(queueProvider);
+    
+    // Check loop mode
+    if (queueState.loopMode == LoopMode.one) {
+      // Repeat current song
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+      return;
+    }
+    
+    // Play next song
+    final hasNext = queueState.hasNext || queueState.loopMode == LoopMode.all;
+    if (hasNext) {
+      await playNext();
+    } else {
+      // No more songs - stop at end
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.pause();
+      state = state.copyWith(isPlaying: false, position: Duration.zero);
+    }
+  }
+}
+```
+
+#### 3.3 Update UI to Use Queue
+```dart
+// In profile_screen.dart, discover_screen.dart, etc.
+
+// BEFORE: Just play single song
+void _handleSongPlay(SongModel song) {
+  ref.read(audioPlayerProvider.notifier).playSong(song);
+}
+
+// AFTER: Play with queue context
+void _handleSongPlay(SongModel song) {
+  final allSongs = _getSortedSongs(); // or current list
+  ref.read(audioPlayerProvider.notifier).playSongWithQueue(
+    song,
+    allSongs,
+  );
+}
+```
+
+---
+
+### Phase 4: Audio Service Handler (Day 6-7) 🔧
+
+#### 4.1 Create Audio Handler
 ```dart
 // lib/features/player/services/audio_handler.dart
 
@@ -504,7 +822,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
 
 ---
 
-### Phase 4: Remove Lifecycle Pause (Day 6) 🔧
+### Phase 5: Remove Lifecycle Pause (Day 8) 🔧
 
 ```dart
 // lib/main.dart
@@ -538,7 +856,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
 ---
 
-### Phase 5: Notification Controls (Day 7) 📱
+### Phase 6: Notification Controls (Day 9) 📱
 
 #### 5.1 Media Notification
 The `audio_service` package automatically creates:
@@ -584,7 +902,7 @@ PlaybackState(
 
 ---
 
-### Phase 6: Testing & Optimization (Day 8-9) 🧪
+### Phase 7: Testing & Optimization (Day 10-11) 🧪
 
 #### 6.1 Memory Leak Testing
 ```bash
@@ -660,6 +978,16 @@ class PerformanceMonitor {
 - [ ] Bluetooth/headphone controls work
 - [ ] Proper interruption handling
 
+### Queue Management ✅
+- [ ] Playing a song auto-queues remaining songs in list
+- [ ] Song auto-plays next when current completes
+- [ ] Previous button works (plays previous song)
+- [ ] Next button works (plays next song)
+- [ ] Queue visible in player UI
+- [ ] Shuffle mode works
+- [ ] Loop modes work (off/one/all)
+- [ ] Recent songs create playable queue
+
 ### Stability ✅
 - [ ] No crashes on lock/unlock
 - [ ] No crashes on app minimize/restore
@@ -675,11 +1003,12 @@ class PerformanceMonitor {
 |-------|------|----------|--------------|
 | 1 | Fix Memory Leaks | 1 day | None |
 | 2 | Platform Configuration | 1 day | Phase 1 |
-| 3 | Audio Service Handler | 2 days | Phase 2 |
-| 4 | Remove Lifecycle Pause | 0.5 day | Phase 3 |
-| 5 | Notification Controls | 1 day | Phase 3 |
-| 6 | Testing & Optimization | 2 days | All phases |
-| **Total** | **Complete Implementation** | **7.5 days** | |
+| 3 | Queue Management System | 2 days | Phase 1 |
+| 4 | Audio Service Handler | 2 days | Phase 2, 3 |
+| 5 | Remove Lifecycle Pause | 0.5 day | Phase 4 |
+| 6 | Notification Controls | 1 day | Phase 4 |
+| 7 | Testing & Optimization | 2 days | All phases |
+| **Total** | **Complete Implementation** | **9.5 days** | |
 
 ---
 
