@@ -61,30 +61,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   void _handleSongPlay(SongModel song) {
-    // Actually play the song through the audio player
+    // Play the song through the audio player
     ref.read(audioPlayerProvider.notifier).playSong(song);
-    
-    // Show feedback
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.play_circle_filled, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Playing: ${song.title}',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        duration: const Duration(seconds: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
   }
 
   void _handleSongLike(SongModel song) {
