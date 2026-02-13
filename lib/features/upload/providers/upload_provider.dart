@@ -3,6 +3,7 @@ import '../models/upload_state.dart';
 import '../models/upload_session.dart';
 import '../models/song_metadata.dart';
 import '../services/upload_service.dart';
+import '../services/file_picker_service.dart';
 import '../../player/models/song_model.dart';
 import '../../profile/providers/user_songs_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -28,18 +29,18 @@ class UploadNotifier extends StateNotifier<UploadState> {
     state = const UploadState.idle();
   }
 
-  /// Initiate upload from file path
-  Future<void> initiateUpload(String filePath) async {
+  /// Initiate upload from file pick result
+  Future<void> initiateUpload(FilePickResult result) async {
     try {
-      state = UploadState.validating(fileName: filePath.split('/').last);
+      state = UploadState.validating(fileName: result.name);
 
       final uploadService = _ref.read(uploadServiceProvider);
-      final session = await uploadService.initiateUpload(filePath);
+      final session = await uploadService.initiateUpload(result.path, fileBytes: result.bytes);
 
       state = UploadState.uploading(session: session);
 
       // Start upload with progress tracking
-      await _startUpload(session, filePath);
+      await _startUpload(session, result.path);
     } catch (e) {
       state = UploadState.error(message: e.toString());
     }

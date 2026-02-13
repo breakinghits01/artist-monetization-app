@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'dart:convert';
 import '../../../core/config/api_config.dart';
+import '../../../core/services/storage_service.dart';
 import '../../player/models/song_model.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -40,6 +41,7 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
   static const String _storageKey = 'user_uploaded_songs_cache';
   static const String _oldStorageKey = 'user_uploaded_songs'; // Old key for migration
   final Dio _dio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
+  final StorageService _storage = StorageService();
   final Ref _ref;
   
   UserSongsNotifier(this._ref) : super(const UserSongsState()) {
@@ -87,11 +89,19 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
       print('🌐 Fetching songs from database: ${ApiConfig.baseUrl}$endpoint');
       print('👤 User ID: $userId');
       
+      // Get actual user token
+      final token = await _storage.getAccessToken();
+      if (token == null) {
+        print('⚠️ No auth token found');
+        state = state.copyWith(songs: [], isLoading: false);
+        return;
+      }
+      
       final response = await _dio.get(
         endpoint,
         options: Options(
           headers: {
-            'Authorization': 'Bearer ${ApiConfig.tempToken}',
+            'Authorization': 'Bearer $token',
           },
         ),
       );
@@ -210,11 +220,20 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
 
   /// Parse song from API response
   SongModel _parseSong(Map<String, dynamic> json) {
+    // Backend populates artistId with user data (username, email, avatarUrl)
+    final artistData = json['artistId'];
+    final artistName = artistData is Map<String, dynamic> 
+        ? (artistData['username'] as String?) 
+        : null;
+    final artistIdValue = artistData is Map<String, dynamic>
+        ? (artistData['_id'] as String?)
+        : (artistData as String?);
+    
     return SongModel(
       id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? 'Untitled',
-      artist: json['artist']?['name'] ?? json['artistName'] ?? 'Current User',
-      artistId: json['artist']?['_id'] ?? json['artistId'] ?? '',
+      artist: artistName ?? json['artistName'] ?? 'Current User',
+      artistId: artistIdValue ?? '',
       albumArt: json['coverArt'] ?? json['albumArt'] ?? 'https://via.placeholder.com/300',
       duration: Duration(seconds: json['duration'] ?? 180),
       audioUrl: json['fileUrl'] ?? json['audioUrl'] ?? '',

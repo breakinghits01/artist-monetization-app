@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// Represents an upload session with progress tracking
 class UploadSession {
   final String id;
@@ -5,6 +7,7 @@ class UploadSession {
   final int fileSize;
   final String fileType;
   final String filePath;
+  final Uint8List? fileBytes; // Add bytes for web duration extraction
   final String uploadStatus;
   final double uploadProgress;
   final String? tempStoragePath;
@@ -19,6 +22,7 @@ class UploadSession {
     required this.fileSize,
     required this.fileType,
     required this.filePath,
+    this.fileBytes,
     this.uploadStatus = 'initiated',
     this.uploadProgress = 0.0,
     this.tempStoragePath,
@@ -34,6 +38,7 @@ class UploadSession {
     int? fileSize,
     String? fileType,
     String? filePath,
+    Uint8List? fileBytes,
     String? uploadStatus,
     double? uploadProgress,
     String? tempStoragePath,
@@ -48,6 +53,7 @@ class UploadSession {
       fileSize: fileSize ?? this.fileSize,
       fileType: fileType ?? this.fileType,
       filePath: filePath ?? this.filePath,
+      fileBytes: fileBytes ?? this.fileBytes,
       uploadStatus: uploadStatus ?? this.uploadStatus,
       uploadProgress: uploadProgress ?? this.uploadProgress,
       tempStoragePath: tempStoragePath ?? this.tempStoragePath,

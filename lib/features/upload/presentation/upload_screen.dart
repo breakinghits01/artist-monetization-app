@@ -58,8 +58,8 @@ class UploadScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 40),
           FilePickerWidget(
-            onFilePicked: (path) {
-              ref.read(uploadProvider.notifier).initiateUpload(path);
+            onFilePicked: (result) {
+              ref.read(uploadProvider.notifier).initiateUpload(result);
             },
           ),
           const SizedBox(height: 32),

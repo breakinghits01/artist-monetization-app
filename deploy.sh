@@ -15,13 +15,10 @@ mkdir -p "/Users/DekZ/Development/projects/app monitization/api_dynamic_artist_m
 echo "📦 Copying build files..."
 cp -r build/web/* "/Users/DekZ/Development/projects/app monitization/api_dynamic_artist_monetization/web-build/"
 
-echo "🔄 Restarting PM2 service..."
-pm2 restart flutter-web
-
 echo ""
 echo "✅ DEPLOYMENT COMPLETE!"
 echo ""
-echo "🌐 Access your app at: http://localhost:9000"
+echo "🌐 Access your app at: http://localhost:3000"
 echo "🔗 Or via ngrok: https://caryl-exertive-treva.ngrok-free.dev/"
 echo ""
 echo "⚠️  IMPORTANT: Clear your browser cache!"

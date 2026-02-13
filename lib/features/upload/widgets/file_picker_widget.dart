@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/file_picker_factory.dart';
+import '../services/file_picker_service.dart';
 
 class FilePickerWidget extends StatelessWidget {
-  final Function(String) onFilePicked;
+  final Function(FilePickResult) onFilePicked;
 
   const FilePickerWidget({
     super.key,
@@ -72,7 +73,7 @@ class FilePickerWidget extends StatelessWidget {
         debugPrint('File selected - Name: ${result.name}, Path: ${result.path}, Size: ${result.size}');
         
         if (result.path.isNotEmpty) {
-          onFilePicked(result.path);
+          onFilePicked(result); // Pass the full result with bytes
         } else {
           _showError(context, 'Unable to access file');
         }

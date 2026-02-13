@@ -4,6 +4,7 @@ import 'package:just_audio/just_audio.dart';
 import '../models/song_model.dart';
 import '../models/player_state.dart' as models;
 import '../../home/providers/wallet_provider.dart';
+import '../../../core/config/api_config.dart';
 
 /// Current song provider
 final currentSongProvider = StateProvider<SongModel?>((ref) => null);
@@ -93,8 +94,18 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       
       print('🔗 Loading audio URL...');
       
+      // Convert relative URLs to absolute ngrok URLs
+      String audioUrl = song.audioUrl;
+      if (!audioUrl.startsWith('http')) {
+        // Relative URL - prepend base URL
+        audioUrl = '${ApiConfig.baseUrl}$audioUrl';
+        print('🔗 Converted to absolute URL: $audioUrl');
+      } else {
+        print('🔗 Using provided absolute URL: $audioUrl');
+      }
+      
       // Add timeout to prevent hanging
-      await _audioPlayer.setUrl(song.audioUrl).timeout(
+      await _audioPlayer.setUrl(audioUrl).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
           throw Exception('Audio loading timeout - URL may be invalid or slow');
@@ -104,10 +115,9 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       print('▶️ Playing audio...');
       await _audioPlayer.play();
 
-      // Ensure state reflects that we're playing
+      // Clear loading state - playing state updated by playerStateStream listener
       state = state.copyWith(
         isLoading: false,
-        isPlaying: true,
       );
       
       print('✅ Playback started successfully');
@@ -124,12 +134,12 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     if (_audioPlayer.playing) {
       print('⏸️ Pausing playback...');
       await _audioPlayer.pause();
-      state = state.copyWith(isPlaying: false);
+      // State updated by playerStateStream listener
       print('✅ Playback paused');
     } else {
       print('▶️ Resuming playback...');
       await _audioPlayer.play();
-      state = state.copyWith(isPlaying: true);
+      // State updated by playerStateStream listener
       print('✅ Playback resumed');
     }
   }
@@ -139,7 +149,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     if (_audioPlayer.playing) {
       print('⏸️ Pausing playback...');
       await _audioPlayer.pause();
-      state = state.copyWith(isPlaying: false);
+      // State updated by playerStateStream listener
       print('✅ Playback paused');
     }
   }

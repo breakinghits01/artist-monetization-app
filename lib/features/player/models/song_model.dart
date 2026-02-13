@@ -25,11 +25,20 @@ class SongModel {
   });
 
   factory SongModel.fromJson(Map<String, dynamic> json) {
+    // Backend populates artistId with user data (username, email, avatarUrl)
+    final artistData = json['artistId'];
+    final artistName = artistData is Map<String, dynamic> 
+        ? (artistData['username'] as String?) 
+        : null;
+    final artistIdValue = artistData is Map<String, dynamic>
+        ? (artistData['_id'] as String?)
+        : (artistData as String?);
+    
     return SongModel(
       id: json['_id'] as String,
       title: json['title'] as String,
-      artist: json['artist']?['name'] as String? ?? 'Unknown Artist',
-      artistId: json['artist']?['_id'] as String? ?? '',
+      artist: artistName ?? 'Unknown Artist',
+      artistId: artistIdValue ?? '',
       albumArt: json['albumArt'] as String?,
       audioUrl: json['audioUrl'] as String,
       duration: Duration(seconds: json['duration'] as int? ?? 0),

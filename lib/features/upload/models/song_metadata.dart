@@ -4,6 +4,7 @@ class SongMetadata {
   final String? genre;
   final String? description;
   final int price;
+  final int? duration; // Duration in seconds
   final String? coverArtPath;
   final String? coverArtUrl;
   final bool exclusive;
@@ -18,6 +19,7 @@ class SongMetadata {
     this.genre,
     this.description,
     this.price = 10,
+    this.duration,
     this.coverArtPath,
     this.coverArtUrl,
     this.exclusive = false,
@@ -33,6 +35,7 @@ class SongMetadata {
     String? genre,
     String? description,
     int? price,
+    int? duration,
     String? coverArtPath,
     String? coverArtUrl,
     bool? exclusive,
@@ -47,6 +50,7 @@ class SongMetadata {
       genre: genre ?? this.genre,
       description: description ?? this.description,
       price: price ?? this.price,
+      duration: duration ?? this.duration,
       coverArtPath: coverArtPath ?? this.coverArtPath,
       coverArtUrl: coverArtUrl ?? this.coverArtUrl,
       exclusive: exclusive ?? this.exclusive,

@@ -68,24 +68,49 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         
         // Parse songs separately before creating playlist model
         final List<SongModel> songs = [];
+        debugPrint('📋 Parsing playlist songs...');
+        debugPrint('Songs data type: ${data['songs'].runtimeType}');
+        debugPrint('Songs data: ${data['songs']}');
+        
         if (data['songs'] != null && data['songs'] is List) {
-          for (var songData in data['songs']) {
+          final songsArray = data['songs'] as List;
+          debugPrint('📊 Total songs in array: ${songsArray.length}');
+          
+          for (var songData in songsArray) {
             try {
+              debugPrint('🎵 Processing song: ${songData.runtimeType}');
+              
               if (songData is Map<String, dynamic>) {
                 // Song is populated object
                 final songMap = Map<String, dynamic>.from(songData);
-                if (songMap['_id'] != null) {
-                  songs.add(SongModel.fromJson(songMap));
+                debugPrint('🗺️ Song map keys: ${songMap.keys.toList()}');
+                debugPrint('🔑 Song ID: ${songMap['_id'] ?? songMap['id']}');
+                
+                // Add id field if only _id exists
+                if (songMap['_id'] != null && songMap['id'] == null) {
+                  songMap['id'] = songMap['_id'];
+                }
+                
+                if (songMap['id'] != null || songMap['_id'] != null) {
+                  final song = SongModel.fromJson(songMap);
+                  songs.add(song);
+                  debugPrint('✅ Added song: ${song.title}');
+                } else {
+                  debugPrint('⚠️ Skipping song - no ID found');
                 }
               } else if (songData is String) {
                 // Song is just an ID - skip it
+                debugPrint('⚠️ Song is just ID: $songData (not populated)');
                 continue;
               }
-            } catch (e) {
+            } catch (e, stackTrace) {
               debugPrint('❌ Error parsing song: $e');
+              debugPrint('Stack trace: $stackTrace');
             }
           }
         }
+        
+        debugPrint('🎵 Parsed ${songs.length} songs successfully');
         
         // Convert songs array to IDs for playlist model
         data['songs'] = (data['songs'] as List?)

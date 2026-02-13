@@ -70,10 +70,16 @@ class Song {
   }
 
   factory Song.fromJson(Map<String, dynamic> json) {
+    // Handle artistId being either populated object or string ID
+    final artistData = json['artistId'];
+    final artistName = artistData is Map<String, dynamic> 
+        ? (artistData['username'] as String?) 
+        : null;
+    
     return Song(
       id: json['id'],
       title: json['title'],
-      artist: json['artist'],
+      artist: artistName ?? json['artist'] ?? 'Unknown Artist',
       albumArt: json['albumArt'],
       duration: json['duration'],
       genre: json['genre'],

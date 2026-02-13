@@ -181,6 +181,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               ),
             ),
             actions: [
+              // Refresh button for debugging uploaded songs
+              Consumer(
+                builder: (context, ref, _) {
+                  return IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () async {
+                      // Force refresh songs from backend
+                      await ref.read(userSongsProvider.notifier).refresh();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Songs refreshed from server'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 onPressed: () {},
