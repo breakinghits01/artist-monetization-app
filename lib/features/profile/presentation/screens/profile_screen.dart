@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../player/models/song_model.dart';
-import '../../../player/data/sample_songs.dart';
 import '../../../player/providers/audio_player_provider.dart';
+import '../../../player/widgets/audio_wave_indicator.dart';
 import '../../providers/liked_songs_provider.dart';
 import '../../providers/user_songs_provider.dart';
 import '../../models/user_profile_model.dart';
 import '../../widgets/profile_header.dart';
-import '../../widgets/song_card.dart';
 import '../../../playlist/widgets/add_to_playlist_sheet.dart';
 import '../../../playlist/providers/playlists_provider.dart';
 import '../../../playlist/widgets/create_playlist_dialog.dart';
@@ -439,27 +438,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       ),
               ),
             ),
+            // Show wave indicator when playing, with hover pause for web
             if (isCurrentlyPlaying)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.black.withOpacity(0.6),
-                        Colors.black.withOpacity(0.4),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.pause_circle_filled,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-              ),
+              const _PlayingIndicatorOverlay(),
           ],
         ),
         title: Text(
@@ -1018,5 +999,73 @@ extension _PlaylistsTab on _ProfileScreenState {
         }
       }
     }
+  }
+}
+
+/// Playing indicator overlay with animated wave and hover pause button
+class _PlayingIndicatorOverlay extends StatefulWidget {
+  const _PlayingIndicatorOverlay();
+
+  @override
+  State<_PlayingIndicatorOverlay> createState() => _PlayingIndicatorOverlayState();
+}
+
+class _PlayingIndicatorOverlayState extends State<_PlayingIndicatorOverlay> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final playerState = ref.watch(audioPlayerProvider);
+        
+        return Positioned.fill(
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.black.withOpacity(_isHovered ? 0.5 : 0.3),
+              ),
+              child: Stack(
+                children: [
+                  // Animated wave indicator (always visible when playing)
+                  if (!_isHovered || !kIsWeb)
+                    Center(
+                      child: AudioWaveIndicator(
+                        isPlaying: playerState.isPlaying,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                  // Pause button (only on hover for web, or always for mobile)
+                  if (_isHovered && kIsWeb)
+                    Center(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () {
+                            ref.read(audioPlayerProvider.notifier).playPause();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: const Icon(
+                              Icons.pause_circle_filled,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
