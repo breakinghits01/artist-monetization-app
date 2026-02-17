@@ -1066,14 +1066,20 @@ class _PlayingIndicatorOverlayState extends State<_PlayingIndicatorOverlay> {
               ),
               child: Stack(
                 children: [
-                  // Animated wave indicator (always visible when playing)
+                  // Show animated wave when playing, static play icon when paused
                   if (!_isHovered || !kIsWeb)
                     Center(
-                      child: AudioWaveIndicator(
-                        isPlaying: playerState.isPlaying,
-                        color: Colors.white,
-                        size: 32,
-                      ),
+                      child: playerState.isPlaying
+                          ? AudioWaveIndicator(
+                              isPlaying: true,
+                              color: Colors.white,
+                              size: 32,
+                            )
+                          : Icon(
+                              Icons.play_arrow,
+                              color: Colors.white,
+                              size: 32,
+                            ),
                     ),
                   // Pause button (only on hover for web, or always for mobile)
                   if (_isHovered && kIsWeb)
@@ -1087,8 +1093,8 @@ class _PlayingIndicatorOverlayState extends State<_PlayingIndicatorOverlay> {
                           },
                           child: Container(
                             padding: const EdgeInsets.all(8),
-                            child: const Icon(
-                              Icons.pause_circle_filled,
+                            child: Icon(
+                              playerState.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
                               color: Colors.white,
                               size: 32,
                             ),

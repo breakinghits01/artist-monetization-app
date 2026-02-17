@@ -109,8 +109,8 @@ class UploadNotifier extends StateNotifier<UploadState> {
 
       state = UploadState.published(song: song);
 
-      // Add song to user's song list
-      _ref.read(userSongsProvider.notifier).addSong(song);
+      // Refresh user's song list from backend to get the latest
+      await _ref.read(userSongsProvider.notifier).refresh();
     } catch (e) {
       state = UploadState.error(
         message: 'Failed to publish song: ${e.toString()}',

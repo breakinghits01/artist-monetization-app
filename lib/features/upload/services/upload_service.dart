@@ -46,17 +46,11 @@ class UploadService {
     }
   }
 
-  /// Upload file with progress tracking
+  /// Upload file with progress tracking (fast, no artificial delays)
   Stream<double> uploadWithProgress(UploadSession session, String filePath) async* {
     try {
-      // Simulate upload progress (in real app, this would be actual upload)
-      // For web or local storage, we'll just simulate progress
-      
-      // Simulate progress chunks
-      for (int i = 0; i < 10; i++) {
-        await Future.delayed(const Duration(milliseconds: 200));
-        yield (i + 1) * 10.0; // Progress percentage
-      }
+      // Fast progress simulation - no delays
+      yield 50.0; // Started
       
       // For web, we skip local storage save
       // For native platforms, save to local storage
@@ -64,36 +58,29 @@ class UploadService {
         final savedPath = await LocalStorageHelper.saveFile(filePath, session.fileName);
         debugPrint('File saved to: $savedPath');
       } else {
-        debugPrint('Web upload completed for: ${session.fileName}');
+        debugPrint('Web upload prepared: ${session.fileName}');
       }
       
-      yield 100.0; // Complete
+      yield 100.0; // Complete immediately
     } catch (e) {
       debugPrint('Error uploading file: $e');
       rethrow;
     }
   }
 
-  /// Process uploaded audio (simulate)
+  /// Process uploaded audio (fast, no delays)
   Future<void> processAudio(UploadSession session) async {
     try {
-      // In a real app, this would:
-      // 1. Transcode audio to web-optimized format
-      // 2. Extract metadata (duration, bitrate, etc.)
-      // 3. Generate waveform
-      // 4. Create thumbnail
-      
-      // Simulate processing time
-      await Future.delayed(const Duration(seconds: 2));
-      
-      debugPrint('Audio processing completed for: ${session.fileName}');
+      // In production, this would do actual processing
+      // For now, just log completion immediately
+      debugPrint('Audio ready for upload: ${session.fileName}');
     } catch (e) {
       debugPrint('Error processing audio: $e');
       rethrow;
     }
   }
 
-  /// Create song from upload session - MUST save to database
+  /// Create song from upload session - Upload file + metadata in ONE request
   Future<Map<String, dynamic>> createSong(
     UploadSession session,
     SongMetadata metadata, {
@@ -105,7 +92,7 @@ class UploadService {
     try {
       // On web, we can extract duration from bytes
       if (kIsWeb && session.fileBytes != null) {
-        debugPrint('🎵 Attempting to extract duration from ${session.fileBytes!.length} bytes');
+        debugPrint('🎵 Extracting duration from ${session.fileBytes!.length} bytes');
         final extractedDuration = await AudioMetadataExtractor.getDurationFromBytes(
           session.fileBytes!,
           session.fileType,
@@ -113,98 +100,81 @@ class UploadService {
         
         if (extractedDuration != null && extractedDuration > 0) {
           duration = extractedDuration;
-          debugPrint('✅ Using extracted duration: $duration seconds (${duration ~/ 60}:${(duration % 60).toString().padLeft(2, '0')})');
-        } else {
-          debugPrint('⚠️ Could not extract duration, using default: $duration seconds');
+          debugPrint('✅ Extracted duration: $duration seconds');
         }
-      } else {
-        debugPrint('⚠️ No file bytes available for duration extraction, using default: $duration seconds');
       }
     } catch (e) {
-      debugPrint('⚠️ Failed to extract duration: $e');
+      debugPrint('⚠️ Duration extraction failed, using default: $e');
     }
-    
-    // Upload the audio file first
-    String audioUrl;
+
     try {
-      if (session.fileBytes != null) {
-        debugPrint('📤 Uploading audio file to server...');
-        audioUrl = await _uploadAudioFile(session.fileBytes!, session.fileName, session.fileType);
-        debugPrint('✅ Audio file uploaded: $audioUrl');
-      } else {
+      if (session.fileBytes == null) {
         throw Exception('No file bytes available for upload');
       }
-    } catch (e) {
-      debugPrint('❌ Failed to upload audio file: $e');
-      throw Exception('Failed to upload audio file: $e');
-    }
-    
-    // Prepare song data for backend (using actual schema)
-    final songData = {
-      'title': metadata.title,
-      'genre': metadata.genre ?? 'Pop',
-      'description': metadata.description ?? '',
-      'price': metadata.price,
-      'duration': duration,
-      'audioUrl': audioUrl, // Use the uploaded file URL
-      'coverArt': metadata.coverArtUrl ?? 'https://via.placeholder.com/300',
-      'exclusive': metadata.exclusive,
-      // Note: Backend schema doesn't have 'status' field yet
-    };
 
-    debugPrint('📤 Uploading song to database: ${songData['title']}');
-
-    try {
-      // Get actual user token from storage
+      // Get auth token
       final token = await _storage.getAccessToken();
       if (token == null) {
         throw Exception('Not authenticated. Please login first.');
       }
       
-      debugPrint('🔐 Using auth token for upload');
+      debugPrint('📤 Uploading song with metadata in ONE request...');
       
-      // POST to backend API - this is REQUIRED
+      // Create form data with audio file + all metadata
+      final formData = FormData.fromMap({
+        'audio': MultipartFile.fromBytes(
+          session.fileBytes!,
+          filename: session.fileName,
+          contentType: MediaType.parse(session.fileType),
+        ),
+        'title': metadata.title,
+        'genre': metadata.genre ?? 'Pop',
+        'price': metadata.price.toString(),
+        'description': metadata.description ?? '',
+        'exclusive': metadata.exclusive.toString(),
+      });
+      
+      // Single upload request to /songs/upload
       final response = await _dio.post(
-        ApiConfig.songsEndpoint,
-        data: songData,
+        ApiConfig.uploadEndpoint,
+        data: formData,
         options: Options(
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
           },
         ),
       );
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
-        debugPrint('✅ Song saved to database successfully!');
+        debugPrint('✅ Song uploaded successfully!');
         
         // Extract song from response
         final song = data['data']?['song'] ?? data['song'] ?? data['data'] ?? data;
         
         return {
           'id': song['_id'] ?? song['id'],
-          'title': song['title'] ?? '',
-          'genre': song['genre'] ?? 'Pop',
-          'description': song['description'] ?? '',
-          'price': (song['price'] ?? 10).toInt(),
+          'title': song['title'] ?? metadata.title,
+          'genre': song['genre'] ?? metadata.genre,
+          'description': song['description'] ?? metadata.description,
+          'price': (song['price'] ?? metadata.price).toInt(),
           'audioUrl': song['audioUrl'] ?? '',
           'coverArt': song['coverArt'] ?? 'https://via.placeholder.com/300',
-          'duration': (song['duration'] ?? 180).toInt(),
-          'exclusive': song['exclusive'] ?? false,
+          'duration': duration,
+          'exclusive': song['exclusive'] ?? metadata.exclusive,
           'playCount': (song['playCount'] ?? 0).toInt(),
           'createdAt': song['createdAt'] ?? DateTime.now().toIso8601String(),
         };
       } else {
-        throw Exception('Backend returned status ${response.statusCode}');
+        throw Exception('Upload failed with status ${response.statusCode}');
       }
     } on DioException catch (e) {
-      debugPrint('❌ Failed to save to database: ${e.message}');
+      debugPrint('❌ Upload failed: ${e.message}');
       debugPrint('❌ Response: ${e.response?.data}');
-      throw Exception('Cannot save song - backend is required. Please check your API connection.');
+      throw Exception('Upload failed: ${e.response?.data?['message'] ?? e.message}');
     } catch (e) {
       debugPrint('❌ Unexpected error: $e');
-      throw Exception('Failed to save song: $e');
+      throw Exception('Upload failed: $e');
     }
   }
 
@@ -224,47 +194,5 @@ class UploadService {
     // In a real app, this would query the backend
     // For now, return mock status
     throw UnimplementedError('Status checking not implemented for local storage');
-  }
-  
-  /// Upload audio file to server and return the URL
-  Future<String> _uploadAudioFile(Uint8List fileBytes, String fileName, String mimeType) async {
-    try {
-      // Get auth token
-      final token = await _storage.getAccessToken();
-      if (token == null) {
-        throw Exception('Not authenticated');
-      }
-      
-      // Create form data
-      final formData = FormData.fromMap({
-        'audio': MultipartFile.fromBytes(
-          fileBytes,
-          filename: fileName,
-          contentType: MediaType.parse(mimeType),
-        ),
-      });
-      
-      // Upload to server
-      final response = await _dio.post(
-        '${ApiConfig.songsEndpoint}/upload',
-        data: formData,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        ),
-      );
-      
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final fileUrl = response.data['data']['url'] as String;
-        // Return full URL
-        return fileUrl;
-      } else {
-        throw Exception('Upload failed with status ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('❌ Error uploading audio file: $e');
-      rethrow;
-    }
   }
 }

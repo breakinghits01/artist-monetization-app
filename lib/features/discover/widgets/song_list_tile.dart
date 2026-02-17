@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../player/models/song_model.dart';
 import '../../player/providers/audio_player_provider.dart';
+import '../../player/widgets/audio_wave_indicator.dart';
 import '../../../shared/widgets/token_icon.dart';
 import '../../../core/theme/app_colors_extension.dart';
 
@@ -59,7 +60,7 @@ class SongListTile extends ConsumerWidget {
                     : _buildAlbumPlaceholder(theme),
               ),
             ),
-            // Playing indicator
+            // Playing indicator - animated wave when playing, static icon when paused
             if (isCurrentSong)
               Positioned.fill(
                 child: Container(
@@ -67,10 +68,18 @@ class SongListTile extends ConsumerWidget {
                     color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: Colors.white,
-                    size: 24,
+                  child: Center(
+                    child: isPlaying
+                        ? AudioWaveIndicator(
+                            isPlaying: true,
+                            color: Colors.white,
+                            size: 32,
+                          )
+                        : Icon(
+                            Icons.play_arrow,
+                            color: Colors.white,
+                            size: 32,
+                          ),
                   ),
                 ),
               ),
