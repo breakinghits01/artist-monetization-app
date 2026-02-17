@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../player/models/song_model.dart';
 import '../../../player/providers/audio_player_provider.dart';
-import '../../../player/widgets/audio_wave_indicator.dart';
 import '../../providers/liked_songs_provider.dart';
 import '../../providers/user_songs_provider.dart';
 import '../../models/user_profile_model.dart';
 import '../../widgets/profile_header.dart';
-import '../../../playlist/widgets/add_to_playlist_sheet.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../playlist/providers/playlists_provider.dart';
 import '../../../playlist/widgets/create_playlist_dialog.dart';
 import '../../../playlist/screens/playlist_detail_screen.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/sort_chip.dart';
+import '../widgets/song_list_item.dart';
+import '../widgets/song_options_sheet.dart';
+import '../widgets/playlist_list_item.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -86,8 +88,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   void _handleSongOptions(SongModel song) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildSongOptionsSheet(song),
+      builder: (context) => SongOptionsSheet(song: song),
     );
   }
 
@@ -270,11 +273,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                             ),
                           ),
                           const SizedBox(width: 12),
-                          _buildSortChip('Recent'),
+                          SortChip(
+                            label: 'Recent',
+                            isSelected: _sortBy == 'Recent',
+                            onTap: () => _updateSort('Recent'),
+                          ),
                           const SizedBox(width: 8),
-                          _buildSortChip('Most Played'),
+                          SortChip(
+                            label: 'Most Played',
+                            isSelected: _sortBy == 'Most Played',
+                            onTap: () => _updateSort('Most Played'),
+                          ),
                           const SizedBox(width: 8),
-                          _buildSortChip('A-Z'),
+                          SortChip(
+                            label: 'A-Z',
+                            isSelected: _sortBy == 'A-Z',
+                            onTap: () => _updateSort('A-Z'),
+                          ),
                         ],
                       ),
                     ),
@@ -288,8 +303,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           if (_tabController.index == 0)
             ..._buildSongsSliverGrid()
           else if (_tabController.index == 1)
-            SliverToBoxAdapter(
-              child: _buildEmptyState(
+            const SliverToBoxAdapter(
+              child: EmptyStateWidget(
                 icon: Icons.favorite_border,
                 title: 'No Liked Songs',
                 subtitle: 'Songs you like will appear here',
@@ -302,40 +317,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  Widget _buildSortChip(String label) {
-    final theme = Theme.of(context);
-    final isSelected = _sortBy == label;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _sortBy = label;
-          // Clear cache to force re-sort
-          _cachedSortedSongs = null;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? theme.colorScheme.primary
-              : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-          border: isSelected
-              ? Border.all(color: theme.colorScheme.primary, width: 2)
-              : null,
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-
   List<Widget> _buildSongsSliverGrid() {
     final sortedSongs = _getSortedSongs();
     final currentSong = ref.watch(currentSongProvider);
@@ -344,8 +325,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     // Show empty state if no songs
     if (sortedSongs.isEmpty) {
       return [
-        SliverToBoxAdapter(
-          child: _buildEmptyState(
+        const SliverToBoxAdapter(
+          child: EmptyStateWidget(
             icon: Icons.music_note_outlined,
             title: 'No Songs Yet',
             subtitle: 'Upload your first song to get started',
@@ -364,10 +345,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               final isCurrentlyPlaying = currentSong?.id == song.id;
               final isLiked = likedSongIds.contains(song.id);
               
-              return _buildSongListItem(
+              return SongListItem(
                 song: song,
                 isCurrentlyPlaying: isCurrentlyPlaying,
                 isLiked: isLiked,
+                onTap: () => _handleSongPlay(song),
+                onLike: () => _handleSongLike(song),
+                onOptions: () => _handleSongOptions(song),
               );
             },
             childCount: sortedSongs.length,
@@ -377,308 +361,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     ];
   }
 
-  Widget _buildSongListItem({
-    required SongModel song,
-    required bool isCurrentlyPlaying,
-    required bool isLiked,
-  }) {
-    final theme = Theme.of(context);
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        gradient: isCurrentlyPlaying 
-            ? LinearGradient(
-                colors: [
-                  theme.colorScheme.primary.withValues(alpha: 0.15),
-                  theme.colorScheme.primary.withValues(alpha: 0.05),
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              )
-            : null,
-        color: isCurrentlyPlaying ? null : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isCurrentlyPlaying 
-              ? theme.colorScheme.primary.withValues(alpha: 0.3)
-              : theme.colorScheme.outline.withValues(alpha: 0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          if (isCurrentlyPlaying)
-            BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: 0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        leading: Stack(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary.withValues(alpha: 0.2),
-                    theme.colorScheme.secondary.withValues(alpha: 0.1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: song.albumArt != null && song.albumArt!.isNotEmpty
-                    ? Image.network(
-                        song.albumArt!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            Icons.music_note,
-                            color: theme.colorScheme.primary,
-                            size: 30,
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            ),
-                          );
-                        },
-                      )
-                    : Icon(
-                        Icons.music_note,
-                        color: theme.colorScheme.primary,
-                        size: 30,
-                      ),
-              ),
-            ),
-            // Show wave indicator when playing, with hover pause for web
-            if (isCurrentlyPlaying)
-              const _PlayingIndicatorOverlay(),
-          ],
-        ),
-        title: Text(
-          song.title,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            fontWeight: isCurrentlyPlaying ? FontWeight.bold : FontWeight.w500,
-            color: isCurrentlyPlaying ? theme.colorScheme.primary : null,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Row(
-          children: [
-            if (song.genre != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  song.genre!,
-                  style: theme.textTheme.labelSmall,
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              _formatDuration(song.duration),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.monetization_on, size: 14, color: Colors.amber),
-                  const SizedBox(width: 4),
-                  Text(
-                    '+${song.tokenReward}',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.amber,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: Icon(
-                isLiked ? Icons.favorite : Icons.favorite_border,
-                color: isLiked ? Colors.red : null,
-                size: 20,
-              ),
-              onPressed: () => _handleSongLike(song),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.more_vert, size: 20),
-              onPressed: () => _handleSongOptions(song),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
-        ),
-        onTap: () => _handleSongPlay(song),
-      ),
-    );
-  }
-
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                width: 3,
-              ),
-            ),
-            child: Icon(
-              icon,
-              size: 60,
-              color: theme.colorScheme.primary.withValues(alpha: 0.5),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            title,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSongOptionsSheet(SongModel song) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1D2E) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            blurRadius: 20,
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: Icon(Icons.add_to_photos, color: theme.colorScheme.primary),
-              title: const Text('Add to Playlist'),
-              subtitle: const Text('Add this song to a playlist'),
-              onTap: () {
-                Navigator.pop(context); // Close options sheet
-                // Show add to playlist sheet
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (context) => AddToPlaylistSheet(songId: song.id),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.share, color: theme.colorScheme.secondary),
-              title: const Text('Share'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: Icon(Icons.download, color: theme.colorScheme.secondary),
-              title: const Text('Download'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.info_outline, color: Color(0xFF9C27B0)),
-              title: const Text('Song Info'),
-              onTap: () => Navigator.pop(context),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
+  void _updateSort(String sortBy) {
+    setState(() {
+      _sortBy = sortBy;
+      // Clear cache to force re-sort
+      _cachedSortedSongs = null;
+    });
   }
 }
 
@@ -795,137 +483,23 @@ extension _PlaylistsTab on _ProfileScreenState {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final playlist = playlistsState.playlists[index];
-            return _buildPlaylistListItem(playlist);
-          },
-          childCount: playlistsState.playlists.length,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlaylistListItem(playlist) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primary.withValues(alpha: isDark ? 0.15 : 0.08),
-            theme.colorScheme.secondary.withValues(alpha: isDark ? 0.1 : 0.05),
-          ],
-        ),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.2),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PlaylistDetailScreen(
-                  playlistId: playlist.id,
-                  playlistName: playlist.name,
-                ),
-              ),
+            return PlaylistListItem(
+              playlist: playlist,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PlaylistDetailScreen(
+                      playlistId: playlist.id,
+                      playlistName: playlist.name,
+                    ),
+                  ),
+                );
+              },
+              onOptions: () => _showPlaylistOptions(playlist),
             );
           },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Playlist icon with gradient background
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.8),
-                        theme.colorScheme.secondary,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.playlist_play,
-                    color: Colors.white,
-                    size: 36,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Playlist info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        playlist.name,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.music_note,
-                            size: 16,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${playlist.songCount} ${playlist.songCount == 1 ? 'song' : 'songs'}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // More options button
-                IconButton(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                  onPressed: () {
-                    _showPlaylistOptions(playlist);
-                  },
-                ),
-              ],
-            ),
-          ),
+          childCount: playlistsState.playlists.length,
         ),
       ),
     );
@@ -1035,79 +609,5 @@ extension _PlaylistsTab on _ProfileScreenState {
         }
       }
     }
-  }
-}
-
-/// Playing indicator overlay with animated wave and hover pause button
-class _PlayingIndicatorOverlay extends StatefulWidget {
-  const _PlayingIndicatorOverlay();
-
-  @override
-  State<_PlayingIndicatorOverlay> createState() => _PlayingIndicatorOverlayState();
-}
-
-class _PlayingIndicatorOverlayState extends State<_PlayingIndicatorOverlay> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer(
-      builder: (context, ref, child) {
-        final playerState = ref.watch(audioPlayerProvider);
-        
-        return Positioned.fill(
-          child: MouseRegion(
-            onEnter: (_) => setState(() => _isHovered = true),
-            onExit: (_) => setState(() => _isHovered = false),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.black.withValues(alpha: _isHovered ? 0.5 : 0.3),
-              ),
-              child: Stack(
-                children: [
-                  // Show animated wave when playing, static play icon when paused
-                  if (!_isHovered || !kIsWeb)
-                    Center(
-                      child: playerState.isPlaying
-                          ? AudioWaveIndicator(
-                              isPlaying: true,
-                              color: Colors.white,
-                              size: 32,
-                            )
-                          : Icon(
-                              Icons.play_arrow,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                    ),
-                  // Pause button (only on hover for web, or always for mobile)
-                  if (_isHovered && kIsWeb)
-                    Center(
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () {
-                            ref.read(audioPlayerProvider.notifier).playPause();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            child: Icon(
-                              playerState.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 }
