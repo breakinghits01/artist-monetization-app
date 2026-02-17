@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
@@ -10,6 +11,7 @@ typedef SkipCallback = Future<void> Function();
 /// Manages media controls, notifications, and lock screen display
 class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer _player;
+  final List<StreamSubscription> _subscriptions = [];
   SkipCallback? onSkipToNext;
   SkipCallback? onSkipToPrevious;
   
@@ -19,61 +21,67 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
 
   void _init() {
     // Listen to player state changes and update notification
-    _player.playbackEventStream.listen((event) {
-      final playing = _player.playing;
-      
-      playbackState.add(playbackState.value.copyWith(
-        controls: [
-          const MediaControl(
-            androidIcon: 'drawable/ic_shuffle',
-            label: 'Shuffle',
-            action: MediaAction.setShuffleMode,
-          ),
-          MediaControl.skipToPrevious,
-          if (playing) MediaControl.pause else MediaControl.play,
-          MediaControl.skipToNext,
-          const MediaControl(
-            androidIcon: 'drawable/ic_repeat',
-            label: 'Repeat',
-            action: MediaAction.setRepeatMode,
-          ),
-        ],
-        systemActions: const {
-          MediaAction.seek,
-          MediaAction.seekForward,
-          MediaAction.seekBackward,
-          MediaAction.setShuffleMode,
-          MediaAction.setRepeatMode,
-        },
-        androidCompactActionIndices: const [1, 2, 3], // Previous, Play/Pause, Next in compact view
-        processingState: const {
-          ProcessingState.idle: AudioProcessingState.idle,
-          ProcessingState.loading: AudioProcessingState.loading,
-          ProcessingState.buffering: AudioProcessingState.buffering,
-          ProcessingState.ready: AudioProcessingState.ready,
-          ProcessingState.completed: AudioProcessingState.completed,
-        }[_player.processingState]!,
-        playing: playing,
-        updatePosition: _player.position,
-        bufferedPosition: _player.bufferedPosition,
-        speed: _player.speed,
-        queueIndex: 0,
-      ));
-    });
+    _subscriptions.add(
+      _player.playbackEventStream.listen((event) {
+        final playing = _player.playing;
+        
+        playbackState.add(playbackState.value.copyWith(
+          controls: [
+            const MediaControl(
+              androidIcon: 'drawable/ic_shuffle',
+              label: 'Shuffle',
+              action: MediaAction.setShuffleMode,
+            ),
+            MediaControl.skipToPrevious,
+            if (playing) MediaControl.pause else MediaControl.play,
+            MediaControl.skipToNext,
+            const MediaControl(
+              androidIcon: 'drawable/ic_repeat',
+              label: 'Repeat',
+              action: MediaAction.setRepeatMode,
+            ),
+          ],
+          systemActions: const {
+            MediaAction.seek,
+            MediaAction.seekForward,
+            MediaAction.seekBackward,
+            MediaAction.setShuffleMode,
+            MediaAction.setRepeatMode,
+          },
+          androidCompactActionIndices: const [1, 2, 3], // Previous, Play/Pause, Next in compact view
+          processingState: const {
+            ProcessingState.idle: AudioProcessingState.idle,
+            ProcessingState.loading: AudioProcessingState.loading,
+            ProcessingState.buffering: AudioProcessingState.buffering,
+            ProcessingState.ready: AudioProcessingState.ready,
+            ProcessingState.completed: AudioProcessingState.completed,
+          }[_player.processingState]!,
+          playing: playing,
+          updatePosition: _player.position,
+          bufferedPosition: _player.bufferedPosition,
+          speed: _player.speed,
+          queueIndex: 0,
+        ));
+      }),
+    );
 
     // Listen to position changes for lock screen progress
-    _player.positionStream.listen((position) {
-      playbackState.add(playbackState.value.copyWith(
-        updatePosition: position,
-      ));
-    });
+    _subscriptions.add(
+      _player.positionStream.listen((position) {
+        playbackState.add(playbackState.value.copyWith(
+          updatePosition: position,
+        ));
+      }),
+    );
 
     // Listen to duration changes
-    _player.durationStream.listen((duration) {
-      if (duration != null && mediaItem.value != null) {
-        mediaItem.add(mediaItem.value!.copyWith(duration: duration));
-      }
-    });
+    _subscriptions.add(
+      _player.durationStream.listen((duration) {
+        if (duration != null && mediaItem.value != null) {
+          mediaItem.add(mediaItem.value!.copyWith(duration: duration));
+        }
+      }),
+    );
   }
 
   /// Update media item for lock screen and notification
@@ -164,8 +172,21 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   }
 
   /// Clean up resources
+  /// Note: Does NOT dispose the shared AudioPlayer instance
+  /// Only cancels this handler's stream subscriptions
   Future<void> dispose() async {
-    await _player.dispose();
+    print('🧹 Cleaning up AudioServiceHandler...');
+    
+    // Cancel all stream subscriptions
+    for (var subscription in _subscriptions) {
+      await subscription.cancel();
+    }
+    _subscriptions.clear();
+    
+    // Stop the audio service
+    await stop();
+    
+    print('✅ AudioServiceHandler cleaned up');
   }
 }
 
