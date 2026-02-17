@@ -224,7 +224,7 @@ class _StoryCircle extends StatelessWidget {
       return LinearGradient(
         colors: [
           _parseColor(story.genreColor),
-          _parseColor(story.genreColor).withOpacity(0.6),
+          _parseColor(story.genreColor).withValues(alpha: 0.6),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -278,7 +278,7 @@ class _AddStoryCircle extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.3),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
                   width: 2,
                   style: BorderStyle.solid,
                 ),
@@ -318,7 +318,7 @@ class _StoryCircleSkeleton extends StatelessWidget {
             height: 68,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: theme.colorScheme.onSurface.withOpacity(0.05),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
             ),
           ),
           const SizedBox(height: 4),
@@ -326,7 +326,7 @@ class _StoryCircleSkeleton extends StatelessWidget {
             width: 50,
             height: 10,
             decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withOpacity(0.05),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(4),
             ),
           ),

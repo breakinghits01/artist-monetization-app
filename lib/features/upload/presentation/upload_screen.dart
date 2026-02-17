@@ -52,7 +52,7 @@ class UploadScreen extends ConsumerWidget {
           Text(
             'Share your creativity with the world',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -86,7 +86,7 @@ class UploadScreen extends ConsumerWidget {
           Text(
             fileName,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -125,7 +125,7 @@ class UploadScreen extends ConsumerWidget {
             Text(
               'Your music is now live and ready to be discovered',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -191,7 +191,7 @@ class UploadScreen extends ConsumerWidget {
             Text(
               message,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -283,7 +283,7 @@ class UploadScreen extends ConsumerWidget {
 
   Widget _buildStorageInfo(ThemeData theme) {
     return Card(
-      color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

@@ -136,7 +136,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 end: Alignment.bottomRight,
                 colors: [
                   Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                   Theme.of(context).colorScheme.secondary,
                 ],
               ),
@@ -166,7 +166,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       'Monetize Your Music & Connect with Fans',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                     ),
                     const SizedBox(height: 48),
@@ -210,9 +210,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

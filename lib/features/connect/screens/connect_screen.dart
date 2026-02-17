@@ -100,13 +100,13 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
                 Icon(
                   Icons.people_outline,
                   size: 64,
-                  color: isDark ? Colors.white.withOpacity(0.3) : Colors.black26,
+                  color: isDark ? Colors.white.withValues(alpha: 0.3) : Colors.black26,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Not following anyone yet',
                   style: TextStyle(
-                    color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                    color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                     fontSize: 16,
                   ),
                 ),
@@ -149,7 +149,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
               Text(
                 'Failed to load following list',
                 style: TextStyle(
-                  color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                  color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                 ),
               ),
               const SizedBox(height: 8),
@@ -188,11 +188,11 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
                 decoration: InputDecoration(
                   hintText: 'Search artists...',
                   hintStyle: TextStyle(
-                    color: isDark ? Colors.white.withOpacity(0.5) : Colors.black45,
+                    color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black45,
                   ),
                   prefixIcon: Icon(
                     Icons.search,
-                    color: isDark ? Colors.white.withOpacity(0.7) : Colors.black54,
+                    color: isDark ? Colors.white.withValues(alpha: 0.7) : Colors.black54,
                   ),
                   filled: true,
                   fillColor: theme.colorScheme.surfaceVariant2,
@@ -230,7 +230,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
                   child: Text(
                     'No artists found',
                     style: TextStyle(
-                      color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                      color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                       fontSize: 16,
                     ),
                   ),
@@ -264,7 +264,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
                   Text(
                     'Failed to load artists',
                     style: TextStyle(
-                      color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                      color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -296,13 +296,13 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
                 Icon(
                   Icons.timeline,
                   size: 64,
-                  color: isDark ? Colors.white.withOpacity(0.3) : Colors.black26,
+                  color: isDark ? Colors.white.withValues(alpha: 0.3) : Colors.black26,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'No activities yet',
                   style: TextStyle(
-                    color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                    color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                     fontSize: 16,
                   ),
                 ),
@@ -310,7 +310,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
                 Text(
                   'Follow artists to see their activities',
                   style: TextStyle(
-                    color: isDark ? Colors.white.withOpacity(0.4) : Colors.black38,
+                    color: isDark ? Colors.white.withValues(alpha: 0.4) : Colors.black38,
                     fontSize: 13,
                   ),
                 ),
@@ -341,7 +341,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
             Text(
               'Failed to load activity feed',
               style: TextStyle(
-                color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
               ),
             ),
             const SizedBox(height: 8),
@@ -372,7 +372,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> with SingleTicker
       labelStyle: TextStyle(
         color: isSelected 
             ? Colors.white 
-            : (isDark ? Colors.white.withOpacity(0.7) : Colors.black87),
+            : (isDark ? Colors.white.withValues(alpha: 0.7) : Colors.black87),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
     );

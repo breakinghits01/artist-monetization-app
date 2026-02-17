@@ -27,7 +27,7 @@ class ArtistCard extends StatelessWidget {
         border: isDark ? null : Border.all(color: Colors.grey[300]!),
         boxShadow: isDark ? null : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -44,7 +44,7 @@ class ArtistCard extends StatelessWidget {
               // Profile picture
               CircleAvatar(
                 radius: 30,
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
                 backgroundImage: artist.profilePicture != null
                     ? NetworkImage(artist.profilePicture!)
                     : null,
@@ -85,7 +85,7 @@ class ArtistCard extends StatelessWidget {
                       Text(
                         artist.bio!,
                         style: TextStyle(
-                          color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                          color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                           fontSize: 13,
                         ),
                         maxLines: 1,
@@ -106,13 +106,13 @@ class ArtistCard extends StatelessWidget {
                             Icon(
                               Icons.people_outline,
                               size: 16,
-                              color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                              color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${artist.formattedFollowerCount}',
                               style: TextStyle(
-                                color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                                color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                                 fontSize: 12,
                               ),
                             ),
@@ -124,13 +124,13 @@ class ArtistCard extends StatelessWidget {
                             Icon(
                               Icons.music_note_outlined,
                               size: 16,
-                              color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                              color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${artist.formattedSongCount}',
                               style: TextStyle(
-                                color: isDark ? Colors.white.withOpacity(0.6) : Colors.black54,
+                                color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
                                 fontSize: 12,
                               ),
                             ),

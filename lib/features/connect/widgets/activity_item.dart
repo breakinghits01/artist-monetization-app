@@ -32,7 +32,7 @@ class ActivityItem extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -66,7 +66,7 @@ class ActivityItem extends StatelessWidget {
                           TextSpan(
                             text: ' ${activity.message}',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -80,7 +80,7 @@ class ActivityItem extends StatelessWidget {
                         margin: const EdgeInsets.only(top: 6),
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -96,7 +96,7 @@ class ActivityItem extends StatelessWidget {
                                   errorBuilder: (_, __, ___) => Container(
                                     width: 32,
                                     height: 32,
-                                    color: Colors.grey.withOpacity(0.3),
+                                    color: Colors.grey.withValues(alpha: 0.3),
                                     child: const Icon(
                                       Icons.music_note,
                                       size: 16,
@@ -110,7 +110,7 @@ class ActivityItem extends StatelessWidget {
                               child: Text(
                                 activity.target!.displayName,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -128,7 +128,7 @@ class ActivityItem extends StatelessWidget {
                     Text(
                       activity.timeAgo,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.4),
+                        color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 11,
                       ),
                     ),

@@ -72,8 +72,8 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
             border: isFollowing
                 ? Border.all(
                     color: theme.brightness == Brightness.dark
-                        ? Colors.white.withOpacity(0.3)
-                        : Colors.grey.withOpacity(0.5),
+                        ? Colors.white.withValues(alpha: 0.3)
+                        : Colors.grey.withValues(alpha: 0.5),
                     width: 1,
                   )
                 : null,

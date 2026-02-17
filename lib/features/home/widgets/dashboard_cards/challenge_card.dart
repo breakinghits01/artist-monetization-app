@@ -34,7 +34,7 @@ class ChallengeCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFD700).withOpacity(0.2),
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text('🏆', style: TextStyle(fontSize: 32)),
@@ -86,8 +86,8 @@ class ChallengeCard extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 8,
-                      backgroundColor: theme.colorScheme.primary.withOpacity(
-                        0.1,
+                      backgroundColor: theme.colorScheme.primary.withValues(
+                        alpha: 0.1,
                       ),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         theme.colorScheme.primary,

@@ -96,7 +96,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 20,
                           spreadRadius: 5,
                         ),
@@ -124,7 +124,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   Text(
                     'Discover & Support Artists',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                   ),
                   const SizedBox(height: 48),

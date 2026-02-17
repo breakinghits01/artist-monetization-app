@@ -45,7 +45,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final user = ref.watch(currentUserProvider);
     final currentSong = ref.watch(currentSongProvider);
     final isPlayerExpanded = ref.watch(playerExpandedProvider);
 

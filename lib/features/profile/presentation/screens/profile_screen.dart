@@ -9,6 +9,7 @@ import '../../providers/user_songs_provider.dart';
 import '../../models/user_profile_model.dart';
 import '../../widgets/profile_header.dart';
 import '../../../playlist/widgets/add_to_playlist_sheet.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../../playlist/providers/playlists_provider.dart';
 import '../../../playlist/widgets/create_playlist_dialog.dart';
 import '../../../playlist/screens/playlist_detail_screen.dart';
@@ -28,8 +29,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   // Cache sorted songs to prevent re-shuffling on rebuild
   List<SongModel>? _cachedSortedSongs;
   String? _lastSortBy;
-  
-  final UserProfile _profile = MockUserProfile.profile;
 
   @override
   void initState() {
@@ -59,12 +58,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     super.dispose();
   }
 
-  void _handleSongPlay(SongModel song) {
-    // Get all songs for queue context
-    final allSongs = _getSortedSongs();
-    
-    // Play the song with queue context
-    ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs);
+  void _handleSongPlay(SongModel song) async {
+    try {
+      // Get all songs for queue context
+      final allSongs = _getSortedSongs();
+      
+      // Play the song with queue context
+      await ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs);
+    } catch (e) {
+      debugPrint('❌ Error in _handleSongPlay: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to play song: ${song.title}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _handleSongLike(SongModel song) {
@@ -193,10 +204,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ),
           // Profile Header
           SliverToBoxAdapter(
-            child: ProfileHeader(
-              profile: _profile,
-              onEditProfile: _handleEditProfile,
-              isOwnProfile: true,
+            child: Consumer(
+              builder: (context, ref, _) {
+                final authState = ref.watch(authProvider);
+                final user = authState.user;
+                
+                // Create UserProfile from auth data
+                final profile = UserProfile(
+                  id: user?['_id'] ?? '',
+                  username: user?['username'] ?? 'User',
+                  email: user?['email'] ?? '',
+                  role: user?['role'] ?? 'fan',
+                  bio: 'Music enthusiast 🎵 | Cyberpunk vibes | Love discovering new sounds',
+                  avatarUrl: user?['avatar'],
+                  coverPhotoUrl: 'https://picsum.photos/seed/cover1/1200/400',
+                  followerCount: 1234,
+                  followingCount: 567,
+                  totalPlays: 185600,
+                  songCount: 10,
+                  joinDate: DateTime.now(),
+                  favoriteGenres: ['Electronic', 'Rock', 'Hip Hop', 'Pop'],
+                );
+                
+                return ProfileHeader(
+                  profile: profile,
+                  onEditProfile: _handleEditProfile,
+                  isOwnProfile: true,
+                );
+              },
             ),
           ),
           // Tabs
@@ -213,7 +248,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       indicatorWeight: 3,
                       labelColor: theme.colorScheme.primary,
                       unselectedLabelColor:
-                          theme.colorScheme.onSurface.withOpacity(0.6),
+                          theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       tabs: const [
                         Tab(text: 'My Songs'),
                         Tab(text: 'Liked'),
@@ -231,7 +266,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           Text(
                             'Sort by:',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -355,8 +390,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         gradient: isCurrentlyPlaying 
             ? LinearGradient(
                 colors: [
-                  theme.colorScheme.primary.withOpacity(0.15),
-                  theme.colorScheme.primary.withOpacity(0.05),
+                  theme.colorScheme.primary.withValues(alpha: 0.15),
+                  theme.colorScheme.primary.withValues(alpha: 0.05),
                 ],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
@@ -366,14 +401,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isCurrentlyPlaying 
-              ? theme.colorScheme.primary.withOpacity(0.3)
-              : theme.colorScheme.outline.withOpacity(0.1),
+              ? theme.colorScheme.primary.withValues(alpha: 0.3)
+              : theme.colorScheme.outline.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           if (isCurrentlyPlaying)
             BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.2),
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -390,15 +425,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 borderRadius: BorderRadius.circular(8),
                 gradient: LinearGradient(
                   colors: [
-                    theme.colorScheme.primary.withOpacity(0.2),
-                    theme.colorScheme.secondary.withOpacity(0.1),
+                    theme.colorScheme.primary.withValues(alpha: 0.2),
+                    theme.colorScheme.secondary.withValues(alpha: 0.1),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -461,7 +496,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.2),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -474,7 +509,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             Text(
               _formatDuration(song.duration),
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -482,30 +517,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (song.tokenReward != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.monetization_on, size: 14, color: Colors.amber),
-                    const SizedBox(width: 4),
-                    Text(
-                      '+${song.tokenReward}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: Colors.amber,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 8),
-            ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.monetization_on, size: 14, color: Colors.amber),
+                  const SizedBox(width: 4),
+                  Text(
+                    '+${song.tokenReward}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.amber,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
             IconButton(
               icon: Icon(
                 isLiked ? Icons.favorite : Icons.favorite_border,
@@ -553,14 +586,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: theme.colorScheme.primary.withOpacity(0.3),
+                color: theme.colorScheme.primary.withValues(alpha: 0.3),
                 width: 3,
               ),
             ),
             child: Icon(
               icon,
               size: 60,
-              color: theme.colorScheme.primary.withOpacity(0.5),
+              color: theme.colorScheme.primary.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 24),
@@ -574,7 +607,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           Text(
             subtitle,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -592,7 +625,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.2),
+            color: theme.colorScheme.primary.withValues(alpha: 0.2),
             blurRadius: 20,
           ),
         ],
@@ -606,7 +639,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -720,7 +753,7 @@ extension _PlaylistsTab on _ProfileScreenState {
               Icon(
                 Icons.playlist_play,
                 size: 80,
-                color: theme.colorScheme.primary.withOpacity(0.3),
+                color: theme.colorScheme.primary.withValues(alpha: 0.3),
               ),
               const SizedBox(height: 24),
               Text(
@@ -733,7 +766,7 @@ extension _PlaylistsTab on _ProfileScreenState {
               Text(
                 'Create your first playlist',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 24),
@@ -782,17 +815,17 @@ extension _PlaylistsTab on _ProfileScreenState {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            theme.colorScheme.primary.withOpacity(isDark ? 0.15 : 0.08),
-            theme.colorScheme.secondary.withOpacity(isDark ? 0.1 : 0.05),
+            theme.colorScheme.primary.withValues(alpha: isDark ? 0.15 : 0.08),
+            theme.colorScheme.secondary.withValues(alpha: isDark ? 0.1 : 0.05),
           ],
         ),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.2),
+          color: theme.colorScheme.primary.withValues(alpha: 0.2),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -826,14 +859,14 @@ extension _PlaylistsTab on _ProfileScreenState {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        theme.colorScheme.primary.withOpacity(0.8),
+                        theme.colorScheme.primary.withValues(alpha: 0.8),
                         theme.colorScheme.secondary,
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: theme.colorScheme.primary.withOpacity(0.3),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -866,13 +899,13 @@ extension _PlaylistsTab on _ProfileScreenState {
                           Icon(
                             Icons.music_note,
                             size: 16,
-                            color: theme.colorScheme.primary.withOpacity(0.7),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.7),
                           ),
                           const SizedBox(width: 6),
                           Text(
                             '${playlist.songCount} ${playlist.songCount == 1 ? 'song' : 'songs'}',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -884,7 +917,7 @@ extension _PlaylistsTab on _ProfileScreenState {
                 IconButton(
                   icon: Icon(
                     Icons.more_vert,
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                   onPressed: () {
                     _showPlaylistOptions(playlist);
@@ -918,7 +951,7 @@ extension _PlaylistsTab on _ProfileScreenState {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1029,7 +1062,7 @@ class _PlayingIndicatorOverlayState extends State<_PlayingIndicatorOverlay> {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                color: Colors.black.withOpacity(_isHovered ? 0.5 : 0.3),
+                color: Colors.black.withValues(alpha: _isHovered ? 0.5 : 0.3),
               ),
               child: Stack(
                 children: [

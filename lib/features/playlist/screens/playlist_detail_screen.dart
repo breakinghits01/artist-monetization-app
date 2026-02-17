@@ -231,8 +231,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      theme.colorScheme.primary.withOpacity(0.8),
-                      theme.colorScheme.secondary.withOpacity(0.9),
+                      theme.colorScheme.primary.withValues(alpha: 0.8),
+                      theme.colorScheme.secondary.withValues(alpha: 0.9),
                     ],
                   ),
                 ),
@@ -247,7 +247,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Icon(
@@ -271,7 +271,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           Text(
                             _playlist!.description!,
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -281,7 +281,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         Text(
                           '${_playlist?.songCount ?? 0} songs',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -324,7 +324,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     Icon(
                       Icons.music_note,
                       size: 80,
-                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
                     ),
                     const SizedBox(height: 24),
                     Text(
@@ -337,7 +337,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     Text(
                       'Add songs to get started',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -404,13 +404,13 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       placeholder: (context, url) => Container(
                         width: 56,
                         height: 56,
-                        color: theme.colorScheme.primary.withOpacity(0.2),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
                         child: const Icon(Icons.music_note, size: 24),
                       ),
                       errorWidget: (context, url, error) => Container(
                         width: 56,
                         height: 56,
-                        color: theme.colorScheme.primary.withOpacity(0.2),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
                         child: const Icon(Icons.music_note, size: 24),
                       ),
                     )
@@ -477,7 +477,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -531,7 +531,7 @@ class _PlayingIndicatorOverlayState extends ConsumerState<_PlayingIndicatorOverl
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            color: Colors.black.withOpacity(_isHovered ? 0.5 : 0.3),
+            color: Colors.black.withValues(alpha: _isHovered ? 0.5 : 0.3),
           ),
           child: Stack(
             children: [

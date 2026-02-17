@@ -27,7 +27,7 @@ class FilePickerWidget extends StatelessWidget {
             strokeAlign: BorderSide.strokeAlignInside,
           ),
           borderRadius: BorderRadius.circular(16),
-          color: theme.colorScheme.primaryContainer.withOpacity(0.1),
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
         ),
         child: Column(
           children: [
@@ -48,7 +48,7 @@ class FilePickerWidget extends StatelessWidget {
             Text(
               'Tap to browse your files',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],

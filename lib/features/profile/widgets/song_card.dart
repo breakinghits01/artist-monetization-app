@@ -73,7 +73,7 @@ class _SongCardState extends ConsumerState<SongCard>
           boxShadow: _isHovered
               ? [
                   BoxShadow(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -81,8 +81,8 @@ class _SongCardState extends ConsumerState<SongCard>
               : null,
           // Glass-morphism effect
           color: isDark
-              ? theme.colorScheme.primary.withOpacity(0.05)
-              : theme.colorScheme.primary.withOpacity(0.02),
+              ? theme.colorScheme.primary.withValues(alpha: 0.05)
+              : theme.colorScheme.primary.withValues(alpha: 0.02),
         ),
         child: Material(
           color: Colors.transparent,
@@ -108,7 +108,7 @@ class _SongCardState extends ConsumerState<SongCard>
                             border: Border.all(
                               color: widget.isCurrentlyPlaying
                                   ? theme.colorScheme.primary
-                                  : theme.colorScheme.secondary.withOpacity(0.3),
+                                  : theme.colorScheme.secondary.withValues(alpha: 0.3),
                               width: widget.isCurrentlyPlaying ? 3 : 1,
                             ),
                             borderRadius: BorderRadius.circular(12),
@@ -186,8 +186,8 @@ class _SongCardState extends ConsumerState<SongCard>
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  Colors.black.withOpacity(0.1),
-                                  Colors.black.withOpacity(0.6),
+                                  Colors.black.withValues(alpha: 0.1),
+                                  Colors.black.withValues(alpha: 0.6),
                                 ],
                               ),
                             ),
@@ -200,7 +200,7 @@ class _SongCardState extends ConsumerState<SongCard>
                                   color: theme.colorScheme.primary,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: theme.colorScheme.primary.withOpacity(0.5),
+                                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
                                       blurRadius: 20,
                                       spreadRadius: 5,
                                     ),
@@ -232,7 +232,7 @@ class _SongCardState extends ConsumerState<SongCard>
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.black.withOpacity(0.6),
+                              color: Colors.black.withValues(alpha: 0.6),
                             ),
                             child: Icon(
                               widget.isLiked
@@ -285,10 +285,10 @@ class _SongCardState extends ConsumerState<SongCard>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.accentPurple.withOpacity(0.2),
+                            color: theme.colorScheme.accentPurple.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: theme.colorScheme.accentPurple.withOpacity(0.4),
+                              color: theme.colorScheme.accentPurple.withValues(alpha: 0.4),
                             ),
                           ),
                           child: Text(
@@ -304,19 +304,19 @@ class _SongCardState extends ConsumerState<SongCard>
                       Text(
                         _formatDuration(widget.song.duration),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                       Icon(
                         Icons.access_time,
                         size: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         _formatDuration(widget.song.duration),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],

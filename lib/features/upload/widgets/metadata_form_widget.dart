@@ -72,7 +72,7 @@ class _MetadataFormWidgetState extends ConsumerState<MetadataFormWidget> {
             Text(
               'Add information about your song',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 32),
@@ -248,7 +248,7 @@ class _MetadataFormWidgetState extends ConsumerState<MetadataFormWidget> {
               color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.5),
+                color: theme.colorScheme.outline.withValues(alpha: 0.5),
               ),
             ),
             child: _coverArtPath != null
@@ -284,13 +284,13 @@ class _MetadataFormWidgetState extends ConsumerState<MetadataFormWidget> {
                       Icon(
                         Icons.add_photo_alternate,
                         size: 48,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Add Cover Image',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -313,7 +313,7 @@ class _MetadataFormWidgetState extends ConsumerState<MetadataFormWidget> {
       subtitle: Text(
         subtitle,
         style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurface.withOpacity(0.6),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
         ),
       ),
       value: value,

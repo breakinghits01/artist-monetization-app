@@ -20,12 +20,12 @@ class WalletHeader extends ConsumerWidget {
         gradient: LinearGradient(
           colors: isDark
               ? [
-                  theme.colorScheme.primary.withOpacity(0.2),
-                  theme.colorScheme.secondary.withOpacity(0.1),
+                  theme.colorScheme.primary.withValues(alpha: 0.2),
+                  theme.colorScheme.secondary.withValues(alpha: 0.1),
                 ]
               : [
-                  theme.colorScheme.primary.withOpacity(0.1),
-                  theme.colorScheme.secondary.withOpacity(0.05),
+                  theme.colorScheme.primary.withValues(alpha: 0.1),
+                  theme.colorScheme.secondary.withValues(alpha: 0.05),
                 ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -80,7 +80,7 @@ class WalletHeader extends ConsumerWidget {
                 Text(
                   'Your Daily Music Treasure',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -181,7 +181,7 @@ class WalletHeader extends ConsumerWidget {
                   width: 200,
                   height: 16,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withOpacity(0.1),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -190,7 +190,7 @@ class WalletHeader extends ConsumerWidget {
                   width: 150,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withOpacity(0.05),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),
@@ -207,7 +207,7 @@ class WalletHeader extends ConsumerWidget {
                 margin: EdgeInsets.only(right: index < 1 ? 12 : 0),
                 height: 80,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withOpacity(0.05),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
@@ -262,13 +262,13 @@ class _WalletStatCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isDark
-                ? theme.colorScheme.surface.withOpacity(0.5)
-                : Colors.white.withOpacity(0.8),
+                ? theme.colorScheme.surface.withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.3), width: 1),
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -285,7 +285,7 @@ class _WalletStatCard extends StatelessWidget {
               Text(
                 label,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 4),

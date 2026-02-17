@@ -71,7 +71,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                     Text(
                       'Listen to earn tokens',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -165,7 +165,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
             Text(
               error.toString(),
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
               maxLines: 3,
@@ -194,7 +194,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
             Icon(
               Icons.music_note_outlined,
               size: 64,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -207,7 +207,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
             Text(
               'Check back later for new music',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),

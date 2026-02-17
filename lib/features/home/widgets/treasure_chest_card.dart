@@ -86,7 +86,7 @@ class _TreasureChestCardState extends ConsumerState<TreasureChestCard>
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.3),
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -100,7 +100,7 @@ class _TreasureChestCardState extends ConsumerState<TreasureChestCard>
               Positioned.fill(
                 child: CustomPaint(
                   painter: _TreasurePatternPainter(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
                 ),
               ),
@@ -129,7 +129,7 @@ class _TreasureChestCardState extends ConsumerState<TreasureChestCard>
                               Text(
                                 widget.chest.description,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.white.withOpacity(0.8),
+                                  color: Colors.white.withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
@@ -147,8 +147,8 @@ class _TreasureChestCardState extends ConsumerState<TreasureChestCard>
                         height: 120,
                         decoration: BoxDecoration(
                           color: widget.chest.isReady
-                              ? const Color(0xFFFFD700).withOpacity(0.2)
-                              : Colors.white.withOpacity(0.1),
+                              ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                              : Colors.white.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -250,7 +250,7 @@ class _TreasureChestCardState extends ConsumerState<TreasureChestCard>
         Text(
           'Until unlock',
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
           ),
         ),
         if (widget.chest.tokensCost != null) ...[
@@ -305,7 +305,7 @@ class _TreasureChestCardState extends ConsumerState<TreasureChestCard>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -314,7 +314,7 @@ class _TreasureChestCardState extends ConsumerState<TreasureChestCard>
           Text(
             'Possible Rewards:',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -332,7 +332,7 @@ class _TreasureChestCardState extends ConsumerState<TreasureChestCard>
                       )
                     : Text(reward.emoji),
                 label: Text(reward.description),
-                backgroundColor: Colors.white.withOpacity(0.2),
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
                 labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
               );
             }).toList(),

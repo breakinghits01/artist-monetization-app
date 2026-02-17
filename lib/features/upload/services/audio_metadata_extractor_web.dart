@@ -24,8 +24,8 @@ Future<int?> getDurationFromBytesImpl(Uint8List bytes, String mimeType) async {
       timeoutTimer?.cancel();
       html.Url.revokeObjectUrl(blobUrl); // Clean up blob URL
       
-      if (audio.duration != null && !audio.duration!.isNaN && !audio.duration!.isInfinite) {
-        final durationSec = audio.duration!.toInt();
+      if (!audio.duration.isNaN && !audio.duration.isInfinite) {
+        final durationSec = audio.duration.toInt();
         debugPrint('✅ Extracted audio duration: $durationSec seconds');
         completer.complete(durationSec);
       } else {

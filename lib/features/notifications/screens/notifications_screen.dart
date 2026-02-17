@@ -61,13 +61,13 @@ class NotificationsScreen extends ConsumerWidget {
                     Icon(
                       Icons.notifications_none,
                       size: 80,
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'No notifications yet',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 16,
                       ),
                     ),
@@ -111,7 +111,7 @@ class NotificationsScreen extends ConsumerWidget {
                 Text(
                   'Failed to load notifications',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 16,
                   ),
                 ),
@@ -198,12 +198,12 @@ class _NotificationCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: notification.isRead
               ? theme.colorScheme.surfaceVariant2
-              : theme.colorScheme.surfaceVariant2.withOpacity(0.7),
+              : theme.colorScheme.surfaceVariant2.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: notification.isRead
                 ? Colors.transparent
-                : theme.colorScheme.primary.withOpacity(0.3),
+                : theme.colorScheme.primary.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -222,7 +222,7 @@ class _NotificationCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: _getColorForType(notification.type).withOpacity(0.2),
+                      color: _getColorForType(notification.type).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
                         color: _getColorForType(notification.type),
@@ -260,7 +260,7 @@ class _NotificationCard extends StatelessWidget {
                               child: Text(
                                 notification.message,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: 14,
                                   fontWeight: notification.isRead ? FontWeight.normal : FontWeight.w600,
                                 ),
@@ -294,7 +294,7 @@ class _NotificationCard extends StatelessWidget {
                         Text(
                           timeago.format(notification.createdAt),
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: 0.5),
                             fontSize: 12,
                           ),
                         ),
@@ -304,13 +304,13 @@ class _NotificationCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               notification.metadata!['commentText'],
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
+                                color: Colors.white.withValues(alpha: 0.7),
                                 fontSize: 12,
                                 fontStyle: FontStyle.italic,
                               ),

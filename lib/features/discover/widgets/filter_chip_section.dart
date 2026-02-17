@@ -32,7 +32,7 @@ class FilterChipSection extends StatelessWidget {
               Text(
                 'Filters',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -85,7 +85,7 @@ class FilterChipSection extends StatelessWidget {
                   Container(
                     width: 1,
                     height: 30,
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                   ),
                   const SizedBox(width: 16),
                   // Genre filters
@@ -132,7 +132,7 @@ class FilterChipSection extends StatelessWidget {
             border: Border.all(
               color: isSelected
                   ? Theme.of(context).colorScheme.primary
-                  : Colors.white.withOpacity(0.2),
+                  : Colors.white.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -142,13 +142,13 @@ class FilterChipSection extends StatelessWidget {
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.7),
               ),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.7),
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),

@@ -101,7 +101,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            theme.colorScheme.primary.withOpacity(0.3),
+            theme.colorScheme.primary.withValues(alpha: 0.3),
             theme.colorScheme.surface,
             theme.colorScheme.surface,
           ],
@@ -165,7 +165,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.4),
+              color: theme.colorScheme.primary.withValues(alpha: 0.4),
               blurRadius: 30,
               spreadRadius: 3,
               offset: const Offset(0, 8),
@@ -196,8 +196,8 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [
-                          theme.colorScheme.primary.withOpacity(0.0),
-                          theme.colorScheme.primary.withOpacity(0.2),
+                          theme.colorScheme.primary.withValues(alpha: 0.0),
+                          theme.colorScheme.primary.withValues(alpha: 0.2),
                         ],
                       ),
                     ),
@@ -224,7 +224,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
       child: Icon(
         Icons.music_note,
         size: size * 0.4,
-        color: theme.colorScheme.onPrimary.withOpacity(0.8),
+        color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
       ),
     );
   }
@@ -256,7 +256,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
               child: Text(
                 song.artist,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ),
@@ -266,10 +266,10 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Text(
@@ -324,7 +324,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                   child: LinearProgressIndicator(
                     value: tokenState.progress,
                     minHeight: 6,
-                    backgroundColor: theme.colorScheme.onSurface.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       tokenState.hasRewarded
                           ? theme.colorScheme.secondary
@@ -338,7 +338,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                       ? 'Completed!'
                       : 'Listen to 80% to earn',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: 10,
                   ),
                 ),
@@ -364,9 +364,9 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
             overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
             activeTrackColor: theme.colorScheme.primary,
-            inactiveTrackColor: theme.colorScheme.onSurface.withOpacity(0.1),
+            inactiveTrackColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
             thumbColor: theme.colorScheme.primary,
-            overlayColor: theme.colorScheme.primary.withOpacity(0.2),
+            overlayColor: theme.colorScheme.primary.withValues(alpha: 0.2),
           ),
           child: Slider(
             value: playerState.position.inMilliseconds.toDouble(),
@@ -389,13 +389,13 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
               Text(
                 playerState.formattedPosition,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               Text(
                 playerState.formattedDuration,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -419,7 +419,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
             Icons.shuffle,
             color: playerState.shuffleMode
                 ? theme.colorScheme.primary
-                : theme.colorScheme.onSurface.withOpacity(0.5),
+                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
           iconSize: 28,
           onPressed: () {
@@ -446,7 +446,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
             ),
             boxShadow: [
               BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.4),
+                color: theme.colorScheme.primary.withValues(alpha: 0.4),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -488,7 +488,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                 : Icons.repeat,
             color: playerState.loopMode != LoopMode.off
                 ? theme.colorScheme.primary
-                : theme.colorScheme.onSurface.withOpacity(0.5),
+                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
           iconSize: 28,
           onPressed: () {
@@ -510,7 +510,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
         IconButton(
           icon: const Icon(Icons.replay_10),
           iconSize: 28,
-          color: theme.colorScheme.onSurface.withOpacity(0.7),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           onPressed: () {
             ref.read(audioPlayerProvider.notifier).skipBackward();
           },
@@ -518,7 +518,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
         IconButton(
           icon: const Icon(Icons.forward_10),
           iconSize: 28,
-          color: theme.colorScheme.onSurface.withOpacity(0.7),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           onPressed: () {
             ref.read(audioPlayerProvider.notifier).skipForward();
           },
@@ -589,7 +589,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: theme.colorScheme.onSurface.withOpacity(0.1),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
             ),
             child: Icon(icon, color: theme.colorScheme.onSurface, size: 22),
           ),
@@ -597,7 +597,7 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
           Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               fontSize: 11,
             ),
           ),

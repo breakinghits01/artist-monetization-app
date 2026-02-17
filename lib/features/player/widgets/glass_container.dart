@@ -36,8 +36,8 @@ class GlassContainer extends StatelessWidget {
 
     // Use theme colors for tint
     final defaultTint = isDark
-        ? theme.colorScheme.primary.withOpacity(0.1)
-        : Colors.white.withOpacity(0.7);
+        ? theme.colorScheme.primary.withValues(alpha: 0.1)
+        : Colors.white.withValues(alpha: 0.7);
 
     return Container(
       width: width,
@@ -47,12 +47,12 @@ class GlassContainer extends StatelessWidget {
         borderRadius: borderRadius ?? BorderRadius.circular(16),
         border: border ??
             Border.all(
-              color: theme.colorScheme.primary.withOpacity(0.2),
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
               width: 1,
             ),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -73,7 +73,7 @@ class GlassContainer extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   tintColor ?? defaultTint,
-                  (tintColor ?? defaultTint).withOpacity(opacity * 0.5),
+                  (tintColor ?? defaultTint).withValues(alpha: opacity * 0.5),
                 ],
               ),
               borderRadius: borderRadius ?? BorderRadius.circular(16),

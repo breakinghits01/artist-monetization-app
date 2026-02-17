@@ -41,7 +41,7 @@ class SongListTile extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
-                    color: theme.colorScheme.primary.withOpacity(0.2),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -64,7 +64,7 @@ class SongListTile extends ConsumerWidget {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -92,7 +92,7 @@ class SongListTile extends ConsumerWidget {
             Text(
               song.artist,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -103,7 +103,7 @@ class SongListTile extends ConsumerWidget {
                 Text(
                   song.genre ?? 'Unknown',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -121,7 +121,7 @@ class SongListTile extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.2),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -187,7 +187,7 @@ class SongListTile extends ConsumerWidget {
       ),
       child: Icon(
         Icons.music_note,
-        color: theme.colorScheme.onPrimary.withOpacity(0.8),
+        color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
         size: 30,
       ),
     );

@@ -198,7 +198,7 @@ class AppTheme {
           ),
           backgroundColor: primaryLight,
           foregroundColor: Colors.white,
-          shadowColor: primaryLight.withOpacity(0.5),
+          shadowColor: primaryLight.withValues(alpha: 0.5),
           textStyle: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -414,7 +414,7 @@ class AppTheme {
           ),
           backgroundColor: primaryDark,
           foregroundColor: Colors.white,
-          shadowColor: primaryDark.withOpacity(0.5),
+          shadowColor: primaryDark.withValues(alpha: 0.5),
           textStyle: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,

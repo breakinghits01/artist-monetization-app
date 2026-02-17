@@ -32,8 +32,8 @@ class ArtistSpotlightCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        theme.colorScheme.primary.withOpacity(0.3),
-                        theme.colorScheme.secondary.withOpacity(0.3),
+                        theme.colorScheme.primary.withValues(alpha: 0.3),
+                        theme.colorScheme.secondary.withValues(alpha: 0.3),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -43,7 +43,7 @@ class ArtistSpotlightCard extends StatelessWidget {
                     child: Icon(
                       Icons.person,
                       size: 64,
-                      color: theme.colorScheme.onSurface.withOpacity(0.3),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                     ),
                   ),
                 ),
@@ -66,7 +66,7 @@ class ArtistSpotlightCard extends StatelessWidget {
                     Text(
                       card.subtitle ?? '',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -89,7 +89,7 @@ class ArtistSpotlightCard extends StatelessWidget {
                           onPressed: () {},
                           style: IconButton.styleFrom(
                             backgroundColor: theme.colorScheme.primary
-                                .withOpacity(0.1),
+                                .withValues(alpha: 0.1),
                           ),
                           tooltip: 'Tip Artist',
                         ),

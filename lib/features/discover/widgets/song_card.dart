@@ -14,7 +14,7 @@ class SongCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: song.exclusive
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)
               : Colors.transparent,
           width: 2,
         ),
@@ -103,7 +103,7 @@ class SongCard extends StatelessWidget {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -138,7 +138,7 @@ class SongCard extends StatelessWidget {
                     Text(
                       song.artist?.username ?? 'Unknown Artist',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 11,
                       ),
                       maxLines: 1,
@@ -151,13 +151,13 @@ class SongCard extends StatelessWidget {
                         Icon(
                           Icons.play_circle_outline,
                           size: 12,
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                         ),
                         const SizedBox(width: 3),
                         Text(
                           song.formattedPlayCount,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: 0.5),
                             fontSize: 10,
                           ),
                         ),
@@ -165,13 +165,13 @@ class SongCard extends StatelessWidget {
                         Icon(
                           Icons.access_time,
                           size: 12,
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                         ),
                         const SizedBox(width: 3),
                         Text(
                           song.formattedDuration,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: 0.5),
                             fontSize: 10,
                           ),
                         ),
@@ -225,7 +225,7 @@ class SongCard extends StatelessWidget {
         child: Icon(
           Icons.music_note,
           size: 48,
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
         ),
       ),
     );

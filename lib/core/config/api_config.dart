@@ -1,8 +1,8 @@
 /// API Configuration
 class ApiConfig {
   // Base URL for API requests
-  // Use full ngrok URL for global access from any device/location
-  static const String baseUrl = 'https://caryl-exertive-treva.ngrok-free.dev';
+  // Using Cloudflare Tunnel with custom domain (UNLIMITED bandwidth)
+  static const String baseUrl = 'https://artistmonetization.xyz';
   
   // API version
   static const String apiVersion = 'v1';
@@ -13,7 +13,7 @@ class ApiConfig {
   
   // API endpoints (with version prefix)
   static const String songsEndpoint = '/api/$apiVersion/songs';
-  static const String userSongsEndpoint = '/api/$apiVersion/songs/user';
+  static const String artistSongsEndpoint = '/api/$apiVersion/songs/artist';
   static const String uploadEndpoint = '/api/$apiVersion/songs/upload';
   
   // Timeouts

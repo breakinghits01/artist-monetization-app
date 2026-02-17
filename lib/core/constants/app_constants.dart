@@ -7,14 +7,18 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  // ngrok tunnel URL - works from ANYWHERE (not just local network)
-  static const String tunnelBaseUrl = 'https://caryl-exertive-treva.ngrok-free.dev';
+  // Production Cloudflare tunnel URL - PERMANENT & UNLIMITED bandwidth
+  static const String cloudflareBaseUrl = 'https://artistmonetization.xyz';
   
-  // Both web and mobile use the SAME ngrok tunnel
-  // Flutter web: https://caryl-exertive-treva.ngrok-free.dev/
-  // API: https://caryl-exertive-treva.ngrok-free.dev/api/v1
-  static String get baseUrl => tunnelBaseUrl;
+  // Local development - use when testing locally
+  static const String localBaseUrl = 'http://localhost:9000';
   
+  // Primary URL - using Cloudflare tunnel with your domain
+  static String get baseUrl => cloudflareBaseUrl;
+  
+  // Both web and mobile use the SAME tunnel
+  // Flutter web: https://artist-app.dynamicmonetization.com/
+  // API: https://artist-app.dynamicmonetization.com/api/v1
   static const String apiVersion = '/api/v1';
   static String get apiBaseUrl => '$baseUrl$apiVersion';
 

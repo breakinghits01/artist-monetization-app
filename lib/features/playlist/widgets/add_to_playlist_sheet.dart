@@ -94,7 +94,7 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -155,20 +155,20 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
                   Icon(
                     Icons.playlist_play,
                     size: 64,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No playlists yet',
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Create your first playlist above',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ],
@@ -203,7 +203,7 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
                           ? Icon(
                               Icons.music_note,
                               color: theme.colorScheme.onSurface
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                             )
                           : null,
                     ),
@@ -214,7 +214,7 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
                     subtitle: Text(
                       '${playlist.songCount} song${playlist.songCount != 1 ? 's' : ''}',
                       style: TextStyle(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     trailing: isSongInPlaylist

@@ -29,8 +29,8 @@ class PlaylistCard extends ConsumerWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                theme.colorScheme.primary.withOpacity(0.7),
-                theme.colorScheme.secondary.withOpacity(0.7),
+                theme.colorScheme.primary.withValues(alpha: 0.7),
+                theme.colorScheme.secondary.withValues(alpha: 0.7),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -83,7 +83,7 @@ class PlaylistCard extends ConsumerWidget {
                     Text(
                       card.subtitle ?? '',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -101,7 +101,7 @@ class PlaylistCard extends ConsumerWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),

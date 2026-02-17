@@ -67,7 +67,7 @@ class ProfileHeader extends StatelessWidget {
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.transparent,
-                                Colors.black.withOpacity(0.7),
+                                Colors.black.withValues(alpha: 0.7),
                               ],
                             ),
                           ),
@@ -89,7 +89,7 @@ class ProfileHeader extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.secondary.withOpacity(0.5),
+                      color: theme.colorScheme.secondary.withValues(alpha: 0.5),
                       blurRadius: 20,
                       spreadRadius: 2,
                     ),
@@ -126,8 +126,8 @@ class ProfileHeader extends StatelessWidget {
                 label: Text(isOwnProfile ? 'Edit Profile' : 'Follow'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isDark
-                      ? Colors.black.withOpacity(0.6)
-                      : Colors.white.withOpacity(0.9),
+                      ? Colors.black.withValues(alpha: 0.6)
+                      : Colors.white.withValues(alpha: 0.9),
                   foregroundColor: isDark ? Colors.white : Colors.black,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
@@ -167,7 +167,7 @@ class ProfileHeader extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.secondary.withOpacity(0.2),
+                      color: theme.colorScheme.secondary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: theme.colorScheme.secondary,
@@ -227,13 +227,13 @@ class ProfileHeader extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          theme.colorScheme.primary.withOpacity(0.2),
-                          const Color(0xFF9C27B0).withOpacity(0.2),
+                          theme.colorScheme.primary.withValues(alpha: 0.2),
+                          const Color(0xFF9C27B0).withValues(alpha: 0.2),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: theme.colorScheme.primary.withOpacity(0.5),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.5),
                       ),
                     ),
                       child: Row(
@@ -284,7 +284,7 @@ class ProfileHeader extends StatelessWidget {
         Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],

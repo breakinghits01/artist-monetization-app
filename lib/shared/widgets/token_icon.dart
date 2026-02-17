@@ -26,7 +26,7 @@ class TokenIcon extends StatelessWidget {
         boxShadow: withShadow
             ? [
                 BoxShadow(
-                  color: colorScheme.tokenPrimary.withOpacity(0.4),
+                  color: colorScheme.tokenPrimary.withValues(alpha: 0.4),
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),
@@ -42,7 +42,7 @@ class TokenIcon extends StatelessWidget {
             color: Colors.white,
             shadows: [
               Shadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 offset: const Offset(0, 1),
                 blurRadius: 2,
               ),

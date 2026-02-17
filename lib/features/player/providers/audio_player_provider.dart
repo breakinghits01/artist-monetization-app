@@ -44,12 +44,14 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
 
   Future<void> _initAudioService() async {
     try {
+      print('🔧 Initializing audio service...');
       _audioServiceHandler = await initAudioService(_audioPlayer);
       _audioServiceHandler!.onSkipToNext = () => playNext();
       _audioServiceHandler!.onSkipToPrevious = () => playPrevious();
       print('✅ Audio service initialized with custom controls');
     } catch (e) {
       print('⚠️ Audio service init failed: $e');
+      // Continue without audio service - music will still play
     }
   }
 
@@ -124,7 +126,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       
       print('🔗 Loading audio URL...');
       
-      // Convert relative URLs to absolute ngrok URLs
+      // Convert relative URLs to absolute URLs
       String audioUrl = song.audioUrl;
       if (!audioUrl.startsWith('http')) {
         // Relative URL - prepend base URL
@@ -148,12 +150,28 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       }
       
       // Load audio - audio_service handler will manage lock screen
-      await _audioPlayer.setUrl(audioUrl);
-      await _audioPlayer.play();
+      try {
+        print('🎧 Setting audio URL: $audioUrl');
+        await _audioPlayer.setUrl(audioUrl);
+        print('▶️ Starting playback...');
+        await _audioPlayer.play();
+        print('✅ Audio player started successfully');
+      } catch (e) {
+        print('❌ Error loading audio URL: $e');
+        print('🔗 Failed URL: $audioUrl');
+        rethrow;
+      }
 
-      // Update audio service handler media item for lock screen
+      // Update audio service handler media item for lock screen (non-critical)
       if (_audioServiceHandler != null) {
-        await _audioServiceHandler!.setMediaItem(song, artUri: albumArtUrl);
+        try {
+          await _audioServiceHandler!.setMediaItem(song, artUri: albumArtUrl);
+          print('✅ Lock screen controls updated');
+        } catch (e) {
+          print('⚠️ Failed to update lock screen (non-critical): $e');
+        }
+      } else {
+        print('⚠️ Audio service not ready yet');
       }
 
       // Clear loading state - playing state updated by playerStateStream listener

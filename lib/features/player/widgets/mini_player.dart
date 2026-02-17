@@ -71,7 +71,7 @@ class MiniPlayer extends ConsumerWidget {
           // Background
           Container(
             decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withOpacity(0.1),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -103,7 +103,7 @@ class MiniPlayer extends ConsumerWidget {
                   color: theme.colorScheme.tokenPrimary,
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.tokenPrimary.withOpacity(0.6),
+                      color: theme.colorScheme.tokenPrimary.withValues(alpha: 0.6),
                       blurRadius: 8,
                       spreadRadius: 2,
                     ),
@@ -124,7 +124,7 @@ class MiniPlayer extends ConsumerWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.3),
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -177,7 +177,7 @@ class MiniPlayer extends ConsumerWidget {
         Text(
           song.artist,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -214,7 +214,7 @@ class MiniPlayer extends ConsumerWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.4),
+                color: theme.colorScheme.primary.withValues(alpha: 0.4),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
