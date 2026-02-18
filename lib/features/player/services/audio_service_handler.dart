@@ -221,7 +221,7 @@ Future<AudioServiceHandler> initAudioService(AudioPlayer player) async {
   await session.configure(const AudioSessionConfiguration(
     avAudioSessionCategory: AVAudioSessionCategory.playback,
     avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
-    avAudioSessionMode: AVAudioSessionMode.spokenAudio,
+    avAudioSessionMode: AVAudioSessionMode.defaultMode, // Use default mode for music (was spokenAudio)
     avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
     avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
     androidAudioAttributes: AndroidAudioAttributes(
