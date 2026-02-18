@@ -58,9 +58,15 @@ class DioClient {
           return handler.next(response);
         },
         onError: (error, handler) async {
-          // Log error
-          print('ERROR[${error.response?.statusCode}] => DATA: ${error.response?.data}');
-          print('MESSAGE: ${error.message}');
+          // Suppress non-critical 400 errors (e.g., playcount without active session)
+          final isCriticalError = error.response?.statusCode != 400 ||
+              !error.requestOptions.path.contains('/play');
+          
+          if (isCriticalError) {
+            // Log error
+            print('ERROR[${error.response?.statusCode}] => DATA: ${error.response?.data}');
+            print('MESSAGE: ${error.message}');
+          }
 
           // Handle 401 Unauthorized - Token expired
           if (error.response?.statusCode == 401) {

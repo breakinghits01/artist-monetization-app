@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio_background/just_audio_background.dart';
+import 'dart:io';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -7,8 +9,20 @@ import 'core/theme/theme_provider.dart';
 import 'core/constants/app_constants.dart';
 import 'features/player/providers/audio_player_provider.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // CRITICAL for iOS: Initialize JustAudioBackground for iOS lockscreen controls
+  // This handles MPRemoteCommandCenter (skip next/previous on lockscreen)
+  // Android will use AudioService instead (custom notification)
+  if (Platform.isIOS) {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.breakinghits.monetization.audio',
+      androidNotificationChannelName: 'Music Playback',
+      androidNotificationOngoing: true,
+      androidNotificationIcon: 'mipmap/ic_launcher',
+    );
+  }
   
   runApp(
     const ProviderScope(

@@ -84,6 +84,14 @@ class QueueNotifier extends StateNotifier<QueueState> {
     print('📋 Queue set: ${songs.length} songs, starting at index $validIndex');
   }
   
+  /// Update current index (for syncing with lockscreen changes)
+  void setCurrentIndex(int index) {
+    if (index >= 0 && index < state.queue.length) {
+      state = state.copyWith(currentIndex: index);
+      print('📍 Current index updated to: $index');
+    }
+  }
+  
   /// Add single song to end of queue
   void addToQueue(SongModel song) {
     final newQueue = [...state.queue, song];

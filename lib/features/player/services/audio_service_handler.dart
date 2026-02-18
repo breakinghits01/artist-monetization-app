@@ -126,6 +126,34 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     print('🎵 Updated media item: ${song.title} by ${song.artist}');
   }
 
+  /// Set queue for iOS lockscreen (enables next/previous buttons)
+  Future<void> setQueue(List<SongModel> songs) async {
+    final queueItems = songs.map((song) => MediaItem(
+      id: song.id,
+      album: 'Breaking Hits',
+      title: song.title,
+      artist: song.artist,
+      duration: song.duration,
+    )).toList();
+    
+    queue.add(queueItems);
+    
+    // CRITICAL for iOS: Update playback state to show queue is available
+    playbackState.add(playbackState.value.copyWith(
+      queueIndex: 0,
+    ));
+    
+    print('📋 Queue set: ${queueItems.length} songs for iOS lockscreen');
+  }
+  
+  /// Update current queue index (called when track changes)
+  Future<void> updateQueueIndex(int index) async {
+    playbackState.add(playbackState.value.copyWith(
+      queueIndex: index,
+    ));
+    print('📍 Queue index updated to: $index');
+  }
+
   @override
   Future<void> play() async {
     print('▶️ Audio Service: Play');
@@ -146,17 +174,26 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
 
   @override
   Future<void> skipToNext() async {
-    print('⏭️ Audio Service: Skip to next');
+    print('⏭️ Audio Service: Skip to next (iOS lockscreen)');
+    
+    // CRITICAL: Prevent iOS from jumping to other apps
+    // We must handle this explicitly and update our own queue
     if (onSkipToNext != null) {
       await onSkipToNext!();
+    } else {
+      print('⚠️ No skip handler set - iOS may jump to system music');
     }
   }
 
   @override
   Future<void> skipToPrevious() async {
-    print('⏮️ Audio Service: Skip to previous');
+    print('⏮️ Audio Service: Skip to previous (iOS lockscreen)');
+    
+    // CRITICAL: Prevent iOS from jumping to other apps
     if (onSkipToPrevious != null) {
       await onSkipToPrevious!();
+    } else {
+      print('⚠️ No skip handler set - iOS may jump to system music');
     }
   }
 

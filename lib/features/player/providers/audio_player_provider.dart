@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_service/audio_service.dart';
@@ -48,15 +49,21 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   }
 
   Future<void> _initAudioService() async {
-    try {
-      print('🔧 Initializing audio service...');
-      _audioServiceHandler = await initAudioService(_audioPlayer);
-      _audioServiceHandler!.onSkipToNext = () => playNext();
-      _audioServiceHandler!.onSkipToPrevious = () => playPrevious();
-      print('✅ Audio service initialized with custom controls');
-    } catch (e) {
-      print('⚠️ Audio service init failed: $e');
-      // Continue without audio service - music will still play
+    // On iOS, JustAudioBackground handles lockscreen via MPRemoteCommandCenter
+    // On Android, use AudioService for custom notification
+    if (Platform.isAndroid) {
+      try {
+        print('🔧 Initializing audio service for Android...');
+        _audioServiceHandler = await initAudioService(_audioPlayer);
+        _audioServiceHandler!.onSkipToNext = () => playNext();
+        _audioServiceHandler!.onSkipToPrevious = () => playPrevious();
+        print('✅ Audio service initialized with custom controls');
+      } catch (e) {
+        print('⚠️ Audio service init failed: $e');
+        // Continue without audio service - music will still play
+      }
+    } else {
+      print('📱 iOS: Using JustAudioBackground for lockscreen controls');
     }
   }
 
@@ -108,6 +115,32 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         }
       }),
     );
+    
+    // CRITICAL: Listen to current index changes (lockscreen skip sync)
+    // This syncs app UI when user skips from lockscreen
+    _subscriptions.add(
+      _audioPlayer.currentIndexStream.listen((index) {
+        if (!_isDisposed && index != null) {
+          final queueState = _ref.read(queueProvider);
+          if (index >= 0 && index < queueState.queue.length) {
+            final newSong = queueState.queue[index];
+            
+            // Update current song in provider
+            _ref.read(currentSongProvider.notifier).state = newSong;
+            
+            // Update queue index
+            _ref.read(queueProvider.notifier).setCurrentIndex(index);
+            
+            // Update Android notification if available
+            if (_audioServiceHandler != null) {
+              _audioServiceHandler!.updateQueueIndex(index);
+            }
+            
+            print('🔄 Synced to track $index: ${newSong.title}');
+          }
+        }
+      }),
+    );
   }
 
   /// Play a song
@@ -127,6 +160,9 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Reset token earn state
       _ref.read(tokenEarnProvider.notifier).reset();
 
+      // Stop current playback first
+      await _audioPlayer.stop();
+
       // Start play session for backend tracking
       try {
         final apiService = _ref.read(songApiServiceProvider);
@@ -136,9 +172,6 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         print('⚠️ Failed to start play session (non-critical): $e');
         // Continue playback even if session start fails
       }
-
-      // Stop current playback first
-      await _audioPlayer.stop();
       
       print('🔗 Loading audio URL...');
       
@@ -239,15 +272,59 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       
       // Find song index in list
       final songIndex = allSongs.indexWhere((s) => s.id == song.id);
+      final startIndex = songIndex >= 0 ? songIndex : 0;
       
-      // Set queue starting from this song
+      // Set queue in provider
       _ref.read(queueProvider.notifier).setQueue(
         allSongs,
-        startIndex: songIndex >= 0 ? songIndex : 0,
+        startIndex: startIndex,
       );
       
-      // Play the song
-      await playSong(song);
+      // Build audio sources for entire queue
+      final playlist = ConcatenatingAudioSource(
+        children: allSongs.map((s) {
+          final audioUrl = s.audioUrl.startsWith('http')
+              ? s.audioUrl
+              : '${ApiConfig.baseUrl}${s.audioUrl}';
+              
+          // Filter out placeholder images to avoid network errors
+          String? albumArtUrl;
+          if (s.albumArt != null && 
+              s.albumArt!.isNotEmpty &&
+              !s.albumArt!.contains('placeholder') &&
+              !s.albumArt!.contains('picsum.photos')) {
+            albumArtUrl = s.albumArt!.startsWith('http')
+                ? s.albumArt!
+                : '${ApiConfig.baseUrl}${s.albumArt}';
+          }
+              
+          return AudioSource.uri(
+            Uri.parse(audioUrl),
+            tag: MediaItem(
+              id: s.id,
+              title: s.title,
+              artist: s.artist,
+              album: 'Breaking Hits',
+              duration: s.duration,
+              artUri: albumArtUrl != null ? Uri.parse(albumArtUrl) : null,
+            ),
+          );
+        }).toList(),
+      );
+      
+      // Load playlist and seek to start index
+      await _audioPlayer.setAudioSource(playlist, initialIndex: startIndex);
+      
+      // Update Android audio service if available
+      if (_audioServiceHandler != null) {
+        await _audioServiceHandler!.setQueue(allSongs);
+        await _audioServiceHandler!.updateQueueIndex(startIndex);
+      }
+      
+      // Start playing
+      await _audioPlayer.play();
+      
+      print('✅ Queue loaded, playing from index $startIndex');
     } catch (e) {
       print('❌ Error playing with queue: $e');
       state = state.copyWith(isLoading: false, isPlaying: false);
@@ -256,9 +333,18 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
 
   /// Play next song in queue
   Future<void> playNext() async {
-    final nextSong = _ref.read(queueProvider.notifier).playNext();
-    if (nextSong != null) {
-      await playSong(nextSong);
+    // Use just_audio's built-in next (works for both iOS and Android)
+    if (_audioPlayer.hasNext) {
+      await _audioPlayer.seekToNext();
+      _ref.read(queueProvider.notifier).playNext();
+      
+      // Update Android notification
+      if (_audioServiceHandler != null) {
+        final currentIndex = _ref.read(queueProvider).currentIndex;
+        await _audioServiceHandler!.updateQueueIndex(currentIndex);
+      }
+      
+      print('⏭️ Skipped to next track');
     } else {
       print('⏹️ No next song available');
     }
@@ -266,9 +352,18 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
 
   /// Play previous song
   Future<void> playPrevious() async {
-    final previousSong = _ref.read(queueProvider.notifier).playPrevious();
-    if (previousSong != null) {
-      await playSong(previousSong);
+    // Use just_audio's built-in previous (works for both iOS and Android)
+    if (_audioPlayer.hasPrevious) {
+      await _audioPlayer.seekToPrevious();
+      _ref.read(queueProvider.notifier).playPrevious();
+      
+      // Update Android notification
+      if (_audioServiceHandler != null) {
+        final currentIndex = _ref.read(queueProvider).currentIndex;
+        await _audioServiceHandler!.updateQueueIndex(currentIndex);
+      }
+      
+      print('⏮️ Skipped to previous track');
     } else {
       print('⏹️ No previous song available');
     }
