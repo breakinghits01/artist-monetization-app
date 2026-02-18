@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_service/audio_service.dart';
@@ -51,7 +52,8 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   Future<void> _initAudioService() async {
     // On iOS, JustAudioBackground handles lockscreen via MPRemoteCommandCenter
     // On Android, use AudioService for custom notification
-    if (Platform.isAndroid) {
+    // Skip on web (no native audio service needed)
+    if (!kIsWeb && Platform.isAndroid) {
       try {
         print('🔧 Initializing audio service for Android...');
         _audioServiceHandler = await initAudioService(_audioPlayer);

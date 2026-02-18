@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'dart:io';
+import 'dart:io' show Platform;
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -15,7 +16,7 @@ Future<void> main() async {
   // CRITICAL for iOS: Initialize JustAudioBackground for iOS lockscreen controls
   // This handles MPRemoteCommandCenter (skip next/previous on lockscreen)
   // Android will use AudioService instead (custom notification)
-  if (Platform.isIOS) {
+  if (!kIsWeb && Platform.isIOS) {
     await JustAudioBackground.init(
       androidNotificationChannelId: 'com.breakinghits.monetization.audio',
       androidNotificationChannelName: 'Music Playback',
