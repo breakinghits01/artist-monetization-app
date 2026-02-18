@@ -239,7 +239,32 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
       audioUrl: json['fileUrl'] ?? json['audioUrl'] ?? '',
       genre: json['genre'] ?? 'Unknown',
       tokenReward: json['price'] ?? json['tokenReward'] ?? 10,
+      playCount: json['playCount'] ?? 0, // Add play count from backend
     );
+  }
+
+  /// Update play count for a specific song in real-time
+  void updateSongPlayCount(String songId, int newPlayCount) {
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return SongModel(
+          id: song.id,
+          title: song.title,
+          artistId: song.artistId,
+          artist: song.artist,
+          audioUrl: song.audioUrl,
+          duration: song.duration,
+          tokenReward: song.tokenReward,
+          albumArt: song.albumArt,
+          genre: song.genre,
+          playCount: newPlayCount, // Update with new count
+        );
+      }
+      return song;
+    }).toList();
+
+    state = state.copyWith(songs: updatedSongs);
+    print('✅ Updated song $songId play count to $newPlayCount in user songs list');
   }
 
   /// Convert song to JSON

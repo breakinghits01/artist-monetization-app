@@ -443,10 +443,30 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text(
-          song.artist,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        subtitle: Row(
+          children: [
+            Expanded(
+              child: Text(
+                song.artist,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.headphones,
+              size: 12,
+              color: theme.colorScheme.onSurface.withOpacity(0.5),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '${song.playCount}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                fontSize: 11,
+              ),
+            ),
+          ],
         ),
         trailing: IconButton(
           icon: const Icon(Icons.more_vert),

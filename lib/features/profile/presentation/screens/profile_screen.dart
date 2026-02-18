@@ -128,8 +128,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final songs = List<SongModel>.from(allSongs);
     switch (_sortBy) {
       case 'Most Played':
-        // TODO: Add playCount to SongModel or use analytics
-        // For now, keep original order (don't shuffle)
+        // Sort by playCount descending (highest first)
+        songs.sort((a, b) => b.playCount.compareTo(a.playCount));
         break;
       case 'A-Z':
         songs.sort((a, b) => a.title.compareTo(b.title));

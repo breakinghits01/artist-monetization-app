@@ -7,6 +7,9 @@ import '../../home/providers/wallet_provider.dart';
 import '../../../core/config/api_config.dart';
 import 'queue_provider.dart';
 import '../services/audio_service_handler.dart';
+import '../../discover/services/song_api_service.dart';
+import '../../profile/providers/user_songs_provider.dart';
+import '../../discover/providers/song_provider.dart';
 
 /// Current song provider
 final currentSongProvider = StateProvider<SongModel?>((ref) => null);
@@ -35,6 +38,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   final List<StreamSubscription> _subscriptions = [];
   AudioServiceHandler? _audioServiceHandler;
   bool _hasRewardedCurrentSong = false;
+  bool _hasIncrementedPlayCount = false;
   bool _isDisposed = false;
 
   AudioPlayerNotifier(this._ref) : super(const models.PlayerState()) {
@@ -117,9 +121,20 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       state = state.copyWith(isLoading: true);
       _ref.read(currentSongProvider.notifier).state = song;
       _hasRewardedCurrentSong = false;
+      _hasIncrementedPlayCount = false;
 
       // Reset token earn state
       _ref.read(tokenEarnProvider.notifier).reset();
+
+      // Start play session for backend tracking
+      try {
+        final apiService = _ref.read(songApiServiceProvider);
+        await apiService.startPlaySession(song.id);
+        print('✅ Play session started for: ${song.id}');
+      } catch (e) {
+        print('⚠️ Failed to start play session (non-critical): $e');
+        // Continue playback even if session start fails
+      }
 
       // Stop current playback first
       await _audioPlayer.stop();
@@ -320,7 +335,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   /// Check if user is eligible for token reward (80% completion)
   void _checkTokenEligibility(Duration position) {
     final song = _ref.read(currentSongProvider);
-    if (song == null || _hasRewardedCurrentSong) return;
+    if (song == null) return;
 
     final progress = state.duration.inMilliseconds > 0
         ? position.inMilliseconds / state.duration.inMilliseconds
@@ -328,6 +343,13 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
 
     // Update token earn progress
     _ref.read(tokenEarnProvider.notifier).updateProgress(progress);
+
+    // Increment play count at 50% completion (industry standard)
+    if (progress >= 0.5 && !_hasIncrementedPlayCount) {
+      _incrementPlayCount(song.id);
+      _hasIncrementedPlayCount = true;
+      print('✅ Play count will be incremented at 50% completion');
+    }
 
     // Reward tokens at 80% completion
     if (progress >= 0.8 && !_hasRewardedCurrentSong) {
@@ -340,6 +362,45 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   void _rewardTokens(int amount) {
     _ref.read(tokenEarnProvider.notifier).rewardTokens(amount);
     _ref.read(walletProvider.notifier).addTokens(amount);
+  }
+
+  /// Increment play count on backend (fire and forget)
+  void _incrementPlayCount(String songId) {
+    try {
+      final songApiService = _ref.read(songApiServiceProvider);
+      songApiService.incrementPlayCount(songId).then((playCount) {
+        print('✅ Play count incremented: $playCount');
+        
+        // Update the current song model with new play count
+        final currentSong = _ref.read(currentSongProvider);
+        if (currentSong != null && currentSong.id == songId) {
+          final updatedSong = SongModel(
+            id: currentSong.id,
+            title: currentSong.title,
+            artistId: currentSong.artistId,
+            artist: currentSong.artist,
+            audioUrl: currentSong.audioUrl,
+            duration: currentSong.duration,
+            tokenReward: currentSong.tokenReward,
+            albumArt: currentSong.albumArt,
+            genre: currentSong.genre,
+            playCount: playCount, // Update with new count from backend
+          );
+          _ref.read(currentSongProvider.notifier).state = updatedSong;
+          print('✅ Updated current song play count to: $playCount');
+        }
+
+        // Update the song in user songs list (real-time update on profile screen)
+        _ref.read(userSongsProvider.notifier).updateSongPlayCount(songId, playCount);
+        
+        // Update the song in discover list (real-time update on discover screen)
+        _ref.read(songListProvider.notifier).updateSongPlayCount(songId, playCount);
+      }).catchError((error) {
+        print('⚠️ Failed to increment play count (non-critical): $error');
+      });
+    } catch (e) {
+      print('⚠️ Error calling increment play count: $e');
+    }
   }
 
   /// Handle song completion

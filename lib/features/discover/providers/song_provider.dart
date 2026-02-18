@@ -92,6 +92,35 @@ class SongListNotifier extends StateNotifier<AsyncValue<List<SongModel>>> {
     fetchSongs(refresh: true);
   }
 
+  /// Update play count for a specific song in real-time
+  void updateSongPlayCount(String songId, int newPlayCount) {
+    state.whenData((songs) {
+      final updatedSongs = songs.map((song) {
+        if (song.id == songId) {
+          return SongModel(
+            id: song.id,
+            title: song.title,
+            duration: song.duration,
+            price: song.price,
+            coverArt: song.coverArt,
+            audioUrl: song.audioUrl,
+            exclusive: song.exclusive,
+            genre: song.genre,
+            description: song.description,
+            playCount: newPlayCount, // Update with new count
+            featured: song.featured,
+            artist: song.artist,
+            createdAt: song.createdAt,
+          );
+        }
+        return song;
+      }).toList();
+
+      state = AsyncValue.data(updatedSongs);
+      print('✅ Updated song $songId play count to $newPlayCount in discover list');
+    });
+  }
+
   // Expose hasMore state
   bool get hasMore => _hasMore;
   bool get isLoadingMore => _isLoadingMore;

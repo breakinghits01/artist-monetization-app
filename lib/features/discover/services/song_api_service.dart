@@ -94,6 +94,21 @@ class SongApiService {
     }
   }
 
+  /// Start play session
+  Future<String> startPlaySession(String songId) async {
+    try {
+      final response = await _dio.post('$_baseUrl/$songId/session/start');
+
+      if (response.statusCode == 201) {
+        return response.data['data']['sessionId'] as String;
+      }
+
+      throw ApiException(message: 'Failed to start play session');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// Increment play count
   Future<int> incrementPlayCount(String songId) async {
     try {

@@ -10,6 +10,7 @@ class SongModel {
   final int tokenReward; // Tokens earned for completing this song
   final String? genre;
   final bool isPremium;
+  final int playCount; // Number of times this song has been played
 
   const SongModel({
     required this.id,
@@ -22,6 +23,7 @@ class SongModel {
     this.tokenReward = 5,
     this.genre,
     this.isPremium = false,
+    this.playCount = 0,
   });
 
   factory SongModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +47,7 @@ class SongModel {
       tokenReward: json['tokenReward'] as int? ?? 5,
       genre: json['genre'] as String?,
       isPremium: json['isPremium'] as bool? ?? false,
+      playCount: json['playCount'] as int? ?? 0,
     );
   }
 
@@ -59,6 +62,7 @@ class SongModel {
       'tokenReward': tokenReward,
       'genre': genre,
       'isPremium': isPremium,
+      'playCount': playCount,
     };
   }
 
@@ -73,6 +77,7 @@ class SongModel {
     int? tokenReward,
     String? genre,
     bool? isPremium,
+    int? playCount,
   }) {
     return SongModel(
       id: id ?? this.id,
@@ -85,6 +90,7 @@ class SongModel {
       tokenReward: tokenReward ?? this.tokenReward,
       genre: genre ?? this.genre,
       isPremium: isPremium ?? this.isPremium,
+      playCount: playCount ?? this.playCount,
     );
   }
 }

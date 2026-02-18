@@ -112,7 +112,20 @@ class SongListTile extends ConsumerWidget {
                 Text(
                   song.genre ?? 'Unknown',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.headphones,
+                  size: 12,
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${song.playCount}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
                   ),
                 ),
                 const SizedBox(width: 8),

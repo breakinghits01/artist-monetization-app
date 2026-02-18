@@ -107,6 +107,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                     tokenReward: song.price.toInt(),
                     genre: song.genre,
                     isPremium: song.exclusive,
+                    playCount: song.playCount, // Add playCount
                   );
                 }).toList();
                 
