@@ -12,6 +12,7 @@ typedef SkipCallback = Future<void> Function();
 class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer _player;
   final List<StreamSubscription> _subscriptions = [];
+  Timer? _positionTimer;
   SkipCallback? onSkipToNext;
   SkipCallback? onSkipToPrevious;
   
@@ -28,12 +29,8 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     );
 
     // Update position periodically (every 1 second) - lightweight, no rebuild
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!_subscriptions.isEmpty) { // Check if handler is still active
-        _updatePositionOnly();
-      } else {
-        timer.cancel();
-      }
+    _positionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _updatePositionOnly();
     });
 
     // Listen to duration changes
@@ -234,6 +231,10 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   /// Only cancels this handler's stream subscriptions
   Future<void> dispose() async {
     print('🧹 Cleaning up AudioServiceHandler...');
+    
+    // Cancel position timer to prevent memory leak
+    _positionTimer?.cancel();
+    _positionTimer = null;
     
     // Cancel all stream subscriptions
     for (var subscription in _subscriptions) {

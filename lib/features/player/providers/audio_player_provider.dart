@@ -131,9 +131,22 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
             // Update queue index
             _ref.read(queueProvider.notifier).setCurrentIndex(index);
             
-            // Update Android notification if available
+            // Update Android notification with new song metadata
             if (_audioServiceHandler != null) {
               _audioServiceHandler!.updateQueueIndex(index);
+              
+              // Get album art for the new song
+              String? albumArtUrl;
+              if (newSong.albumArt != null && 
+                  newSong.albumArt!.isNotEmpty &&
+                  !newSong.albumArt!.contains('placeholder') &&
+                  !newSong.albumArt!.contains('picsum.photos')) {
+                albumArtUrl = newSong.albumArt!.startsWith('http')
+                    ? newSong.albumArt!
+                    : '${ApiConfig.baseUrl}${newSong.albumArt}';
+              }
+              
+              _audioServiceHandler!.setMediaItem(newSong, artUri: albumArtUrl);
             }
             
             print('🔄 Synced to track $index: ${newSong.title}');
@@ -315,10 +328,25 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Load playlist and seek to start index
       await _audioPlayer.setAudioSource(playlist, initialIndex: startIndex);
       
-      // Update Android audio service if available
+      // Update Android audio service notification with current song
       if (_audioServiceHandler != null) {
+        final currentSong = allSongs[startIndex];
+        
+        // Get album art URL for the current song
+        String? albumArtUrl;
+        if (currentSong.albumArt != null && 
+            currentSong.albumArt!.isNotEmpty &&
+            !currentSong.albumArt!.contains('placeholder') &&
+            !currentSong.albumArt!.contains('picsum.photos')) {
+          albumArtUrl = currentSong.albumArt!.startsWith('http')
+              ? currentSong.albumArt!
+              : '${ApiConfig.baseUrl}${currentSong.albumArt}';
+        }
+        
         await _audioServiceHandler!.setQueue(allSongs);
         await _audioServiceHandler!.updateQueueIndex(startIndex);
+        await _audioServiceHandler!.setMediaItem(currentSong, artUri: albumArtUrl);
+        print('✅ Android notification updated with song metadata');
       }
       
       // Start playing
