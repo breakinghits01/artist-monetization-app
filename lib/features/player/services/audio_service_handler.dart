@@ -218,22 +218,12 @@ Future<AudioServiceHandler> initAudioService(AudioPlayer player) async {
   
   // Configure audio session for background playback
   final session = await AudioSession.instance;
-  await session.configure(const AudioSessionConfiguration(
-    avAudioSessionCategory: AVAudioSessionCategory.playback,
-    avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.duckOthers,
-    avAudioSessionMode: AVAudioSessionMode.defaultMode, // Use default mode for music (was spokenAudio)
-    avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
-    avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
-    androidAudioAttributes: AndroidAudioAttributes(
-      contentType: AndroidAudioContentType.music,
-      flags: AndroidAudioFlags.none,
-      usage: AndroidAudioUsage.media,
-    ),
-    androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
-    androidWillPauseWhenDucked: false,
-  ));
+  await session.configure(const AudioSessionConfiguration.music()); // Use music preset for iOS
   
-  print('✅ Audio session configured');
+  // CRITICAL for iOS: Activate the session to trigger lockscreen controls
+  await session.setActive(true);
+  
+  print('✅ Audio session configured and activated');
   
   final handler = await AudioService.init(
     builder: () => AudioServiceHandler(player),

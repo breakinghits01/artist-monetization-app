@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:audio_service/audio_service.dart';
 import '../models/song_model.dart';
 import '../models/player_state.dart' as models;
 import '../../home/providers/wallet_provider.dart';
@@ -182,10 +183,24 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         print('⚠️ Audio service not available - lockscreen will show "Unknown"');
       }
       
-      // Load audio and start playback
+      // Load audio and start playback with iOS lockscreen metadata
       try {
         print('🎧 Setting audio URL: $audioUrl');
-        await _audioPlayer.setUrl(audioUrl);
+        
+        // CRITICAL for iOS: Use AudioSource with MediaItem tag (not setUrl)
+        final audioSource = AudioSource.uri(
+          Uri.parse(audioUrl),
+          tag: MediaItem(
+            id: song.id,
+            title: song.title, // REQUIRED: Must be non-empty
+            artist: song.artist, // REQUIRED: Must be non-empty  
+            album: 'Breaking Hits',
+            duration: song.duration,
+            artUri: albumArtUrl != null ? Uri.parse(albumArtUrl) : null,
+          ),
+        );
+        
+        await _audioPlayer.setAudioSource(audioSource);
         print('▶️ Starting playback...');
         await _audioPlayer.play();
         print('✅ Audio player started successfully');
