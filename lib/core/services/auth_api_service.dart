@@ -72,10 +72,14 @@ class AuthApiService {
     required String password,
   }) async {
     try {
+      // Ensure email is properly formatted
+      final cleanEmail = email.trim().toLowerCase();
+      print('📧 Login with email: "$cleanEmail" (length: ${cleanEmail.length})');
+      
       final response = await _dio.post(
         AppConstants.loginEndpoint,
         data: {
-          'email': email,
+          'email': cleanEmail,
           'password': password,
         },
       );
