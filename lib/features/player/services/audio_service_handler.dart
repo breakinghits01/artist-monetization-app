@@ -101,6 +101,12 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
 
   /// Update media item for lock screen and notification
   Future<void> setMediaItem(SongModel song, {String? artUri}) async {
+    // Don't update if it's the same song (prevents notification rebuild)
+    if (mediaItem.value?.id == song.id) {
+      print('⏭️ Same song, skipping media item update');
+      return;
+    }
+    
     final item = MediaItem(
       id: song.id,
       album: 'Breaking Hits',
@@ -231,14 +237,19 @@ Future<AudioServiceHandler> initAudioService(AudioPlayer player) async {
   
   final handler = await AudioService.init(
     builder: () => AudioServiceHandler(player),
-    config: AudioServiceConfig(
+    config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.breakinghits.monetization.audio',
       androidNotificationChannelName: 'Music Playback',
       androidNotificationChannelDescription: 'Playing music from Breaking Hits',
-      androidNotificationOngoing: true,
+      androidNotificationOngoing: false, // Notification can be dismissed
       androidNotificationIcon: 'mipmap/ic_launcher',
       androidShowNotificationBadge: true,
-      androidStopForegroundOnPause: true,
+      androidStopForegroundOnPause: false, // Keep notification persistent - prevents bounce
+      preloadArtwork: true, // Preload artwork for instant display
+      artDownscaleWidth: 200,
+      artDownscaleHeight: 200,
+      fastForwardInterval: Duration(seconds: 10),
+      rewindInterval: Duration(seconds: 10),
     ),
   );
   
