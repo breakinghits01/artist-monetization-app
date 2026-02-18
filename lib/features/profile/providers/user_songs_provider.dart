@@ -102,8 +102,14 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
           },
         ),
+        queryParameters: {
+          '_t': DateTime.now().millisecondsSinceEpoch, // Cache buster
+        },
       );
 
       if (response.statusCode == 200) {

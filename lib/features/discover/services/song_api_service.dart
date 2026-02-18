@@ -32,6 +32,7 @@ class SongApiService {
         'limit': limit.toString(),
         'sortBy': sortBy,
         'sortOrder': sortOrder,
+        '_t': DateTime.now().millisecondsSinceEpoch.toString(), // Cache buster
         if (search != null && search.isNotEmpty) 'search': search,
         if (genre != null && genre.isNotEmpty) 'genre': genre,
         if (featured != null) 'featured': featured.toString(),
@@ -41,6 +42,13 @@ class SongApiService {
       final response = await _dio.get(
         '$_baseUrl/discover',
         queryParameters: queryParams,
+        options: Options(
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        ),
       );
 
       if (response.statusCode == 200) {
