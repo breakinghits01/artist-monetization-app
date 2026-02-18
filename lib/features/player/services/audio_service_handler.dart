@@ -20,59 +20,21 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   }
 
   void _init() {
-    // Listen to player state changes and update notification
+    // Listen ONLY to play/pause/buffer state changes (not position)
     _subscriptions.add(
-      _player.playbackEventStream.listen((event) {
-        final playing = _player.playing;
-        
-        playbackState.add(playbackState.value.copyWith(
-          controls: [
-            const MediaControl(
-              androidIcon: 'drawable/ic_shuffle',
-              label: 'Shuffle',
-              action: MediaAction.setShuffleMode,
-            ),
-            MediaControl.skipToPrevious,
-            if (playing) MediaControl.pause else MediaControl.play,
-            MediaControl.skipToNext,
-            const MediaControl(
-              androidIcon: 'drawable/ic_repeat',
-              label: 'Repeat',
-              action: MediaAction.setRepeatMode,
-            ),
-          ],
-          systemActions: const {
-            MediaAction.seek,
-            MediaAction.seekForward,
-            MediaAction.seekBackward,
-            MediaAction.setShuffleMode,
-            MediaAction.setRepeatMode,
-          },
-          androidCompactActionIndices: const [1, 2, 3], // Previous, Play/Pause, Next in compact view
-          processingState: const {
-            ProcessingState.idle: AudioProcessingState.idle,
-            ProcessingState.loading: AudioProcessingState.loading,
-            ProcessingState.buffering: AudioProcessingState.buffering,
-            ProcessingState.ready: AudioProcessingState.ready,
-            ProcessingState.completed: AudioProcessingState.completed,
-          }[_player.processingState]!,
-          playing: playing,
-          updatePosition: _player.position,
-          bufferedPosition: _player.bufferedPosition,
-          speed: _player.speed,
-          queueIndex: 0,
-        ));
+      _player.playerStateStream.listen((playerState) {
+        _updatePlaybackState();
       }),
     );
 
-    // Listen to position changes for lock screen progress
-    _subscriptions.add(
-      _player.positionStream.listen((position) {
-        playbackState.add(playbackState.value.copyWith(
-          updatePosition: position,
-        ));
-      }),
-    );
+    // Update position periodically (every 1 second) - lightweight, no rebuild
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!_subscriptions.isEmpty) { // Check if handler is still active
+        _updatePositionOnly();
+      } else {
+        timer.cancel();
+      }
+    });
 
     // Listen to duration changes
     _subscriptions.add(
@@ -82,6 +44,59 @@ class AudioServiceHandler extends BaseAudioHandler with QueueHandler, SeekHandle
         }
       }),
     );
+  }
+
+  /// Update full playback state (called when play/pause/skip changes)
+  void _updatePlaybackState() {
+    final playing = _player.playing;
+    
+    playbackState.add(playbackState.value.copyWith(
+      controls: [
+        const MediaControl(
+          androidIcon: 'drawable/ic_shuffle',
+          label: 'Shuffle',
+          action: MediaAction.setShuffleMode,
+        ),
+        MediaControl.skipToPrevious,
+        if (playing) MediaControl.pause else MediaControl.play,
+        MediaControl.skipToNext,
+        const MediaControl(
+          androidIcon: 'drawable/ic_repeat',
+          label: 'Repeat',
+          action: MediaAction.setRepeatMode,
+        ),
+      ],
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+        MediaAction.setShuffleMode,
+        MediaAction.setRepeatMode,
+      },
+      androidCompactActionIndices: const [1, 2, 3],
+      processingState: const {
+        ProcessingState.idle: AudioProcessingState.idle,
+        ProcessingState.loading: AudioProcessingState.loading,
+        ProcessingState.buffering: AudioProcessingState.buffering,
+        ProcessingState.ready: AudioProcessingState.ready,
+        ProcessingState.completed: AudioProcessingState.completed,
+      }[_player.processingState]!,
+      playing: playing,
+      updatePosition: _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+      queueIndex: 0,
+    ));
+  }
+
+  /// Update position only (lightweight, no notification rebuild)
+  void _updatePositionOnly() {
+    if (_player.processingState != ProcessingState.idle) {
+      playbackState.add(playbackState.value.copyWith(
+        updatePosition: _player.position,
+        bufferedPosition: _player.bufferedPosition,
+      ));
+    }
   }
 
   /// Update media item for lock screen and notification

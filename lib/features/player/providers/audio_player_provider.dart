@@ -164,7 +164,25 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
             : '${ApiConfig.baseUrl}${song.albumArt}';
       }
       
-      // Load audio - audio_service handler will manage lock screen
+      // Ensure audio service is initialized before setting metadata
+      if (_audioServiceHandler == null) {
+        print('⏳ Waiting for audio service initialization...');
+        await _initAudioService();
+      }
+      
+      // Set lock screen metadata BEFORE loading audio (prevents "Unknown" display)
+      if (_audioServiceHandler != null) {
+        try {
+          await _audioServiceHandler!.setMediaItem(song, artUri: albumArtUrl);
+          print('✅ Lock screen metadata set BEFORE playback');
+        } catch (e) {
+          print('⚠️ Failed to set lock screen metadata: $e');
+        }
+      } else {
+        print('⚠️ Audio service not available - lockscreen will show "Unknown"');
+      }
+      
+      // Load audio and start playback
       try {
         print('🎧 Setting audio URL: $audioUrl');
         await _audioPlayer.setUrl(audioUrl);
@@ -175,18 +193,6 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         print('❌ Error loading audio URL: $e');
         print('🔗 Failed URL: $audioUrl');
         rethrow;
-      }
-
-      // Update audio service handler media item for lock screen (non-critical)
-      if (_audioServiceHandler != null) {
-        try {
-          await _audioServiceHandler!.setMediaItem(song, artUri: albumArtUrl);
-          print('✅ Lock screen controls updated');
-        } catch (e) {
-          print('⚠️ Failed to update lock screen (non-critical): $e');
-        }
-      } else {
-        print('⚠️ Audio service not ready yet');
       }
 
       // Clear loading state - playing state updated by playerStateStream listener

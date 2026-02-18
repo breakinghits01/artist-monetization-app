@@ -25,62 +25,152 @@ class StorageService {
 
   // Token Management
   Future<void> saveAccessToken(String token) async {
-    await _storage.write(key: AppConstants.accessTokenKey, value: token);
+    try {
+      await _storage.write(key: AppConstants.accessTokenKey, value: token);
+    } catch (e) {
+      print('⚠️ Failed to save access token: $e');
+      // Clear corrupted storage and retry
+      await _clearCorruptedStorage();
+      await _storage.write(key: AppConstants.accessTokenKey, value: token);
+    }
   }
 
   Future<String?> getAccessToken() async {
-    return await _storage.read(key: AppConstants.accessTokenKey);
+    try {
+      return await _storage.read(key: AppConstants.accessTokenKey);
+    } catch (e) {
+      print('⚠️ Failed to read access token (corrupted): $e');
+      await _clearCorruptedStorage();
+      return null;
+    }
   }
 
   Future<void> saveRefreshToken(String token) async {
-    await _storage.write(key: AppConstants.refreshTokenKey, value: token);
+    try {
+      await _storage.write(key: AppConstants.refreshTokenKey, value: token);
+    } catch (e) {
+      print('⚠️ Failed to save refresh token: $e');
+      await _clearCorruptedStorage();
+      await _storage.write(key: AppConstants.refreshTokenKey, value: token);
+    }
   }
 
   Future<String?> getRefreshToken() async {
-    return await _storage.read(key: AppConstants.refreshTokenKey);
+    try {
+      return await _storage.read(key: AppConstants.refreshTokenKey);
+    } catch (e) {
+      print('⚠️ Failed to read refresh token (corrupted): $e');
+      await _clearCorruptedStorage();
+      return null;
+    }
   }
 
   Future<void> deleteTokens() async {
-    await _storage.delete(key: AppConstants.accessTokenKey);
-    await _storage.delete(key: AppConstants.refreshTokenKey);
+    try {
+      await _storage.delete(key: AppConstants.accessTokenKey);
+      await _storage.delete(key: AppConstants.refreshTokenKey);
+    } catch (e) {
+      print('⚠️ Failed to delete tokens: $e');
+      await _clearCorruptedStorage();
+    }
   }
 
   // User Data Management
   Future<void> saveUserData(String userData) async {
-    await _storage.write(key: AppConstants.userDataKey, value: userData);
+    try {
+      await _storage.write(key: AppConstants.userDataKey, value: userData);
+    } catch (e) {
+      print('⚠️ Failed to save user data: $e');
+      await _clearCorruptedStorage();
+      await _storage.write(key: AppConstants.userDataKey, value: userData);
+    }
   }
 
   Future<String?> getUserData() async {
-    return await _storage.read(key: AppConstants.userDataKey);
+    try {
+      return await _storage.read(key: AppConstants.userDataKey);
+    } catch (e) {
+      print('⚠️ Failed to read user data (corrupted): $e');
+      await _clearCorruptedStorage();
+      return null;
+    }
   }
 
   Future<void> deleteUserData() async {
-    await _storage.delete(key: AppConstants.userDataKey);
+    try {
+      await _storage.delete(key: AppConstants.userDataKey);
+    } catch (e) {
+      print('⚠️ Failed to delete user data: $e');
+      await _clearCorruptedStorage();
+    }
+  }
+
+  // Clear corrupted storage
+  Future<void> _clearCorruptedStorage() async {
+    try {
+      print('🧹 Clearing corrupted secure storage...');
+      await _storage.deleteAll();
+      print('✅ Corrupted storage cleared');
+    } catch (e) {
+      print('❌ Failed to clear storage: $e');
+    }
   }
 
   // Clear All Data
   Future<void> clearAll() async {
-    await _storage.deleteAll();
+    try {
+      await _storage.deleteAll();
+    } catch (e) {
+      print('⚠️ Failed to clear all storage: $e');
+    }
   }
 
   // Generic methods for custom data
   Future<void> write(String key, String value) async {
-    await _storage.write(key: key, value: value);
+    try {
+      await _storage.write(key: key, value: value);
+    } catch (e) {
+      print('⚠️ Failed to write $key: $e');
+      await _clearCorruptedStorage();
+      await _storage.write(key: key, value: value);
+    }
   }
 
   Future<String?> read(String key) async {
-    return await _storage.read(key: key);
+    try {
+      return await _storage.read(key: key);
+    } catch (e) {
+      print('⚠️ Failed to read $key (corrupted): $e');
+      await _clearCorruptedStorage();
+      return null;
+    }
   }
 
   Future<void> delete(String key) async {
-    await _storage.delete(key: key);
+    try {
+      await _storage.delete(key: key);
+    } catch (e) {
+      print('⚠️ Failed to delete $key: $e');
+      await _clearCorruptedStorage();
+    }
   }
 
   Future<Map<String, String>> readAll() async {
-    return await _storage.readAll();
+    try {
+      return await _storage.readAll();
+    } catch (e) {
+      print('⚠️ Failed to read all (corrupted): $e');
+      await _clearCorruptedStorage();
+      return {};
+    }
   }
 
   Future<bool> containsKey(String key) async {
-    return await _storage.containsKey(key: key);
+    try {
+      return await _storage.containsKey(key: key);
+    } catch (e) {
+      print('⚠️ Failed to check key $key: $e');
+      return false;
+    }
   }
 }

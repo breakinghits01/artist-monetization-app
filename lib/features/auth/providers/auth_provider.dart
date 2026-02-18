@@ -59,11 +59,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
     
     try {
-      // Check if access token exists
+      // Check if access token exists (handles corrupted storage internally)
       final hasToken = await _authService.isAuthenticated();
       
       if (hasToken) {
-        // Load saved user data
+        // Load saved user data (handles corrupted storage internally)
         final userDataString = await _storage.getUserData();
         
         if (userDataString != null) {
@@ -94,7 +94,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
       }
     } catch (e) {
-      debugPrint('❌ Auth initialization error: $e');
+      // Silently handle storage errors - corrupted data is auto-cleared
+      debugPrint('⚠️ Auth init: Storage error handled (corrupted data cleared)');
       state = state.copyWith(
         isAuthenticated: false,
         isLoading: false,
