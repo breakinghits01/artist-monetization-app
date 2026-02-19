@@ -20,6 +20,7 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
   int _currentPage = 1;
   bool _hasMore = true;
   Timer? _refreshTimer;
+  bool _isTimerActive = false;
 
   NotificationListNotifier(this._ref) : super(const AsyncValue.data([])) {
     // Only fetch if user is authenticated
@@ -131,10 +132,27 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
   }
 
   void _startAutoRefresh() {
+    if (_isTimerActive) return;
+    _isTimerActive = true;
+    
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       fetchNotifications(refresh: true);
       _ref.read(unreadCountProvider.notifier).fetchUnreadCount();
     });
+  }
+  
+  /// Pause auto-refresh (call when app goes to background)
+  void pauseAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    _isTimerActive = false;
+  }
+  
+  /// Resume auto-refresh (call when app comes to foreground)
+  void resumeAutoRefresh() {
+    if (!_isTimerActive) {
+      _startAutoRefresh();
+    }
   }
 
   @override

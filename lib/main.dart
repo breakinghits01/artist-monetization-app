@@ -9,6 +9,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/constants/app_constants.dart';
 import 'features/player/providers/audio_player_provider.dart';
+import 'features/notifications/providers/notification_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,8 +57,15 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     
-    // Stop playback when app is terminated
-    if (state == AppLifecycleState.detached) {
+    // Pause background timers when app is not active
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Pause notification auto-refresh to save battery
+      ref.read(notificationListProvider.notifier).pauseAutoRefresh();
+    } else if (state == AppLifecycleState.resumed) {
+      // Resume notification auto-refresh when app is active
+      ref.read(notificationListProvider.notifier).resumeAutoRefresh();
+    } else if (state == AppLifecycleState.detached) {
+      // Stop playback when app is terminated
       ref.read(audioPlayerProvider.notifier).disposePlayer();
     }
   }

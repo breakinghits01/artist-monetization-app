@@ -45,15 +45,27 @@ class _TreasureChestCardState extends ConsumerState<TreasureChestCard>
   void dispose() {
     _animationController.dispose();
     _countdownTimer?.cancel();
+    _countdownTimer = null;
     super.dispose();
   }
 
   void _startCountdown() {
     _remainingTime = widget.chest.timeRemaining;
+    
+    // OPTIMIZATION: Only update UI once per second, not on every tick
+    // Use a ValueNotifier or similar for better performance in the future
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      final newRemaining = widget.chest.timeRemaining;
+      
+      // Only call setState if value actually changed
+      if (newRemaining != _remainingTime) {
         setState(() {
-          _remainingTime = widget.chest.timeRemaining;
+          _remainingTime = newRemaining;
           if (_remainingTime == Duration.zero && !widget.chest.isReady) {
             _animationController.repeat(reverse: true);
           }
