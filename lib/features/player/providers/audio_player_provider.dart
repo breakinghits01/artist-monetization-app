@@ -165,7 +165,9 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
               if (newSong.albumArt != null && 
                   newSong.albumArt!.isNotEmpty &&
                   !newSong.albumArt!.contains('placeholder') &&
-                  !newSong.albumArt!.contains('picsum.photos')) {
+                  !newSong.albumArt!.contains('picsum.photos') &&
+                  !newSong.albumArt!.startsWith('data:')) { // Skip data URIs for Android
+                // Support http/https URLs only
                 albumArtUrl = newSong.albumArt!.startsWith('http')
                     ? newSong.albumArt!
                     : '${ApiConfig.baseUrl}${newSong.albumArt}';
@@ -240,11 +242,13 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       print('🔗 Final URL: $audioUrl');
       print('🔗 Base URL from config: ${ApiConfig.baseUrl}');
       
-      // Prepare album art URL - filter out placeholder URLs from database
+      // Prepare album art URL - filter out placeholder URLs and data URIs
       String? albumArtUrl;
       if (song.albumArt != null && 
           !song.albumArt!.contains('placeholder') &&
-          !song.albumArt!.contains('picsum.photos')) {
+          !song.albumArt!.contains('picsum.photos') &&
+          !song.albumArt!.startsWith('data:')) { // Skip data URIs for Android
+        // Support http/https URLs only
         albumArtUrl = song.albumArt!.startsWith('http')
             ? song.albumArt
             : '${ApiConfig.baseUrl}${song.albumArt}';
@@ -365,12 +369,14 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
               ? s.audioUrl
               : '${ApiConfig.baseUrl}${s.audioUrl}';
               
-          // Filter out placeholder images to avoid network errors
+          // Filter out placeholder images and data URIs (data URIs don't work in Android notifications)
           String? albumArtUrl;
           if (s.albumArt != null && 
               s.albumArt!.isNotEmpty &&
               !s.albumArt!.contains('placeholder') &&
-              !s.albumArt!.contains('picsum.photos')) {
+              !s.albumArt!.contains('picsum.photos') &&
+              !s.albumArt!.startsWith('data:')) { // Skip data URIs for Android
+            // Support http/https URLs only
             albumArtUrl = s.albumArt!.startsWith('http')
                 ? s.albumArt!
                 : '${ApiConfig.baseUrl}${s.albumArt}';
@@ -403,12 +409,14 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       if (_audioServiceHandler != null) {
         final currentSong = allSongs[startIndex];
         
-        // Get album art URL for the current song
+        // Get album art URL for the current song (exclude data URIs for Android)
         String? albumArtUrl;
         if (currentSong.albumArt != null && 
             currentSong.albumArt!.isNotEmpty &&
             !currentSong.albumArt!.contains('placeholder') &&
-            !currentSong.albumArt!.contains('picsum.photos')) {
+            !currentSong.albumArt!.contains('picsum.photos') &&
+            !currentSong.albumArt!.startsWith('data:')) { // Skip data URIs for Android
+          // Support http/https URLs only
           albumArtUrl = currentSong.albumArt!.startsWith('http')
               ? currentSong.albumArt!
               : '${ApiConfig.baseUrl}${currentSong.albumArt}';

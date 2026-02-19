@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../config/api_config.dart';
@@ -51,6 +52,12 @@ class WebSocketService {
   
   /// Initialize WebSocket connection
   Future<void> connect() async {
+    // Disable WebSocket entirely - use polling only (Cloudflare tunnel doesn't support WS)
+    print('🌐 WebSocket disabled - using polling for notifications');
+    _ref.read(webSocketStateProvider.notifier).state = WebSocketState.disconnected;
+    return;
+    
+    // ignore: dead_code
     if (_socket != null && _socket!.connected) {
       print('🌐 WebSocket already connected');
       return;
