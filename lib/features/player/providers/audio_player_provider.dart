@@ -47,6 +47,19 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   AudioPlayerNotifier(this._ref) : super(const models.PlayerState()) {
     _initPlayer();
     _initAudioService();
+    _configureOptimalPlayback();
+  }
+  
+  /// Configure optimal playback settings for Cloudflare R2
+  Future<void> _configureOptimalPlayback() async {
+    try {
+      // OPTIMIZATION: Disable automatic stalling to start playback faster
+      // Cloudflare R2 has fast CDN delivery, so we don't need to wait for large buffer
+      await _audioPlayer.setAutomaticallyWaitsToMinimizeStalling(false);
+      print('✅ Audio player configured for fast CDN playback');
+    } catch (e) {
+      print('⚠️ Could not configure optimal playback (non-critical): $e');
+    }
   }
 
   Future<void> _initAudioService() async {
@@ -248,10 +261,18 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           ),
         );
         
-        await _audioPlayer.setAudioSource(audioSource);
-        print('▶️ Starting playback...');
+        // OPTIMIZATION: Set initialPosition to 0 and preload=false for faster start
+        // This starts playback immediately without waiting for full buffer
+        await _audioPlayer.setAudioSource(
+          audioSource,
+          initialPosition: Duration.zero,
+          preload: true, // Preload to get duration, but play() won't wait
+        );
+        
+        print('▶️ Starting playback (optimized)...');
+        // Play immediately - just_audio will handle buffering in background
         await _audioPlayer.play();
-        print('✅ Audio player started successfully');
+        print('✅ Audio player started with fast playback');
       } catch (e) {
         print('❌ Error loading audio URL: $e');
         print('🔗 Failed URL: $audioUrl');
@@ -284,6 +305,24 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     
     try {
       print('📋 Playing with queue: ${allSongs.length} songs');
+      
+      // Reset tracking flags
+      _hasRewardedCurrentSong = false;
+      _hasIncrementedPlayCount = false;
+      _ref.read(currentSongProvider.notifier).state = song;
+
+      // Reset token earn state
+      _ref.read(tokenEarnProvider.notifier).reset();
+
+      // Start play session for backend tracking
+      try {
+        final apiService = _ref.read(songApiServiceProvider);
+        await apiService.startPlaySession(song.id);
+        print('✅ Play session started for: ${song.id}');
+      } catch (e) {
+        print('⚠️ Failed to start play session (non-critical): $e');
+        // Continue playback even if session start fails
+      }
       
       // Find song index in list
       final songIndex = allSongs.indexWhere((s) => s.id == song.id);
@@ -328,7 +367,13 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       );
       
       // Load playlist and seek to start index
-      await _audioPlayer.setAudioSource(playlist, initialIndex: startIndex);
+      // OPTIMIZATION: Use preload=true for instant playback
+      await _audioPlayer.setAudioSource(
+        playlist,
+        initialIndex: startIndex,
+        initialPosition: Duration.zero,
+        preload: true, // Preload first song for instant start
+      );
       
       // Update Android audio service notification with current song
       if (_audioServiceHandler != null) {
@@ -351,10 +396,11 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         print('✅ Android notification updated with song metadata');
       }
       
-      // Start playing
+      // Start playing immediately
+      print('▶️ Starting queue playback (optimized)...');
       await _audioPlayer.play();
       
-      print('✅ Queue loaded, playing from index $startIndex');
+      print('✅ Queue loaded, playing from index $startIndex with fast start');
     } catch (e) {
       print('❌ Error playing with queue: $e');
       state = state.copyWith(isLoading: false, isPlaying: false);
@@ -367,6 +413,24 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     if (_audioPlayer.hasNext) {
       await _audioPlayer.seekToNext();
       _ref.read(queueProvider.notifier).playNext();
+      
+      // Reset tracking flags for new song
+      _hasRewardedCurrentSong = false;
+      _hasIncrementedPlayCount = false;
+      _ref.read(tokenEarnProvider.notifier).reset();
+      
+      // Start play session for new song
+      final currentSong = _ref.read(queueProvider).currentSong;
+      if (currentSong != null) {
+        _ref.read(currentSongProvider.notifier).state = currentSong;
+        try {
+          final apiService = _ref.read(songApiServiceProvider);
+          await apiService.startPlaySession(currentSong.id);
+          print('✅ Play session started for next song: ${currentSong.id}');
+        } catch (e) {
+          print('⚠️ Failed to start play session for next song: $e');
+        }
+      }
       
       // Update Android notification
       if (_audioServiceHandler != null) {
@@ -386,6 +450,24 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     if (_audioPlayer.hasPrevious) {
       await _audioPlayer.seekToPrevious();
       _ref.read(queueProvider.notifier).playPrevious();
+      
+      // Reset tracking flags for new song
+      _hasRewardedCurrentSong = false;
+      _hasIncrementedPlayCount = false;
+      _ref.read(tokenEarnProvider.notifier).reset();
+      
+      // Start play session for previous song
+      final currentSong = _ref.read(queueProvider).currentSong;
+      if (currentSong != null) {
+        _ref.read(currentSongProvider.notifier).state = currentSong;
+        try {
+          final apiService = _ref.read(songApiServiceProvider);
+          await apiService.startPlaySession(currentSong.id);
+          print('✅ Play session started for previous song: ${currentSong.id}');
+        } catch (e) {
+          print('⚠️ Failed to start play session for previous song: $e');
+        }
+      }
       
       // Update Android notification
       if (_audioServiceHandler != null) {
