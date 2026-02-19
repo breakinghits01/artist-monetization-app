@@ -52,8 +52,9 @@ class WebSocketService {
   
   /// Initialize WebSocket connection
   Future<void> connect() async {
-    // Disable WebSocket entirely - use polling only (Cloudflare tunnel doesn't support WS)
-    print('🌐 WebSocket disabled - using polling for notifications');
+    // WebSocket disabled - Cloudflare Tunnel doesn't support WebSocket upgrades
+    // Polling works reliably for notifications (30s interval)
+    print('🔔 Using polling for notifications (WebSocket incompatible with Cloudflare Tunnel)');
     _ref.read(webSocketStateProvider.notifier).state = WebSocketState.disconnected;
     return;
     
