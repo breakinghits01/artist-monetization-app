@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/utils/responsive.dart';
 import '../../../../shared/widgets/theme_switcher.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../discover/screens/discover_screen.dart';
@@ -14,7 +15,10 @@ import '../../../player/providers/audio_player_provider.dart';
 import '../../widgets/wallet_header.dart';
 import '../../widgets/story_circles.dart';
 import '../../widgets/treasure_chest_card.dart';
+import '../../widgets/treasure_chest_banner.dart';
 import '../../widgets/dashboard_masonry_grid.dart';
+import '../../widgets/web_sidebar.dart';
+import '../../widgets/web_top_bar.dart';
 import '../../providers/treasure_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/story_provider.dart';
@@ -48,6 +52,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final currentSong = ref.watch(currentSongProvider);
     final isPlayerExpanded = ref.watch(playerExpandedProvider);
 
+    // Use responsive web layout for desktop/tablet
+    if (Responsive.isDesktop(context)) {
+      return PlayerWrapper(
+        child: Scaffold(
+          body: Row(
+            children: [
+              WebSidebar(
+                selectedIndex: _selectedIndex,
+                onNavigate: _onItemTapped,
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    const WebTopBar(),
+                    Expanded(
+                      child: _screens[_selectedIndex],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          bottomSheet: currentSong != null && !isPlayerExpanded
+              ? const MiniPlayer()
+              : null,
+        ),
+      );
+    }
+
+    // Mobile layout (unchanged)
     return PlayerWrapper(
       child: Scaffold(
         appBar: AppBar(
@@ -218,31 +252,40 @@ class _DashboardTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final treasure = ref.watch(treasureProvider);
+    final isDesktop = Responsive.isDesktop(context);
 
     return RefreshIndicator(
       onRefresh: () => _refreshDashboard(ref),
       child: CustomScrollView(
         slivers: [
-          // Wallet header
-          const SliverToBoxAdapter(child: WalletHeader()),
+          // Wallet header (mobile only)
+          if (!isDesktop) const SliverToBoxAdapter(child: WalletHeader()),
 
-          // Stories section
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-          const SliverToBoxAdapter(child: StoryCircles()),
+          // Stories section (mobile only)
+          if (!isDesktop) ...[
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            const SliverToBoxAdapter(child: StoryCircles()),
+          ],
 
           // Treasure chest section
           SliverToBoxAdapter(
             child: treasure.when(
               data: (chest) {
                 if (chest == null) return const SizedBox.shrink();
-                return TreasureChestCard(chest: chest);
+                // Use horizontal banner on desktop, vertical card on mobile
+                return isDesktop
+                    ? const TreasureChestBanner()
+                    : TreasureChestCard(chest: chest);
               },
               loading: () => Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                height: 300,
+                margin: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 24 : 16,
+                  vertical: isDesktop ? 16 : 8,
+                ),
+                height: isDesktop ? 120 : 300,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(isDesktop ? 20 : 24),
                 ),
                 child: const Center(child: CircularProgressIndicator()),
               ),

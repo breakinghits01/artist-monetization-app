@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'dart:io' show Platform;
 
@@ -13,6 +14,9 @@ import 'features/notifications/providers/notification_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Remove hash (#) from URLs in web builds
+  usePathUrlStrategy();
   
   // CRITICAL for iOS: Initialize JustAudioBackground for iOS lockscreen controls
   // This handles MPRemoteCommandCenter (skip next/previous on lockscreen)

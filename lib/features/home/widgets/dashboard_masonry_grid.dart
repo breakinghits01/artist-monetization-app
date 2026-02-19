@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/responsive.dart';
 import '../models/dashboard_card_model.dart';
 import '../providers/dashboard_provider.dart';
 import 'dashboard_cards/artist_spotlight_card.dart';
@@ -14,6 +15,8 @@ class DashboardMasonryGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cards = ref.watch(dashboardCardsProvider);
+    final columnCount = Responsive.getMasonryColumns(context);
+    final isDesktop = Responsive.isDesktop(context);
 
     return cards.when(
       data: (cardsList) {
@@ -27,19 +30,19 @@ class DashboardMasonryGrid extends ConsumerWidget {
         }
 
         return MasonryGridView.count(
-          crossAxisCount: 2,
+          crossAxisCount: columnCount,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          padding: const EdgeInsets.all(16),
+          mainAxisSpacing: isDesktop ? 16 : 12,
+          crossAxisSpacing: isDesktop ? 16 : 12,
+          padding: EdgeInsets.all(isDesktop ? 24 : 16),
           itemCount: cardsList.length,
           itemBuilder: (context, index) {
             return _buildCard(cardsList[index]);
           },
         );
       },
-      loading: () => _buildLoadingGrid(),
+      loading: () => _buildLoadingGrid(context),
       error: (error, stack) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -73,15 +76,18 @@ class DashboardMasonryGrid extends ConsumerWidget {
     }
   }
 
-  Widget _buildLoadingGrid() {
+  Widget _buildLoadingGrid(BuildContext context) {
+    final columnCount = Responsive.getMasonryColumns(context);
+    final isDesktop = Responsive.isDesktop(context);
+    
     return MasonryGridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: columnCount,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      padding: const EdgeInsets.all(16),
-      itemCount: 6,
+      mainAxisSpacing: isDesktop ? 16 : 12,
+      crossAxisSpacing: isDesktop ? 16 : 12,
+      padding: EdgeInsets.all(isDesktop ? 24 : 16),
+      itemCount: columnCount * 2, // Show 2 rows of loading cards
       itemBuilder: (context, index) => _LoadingCard(),
     );
   }
