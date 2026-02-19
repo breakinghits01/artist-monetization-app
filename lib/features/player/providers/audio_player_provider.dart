@@ -132,7 +132,8 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     );
     
     // CRITICAL: Listen to current index changes (lockscreen skip sync)
-    // This syncs app UI when user skips from lockscreen
+    // This is the SINGLE SOURCE OF TRUTH for queue position
+    // All track changes (next, previous, lockscreen) flow through here
     _subscriptions.add(
       _audioPlayer.currentIndexStream.listen((index) {
         if (!_isDisposed && index != null) {
@@ -143,8 +144,17 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
             // Update current song in provider
             _ref.read(currentSongProvider.notifier).state = newSong;
             
-            // Update queue index
+            // Update queue index (single source of truth)
             _ref.read(queueProvider.notifier).setCurrentIndex(index);
+            
+            // Reset tracking flags when track changes
+            _hasRewardedCurrentSong = false;
+            _hasIncrementedPlayCount = false;
+            _ref.read(tokenEarnProvider.notifier).reset();
+            
+            // Start play session for track changes (fire and forget)
+            // Note: This is safe because backend validates session age
+            _startPlaySessionForCurrentSong(newSong.id);
             
             // Update Android notification with new song metadata
             if (_audioServiceHandler != null) {
@@ -169,6 +179,20 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         }
       }),
     );
+  }
+  
+  /// Start play session for current song (fire and forget)
+  void _startPlaySessionForCurrentSong(String songId) {
+    try {
+      final apiService = _ref.read(songApiServiceProvider);
+      apiService.startPlaySession(songId).then((_) {
+        print('✅ Play session started for song: $songId');
+      }).catchError((error) {
+        print('⚠️ Failed to start play session (non-critical): $error');
+      });
+    } catch (e) {
+      print('⚠️ Error starting play session: $e');
+    }
   }
 
   /// Play a song
@@ -411,32 +435,9 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   Future<void> playNext() async {
     // Use just_audio's built-in next (works for both iOS and Android)
     if (_audioPlayer.hasNext) {
+      // Seek to next track - currentIndexStream will auto-sync everything
+      // (including resetting tracking flags and starting new session)
       await _audioPlayer.seekToNext();
-      _ref.read(queueProvider.notifier).playNext();
-      
-      // Reset tracking flags for new song
-      _hasRewardedCurrentSong = false;
-      _hasIncrementedPlayCount = false;
-      _ref.read(tokenEarnProvider.notifier).reset();
-      
-      // Start play session for new song
-      final currentSong = _ref.read(queueProvider).currentSong;
-      if (currentSong != null) {
-        _ref.read(currentSongProvider.notifier).state = currentSong;
-        try {
-          final apiService = _ref.read(songApiServiceProvider);
-          await apiService.startPlaySession(currentSong.id);
-          print('✅ Play session started for next song: ${currentSong.id}');
-        } catch (e) {
-          print('⚠️ Failed to start play session for next song: $e');
-        }
-      }
-      
-      // Update Android notification
-      if (_audioServiceHandler != null) {
-        final currentIndex = _ref.read(queueProvider).currentIndex;
-        await _audioServiceHandler!.updateQueueIndex(currentIndex);
-      }
       
       print('⏭️ Skipped to next track');
     } else {
@@ -448,32 +449,9 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   Future<void> playPrevious() async {
     // Use just_audio's built-in previous (works for both iOS and Android)
     if (_audioPlayer.hasPrevious) {
+      // Seek to previous track - currentIndexStream will auto-sync everything
+      // (including resetting tracking flags and starting new session)
       await _audioPlayer.seekToPrevious();
-      _ref.read(queueProvider.notifier).playPrevious();
-      
-      // Reset tracking flags for new song
-      _hasRewardedCurrentSong = false;
-      _hasIncrementedPlayCount = false;
-      _ref.read(tokenEarnProvider.notifier).reset();
-      
-      // Start play session for previous song
-      final currentSong = _ref.read(queueProvider).currentSong;
-      if (currentSong != null) {
-        _ref.read(currentSongProvider.notifier).state = currentSong;
-        try {
-          final apiService = _ref.read(songApiServiceProvider);
-          await apiService.startPlaySession(currentSong.id);
-          print('✅ Play session started for previous song: ${currentSong.id}');
-        } catch (e) {
-          print('⚠️ Failed to start play session for previous song: $e');
-        }
-      }
-      
-      // Update Android notification
-      if (_audioServiceHandler != null) {
-        final currentIndex = _ref.read(queueProvider).currentIndex;
-        await _audioServiceHandler!.updateQueueIndex(currentIndex);
-      }
       
       print('⏮️ Skipped to previous track');
     } else {
