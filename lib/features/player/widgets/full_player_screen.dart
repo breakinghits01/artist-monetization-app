@@ -183,6 +183,8 @@ class _FullPlayerScreenState extends ConsumerState<FullPlayerScreen>
                   width: size,
                   height: size,
                   fit: BoxFit.cover,
+                  memCacheHeight: 400,
+                  memCacheWidth: 400,
                   placeholder: (context, url) => _buildAlbumPlaceholder(theme, size),
                   errorWidget: (context, url, error) =>
                       _buildAlbumPlaceholder(theme, size),

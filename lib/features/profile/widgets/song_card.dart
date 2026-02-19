@@ -117,6 +117,8 @@ class _SongCardState extends ConsumerState<SongCard>
                               ? CachedNetworkImage(
                                   imageUrl: widget.song.albumArt!,
                                   fit: BoxFit.cover,
+                                  memCacheHeight: 200,
+                                  memCacheWidth: 200,
                                   placeholder: (context, url) => Container(
                                     color: theme.colorScheme.surfaceContainerHighest,
                                     child: Center(

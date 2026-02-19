@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
 import '../services/notification_api_service.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/services/websocket_service.dart';
 import 'dart:async';
 
 // Notification list state
@@ -21,14 +22,121 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
   bool _hasMore = true;
   Timer? _refreshTimer;
   bool _isTimerActive = false;
+  WebSocketService? _webSocketService;
+  bool _useWebSocket = true;
 
   NotificationListNotifier(this._ref) : super(const AsyncValue.data([])) {
     // Only fetch if user is authenticated
     final authState = _ref.read(authProvider);
     if (authState.isAuthenticated) {
-      fetchNotifications();
-      _startAutoRefresh();
+      _initializeNotifications();
     }
+  }
+  
+  /// Initialize notifications with WebSocket or polling fallback
+  Future<void> _initializeNotifications() async {
+    try {
+      // Attempt to connect WebSocket first
+      _webSocketService = _ref.read(webSocketServiceProvider);
+      await _webSocketService!.connect();
+      
+      // Check if WebSocket connected successfully
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (_webSocketService!.isConnected) {
+        print('✅ Using WebSocket for real-time notifications');
+        _setupWebSocketListeners();
+        _useWebSocket = true;
+      } else {
+        print('⚠️ WebSocket connection failed, falling back to polling');
+        _useWebSocket = false;
+        _startAutoRefresh();
+      }
+      
+      // Initial fetch
+      fetchNotifications();
+      
+    } catch (e) {
+      print('⚠️ WebSocket initialization error, using polling: $e');
+      _useWebSocket = false;
+      _startAutoRefresh();
+      fetchNotifications();
+    }
+  }
+  
+  /// Setup WebSocket event listeners for real-time updates
+  void _setupWebSocketListeners() {
+    if (_webSocketService == null) return;
+    
+    // Listen for new notifications
+    _webSocketService!.on('notification:new', (data) {
+      try {
+        print('📨 Received new notification via WebSocket');
+        final notification = NotificationModel.fromJson(data as Map<String, dynamic>);
+        
+        state.whenData((notifications) {
+          final updatedList = [notification, ...notifications];
+          state = AsyncValue.data(updatedList);
+        });
+        
+        // Update unread count
+        _ref.read(unreadCountProvider.notifier).fetchUnreadCount();
+      } catch (e) {
+        print('❌ Error processing new notification: $e');
+      }
+    });
+    
+    // Listen for notification read events
+    _webSocketService!.on('notification:read', (data) {
+      try {
+        final notificationId = data['notificationId'] as String;
+        print('✅ Notification marked as read via WebSocket: $notificationId');
+        
+        state.whenData((notifications) {
+          final updatedList = notifications.map((n) {
+            return n.id == notificationId
+                ? NotificationModel(
+                    id: n.id,
+                    userId: n.userId,
+                    type: n.type,
+                    sender: n.sender,
+                    song: n.song,
+                    message: n.message,
+                    metadata: n.metadata,
+                    isRead: true,
+                    createdAt: n.createdAt,
+                  )
+                : n;
+          }).toList();
+          state = AsyncValue.data(updatedList);
+        });
+        
+        // Update unread count
+        _ref.read(unreadCountProvider.notifier).fetchUnreadCount();
+      } catch (e) {
+        print('❌ Error processing read notification: $e');
+      }
+    });
+    
+    // Listen for notification delete events
+    _webSocketService!.on('notification:delete', (data) {
+      try {
+        final notificationId = data['notificationId'] as String;
+        print('🗑️ Notification deleted via WebSocket: $notificationId');
+        
+        state.whenData((notifications) {
+          final updatedList = notifications.where((n) => n.id != notificationId).toList();
+          state = AsyncValue.data(updatedList);
+        });
+        
+        // Update unread count
+        _ref.read(unreadCountProvider.notifier).fetchUnreadCount();
+      } catch (e) {
+        print('❌ Error processing deleted notification: $e');
+      }
+    });
+    
+    print('👂 WebSocket listeners registered for notifications');
   }
 
   Future<void> fetchNotifications({bool refresh = false}) async {
@@ -135,10 +243,18 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
     if (_isTimerActive) return;
     _isTimerActive = true;
     
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    // Use longer polling interval (60s) if WebSocket is primary method
+    // Use shorter interval (30s) if polling is the only method
+    final pollingInterval = _useWebSocket 
+        ? const Duration(seconds: 60) 
+        : const Duration(seconds: 30);
+    
+    _refreshTimer = Timer.periodic(pollingInterval, (_) {
       fetchNotifications(refresh: true);
       _ref.read(unreadCountProvider.notifier).fetchUnreadCount();
     });
+    
+    print('🔄 Auto-refresh started (interval: ${pollingInterval.inSeconds}s, WebSocket: $_useWebSocket)');
   }
   
   /// Pause auto-refresh (call when app goes to background)
@@ -146,12 +262,16 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
     _refreshTimer?.cancel();
     _refreshTimer = null;
     _isTimerActive = false;
+    print('⏸️ Notification auto-refresh paused');
   }
   
   /// Resume auto-refresh (call when app comes to foreground)
   void resumeAutoRefresh() {
     if (!_isTimerActive) {
       _startAutoRefresh();
+      // Fetch fresh data when resuming
+      fetchNotifications(refresh: true);
+      print('▶️ Notification auto-refresh resumed');
     }
   }
 

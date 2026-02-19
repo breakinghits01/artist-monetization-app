@@ -54,6 +54,8 @@ class SongListTile extends ConsumerWidget {
                     ? CachedNetworkImage(
                         imageUrl: song.albumArt!,
                         fit: BoxFit.cover,
+                        memCacheHeight: 150,
+                        memCacheWidth: 150,
                         placeholder: (context, url) => _buildAlbumPlaceholder(theme),
                         errorWidget: (context, url, error) => _buildAlbumPlaceholder(theme),
                       )

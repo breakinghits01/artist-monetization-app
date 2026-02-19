@@ -401,6 +401,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       width: 56,
                       height: 56,
                       fit: BoxFit.cover,
+                      memCacheHeight: 150,
+                      memCacheWidth: 150,
                       placeholder: (context, url) => Container(
                         width: 56,
                         height: 56,

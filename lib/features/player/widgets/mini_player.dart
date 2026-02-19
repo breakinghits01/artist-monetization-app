@@ -136,6 +136,8 @@ class MiniPlayer extends ConsumerWidget {
             ? CachedNetworkImage(
                 imageUrl: song.albumArt!,
                 fit: BoxFit.cover,
+                memCacheHeight: 200,
+                memCacheWidth: 200,
                 placeholder: (context, url) => _buildAlbumPlaceholder(theme),
                 errorWidget: (context, url, error) =>
                     _buildAlbumPlaceholder(theme),

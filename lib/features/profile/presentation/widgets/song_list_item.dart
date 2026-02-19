@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../player/models/song_model.dart';
 import 'playing_indicator_overlay.dart';
 
@@ -89,32 +90,23 @@ class SongListItem extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: song.albumArt != null && song.albumArt!.isNotEmpty
-                    ? Image.network(
-                        song.albumArt!,
+                    ? CachedNetworkImage(
+                        imageUrl: song.albumArt!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
+                        memCacheHeight: 150,
+                        memCacheWidth: 150,
+                        placeholder: (context, url) => Center(
+                          child: Icon(
                             Icons.music_note,
-                            color: theme.colorScheme.primary,
+                            color: theme.colorScheme.primary.withValues(alpha: 0.5),
                             size: 30,
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            ),
-                          );
-                        },
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Icon(
+                          Icons.music_note,
+                          color: theme.colorScheme.primary,
+                          size: 30,
+                        ),
                       )
                     : Icon(
                         Icons.music_note,
