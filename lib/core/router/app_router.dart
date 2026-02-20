@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,10 +8,12 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/home/presentation/screens/dashboard_screen.dart';
+import '../../features/home/widgets/desktop_layout.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/discover/screens/discover_screen.dart';
 import '../../features/connect/screens/connect_screen.dart';
+import '../../features/upload/presentation/upload_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../constants/app_constants.dart';
 
@@ -66,33 +69,67 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Home Route
-      GoRoute(
-        path: AppConstants.homeRoute,
-        name: 'home',
-        builder: (context, state) => const HomeScreen(),
-      ),
-
-      // Profile Route
-      GoRoute(
-        path: '/profile',
-        name: 'profile',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const ProfileScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
+      // Home Route - Uses shell route for desktop, direct for mobile
+      ShellRoute(
+        builder: (context, state, child) {
+          // Use desktop layout only on web and wider screens
+          if (kIsWeb) {
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= 900) {
+                  return DesktopLayout(child: child);
+                }
+                return child; // Mobile gets direct route
+              },
             );
-          },
-        ),
+          }
+          return child; // Native apps get direct route
+        },
+        routes: [
+          GoRoute(
+            path: AppConstants.homeRoute,
+            name: 'home',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const HomeScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/discover',
+            name: 'discover',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const DiscoverScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/upload',
+            name: 'upload',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const UploadScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/connect',
+            name: 'connect',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const ConnectScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/profile',
+            name: 'profile',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const ProfileScreen(),
+            ),
+          ),
+        ],
       ),
 
-      // Notifications Route
+      // Notifications Route (standalone, not in shell)
       GoRoute(
         path: '/notifications',
         name: 'notifications',
@@ -103,44 +140,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             return SlideTransition(
               position: Tween<Offset>(
                 begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            );
-          },
-        ),
-      ),
-
-      // Discover Route
-      GoRoute(
-        path: '/discover',
-        name: 'discover',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const DiscoverScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            );
-          },
-        ),
-      ),
-
-      // Connect Route
-      GoRoute(
-        path: '/connect',
-        name: 'connect',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const ConnectScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
                 end: Offset.zero,
               ).animate(animation),
               child: child,

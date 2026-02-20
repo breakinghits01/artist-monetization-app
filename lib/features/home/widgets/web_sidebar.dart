@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 /// Sidebar navigation for desktop/tablet layouts
-class WebSidebar extends StatelessWidget {
-  final int selectedIndex;
-  final Function(int) onNavigate;
-
-  const WebSidebar({
-    super.key,
-    required this.selectedIndex,
-    required this.onNavigate,
-  });
+class WebSidebar extends ConsumerWidget {
+  const WebSidebar({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final currentLocation = GoRouterState.of(context).uri.path;
 
     return Container(
       width: 280,
@@ -83,32 +78,32 @@ class WebSidebar extends StatelessWidget {
                 _NavItem(
                   icon: Icons.home_rounded,
                   label: 'Home',
-                  isActive: selectedIndex == 0,
-                  onTap: () => onNavigate(0),
+                  isActive: currentLocation == '/home',
+                  onTap: () => context.go('/home'),
                 ),
                 _NavItem(
                   icon: Icons.explore_rounded,
                   label: 'Discover',
-                  isActive: selectedIndex == 1,
-                  onTap: () => onNavigate(1),
+                  isActive: currentLocation == '/discover',
+                  onTap: () => context.go('/discover'),
                 ),
                 _NavItem(
                   icon: Icons.upload_rounded,
                   label: 'Upload',
-                  isActive: selectedIndex == 2,
-                  onTap: () => onNavigate(2),
+                  isActive: currentLocation == '/upload',
+                  onTap: () => context.go('/upload'),
                 ),
                 _NavItem(
                   icon: Icons.people_rounded,
                   label: 'Connect',
-                  isActive: selectedIndex == 3,
-                  onTap: () => onNavigate(3),
+                  isActive: currentLocation == '/connect',
+                  onTap: () => context.go('/connect'),
                 ),
                 _NavItem(
                   icon: Icons.person_rounded,
                   label: 'Profile',
-                  isActive: selectedIndex == 4,
-                  onTap: () => onNavigate(4),
+                  isActive: currentLocation == '/profile',
+                  onTap: () => context.go('/profile'),
                 ),
               ],
             ),

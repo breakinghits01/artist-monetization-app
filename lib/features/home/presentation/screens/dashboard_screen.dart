@@ -17,8 +17,6 @@ import '../../widgets/story_circles.dart';
 import '../../widgets/treasure_chest_card.dart';
 import '../../widgets/treasure_chest_banner.dart';
 import '../../widgets/dashboard_masonry_grid.dart';
-import '../../widgets/web_sidebar.dart';
-import '../../widgets/web_top_bar.dart';
 import '../../providers/treasure_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/story_provider.dart';
@@ -52,36 +50,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final currentSong = ref.watch(currentSongProvider);
     final isPlayerExpanded = ref.watch(playerExpandedProvider);
 
-    // Use responsive web layout for desktop/tablet
+    // Desktop uses route navigation via shell, no tabs needed
+    // This screen is only rendered as the /home route content on desktop
     if (Responsive.isDesktop(context)) {
-      return PlayerWrapper(
-        child: Scaffold(
-          body: Row(
-            children: [
-              WebSidebar(
-                selectedIndex: _selectedIndex,
-                onNavigate: _onItemTapped,
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    const WebTopBar(),
-                    Expanded(
-                      child: _screens[_selectedIndex],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          bottomSheet: currentSong != null && !isPlayerExpanded
-              ? const MiniPlayer()
-              : null,
-        ),
-      );
+      // On desktop, just render the dashboard content
+      // Sidebar/TopBar are handled by DesktopLayout shell route
+      return const _DashboardTab();
     }
 
-    // Mobile layout (unchanged)
+    // Mobile layout with tab navigation (unchanged)
     return PlayerWrapper(
       child: Scaffold(
         appBar: AppBar(

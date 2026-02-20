@@ -133,10 +133,62 @@ Major progress on web platform redesign, gamification systems, and token tipping
 - Responsive layout live
 - PM2 services restarted
 
-⚠️ **User Action Required:**
-- Clear browser cache for best experience
-- Hard refresh: `Cmd+Shift+R` (Mac) or `Ctrl+Shift+R` (Windows)
-- Or use Incognito/Private mode
+---
+
+## 🌐 Platform Access
+
+### **Live Production URL:**
+**🔗 https://artistmonetization.xyz**
+
+### **How to Access:**
+
+**Desktop Users (Recommended):**
+- Visit: `https://artistmonetization.xyz`
+- Use modern browsers: Chrome, Safari, Firefox, Edge
+- Optimized for screens 1200px and above
+- Full sidebar navigation and multi-column layout
+
+**Mobile Users:**
+- Visit: `https://artistmonetization.xyz`
+- Works on iOS Safari, Chrome, Android browsers
+- Native-like bottom navigation
+- Optimized touch interface
+
+**Tablet Users:**
+- Visit: `https://artistmonetization.xyz`
+- Responsive design adapts to screen size
+- 3-column grid layout on tablets
+
+### **First-Time Setup:**
+1. Visit the URL
+2. Register a new account (Artist or Fan)
+3. Login with your credentials
+4. Start exploring features
+
+### **For Best Experience:**
+⚠️ Clear browser cache on first visit:
+- Chrome/Edge: `Cmd+Shift+Delete` (Mac) or `Ctrl+Shift+Delete` (Windows)
+- Safari: `Cmd+Option+E` (Mac)
+- Or use Hard Refresh: `Cmd+Shift+R` (Mac) or `Ctrl+Shift+R` (Windows)
+- Or open in Incognito/Private mode
+
+### **API Endpoint (For Developers):**
+- API Base URL: `https://artistmonetization.xyz/api/v1`
+- Authentication: JWT Bearer Token
+- Documentation: Contact admin for API docs
+
+---
+
+## 📱 Mobile App (Coming Soon)
+
+**Android APK:**
+- Build available locally
+- Not yet published to Play Store
+- Contact admin for test APK
+
+**iOS App:**
+- Development in progress
+- TestFlight beta coming soon
 
 ---
 

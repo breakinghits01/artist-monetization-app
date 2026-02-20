@@ -34,20 +34,35 @@
   <link rel="manifest" href="manifest.json">
   
   <script>
-    // Configure Flutter web renderer and suppress Noto font warnings
+    // Configure Flutter web renderer and suppress warnings
     window.flutterConfiguration = {
       canvasKitBaseUrl: "https://www.gstatic.com/flutter-canvaskit/a9c9c50610c2bb9b7c2f0928c01a6b84e1961c0e/",
       canvasKitForceCpuOnly: false
     };
     
-    // Suppress Noto font console warnings
+    // Suppress known console warnings
     const originalConsoleWarn = console.warn;
     console.warn = function(...args) {
       const message = args.join(' ');
+      // Suppress Noto font warnings
       if (message.includes('Noto') || message.includes('missing characters')) {
-        return; // Suppress Noto font warnings
+        return;
+      }
+      // Suppress v8BreakIterator deprecation warning (Flutter framework issue)
+      if (message.includes('v8BreakIterator') || message.includes('Intl.Segmenter')) {
+        return;
       }
       originalConsoleWarn.apply(console, args);
+    };
+    
+    // Suppress CSP eval warnings (expected in Flutter web)
+    const originalConsoleError = console.error;
+    console.error = function(...args) {
+      const message = args.join(' ');
+      if (message.includes('Content Security Policy') && message.includes('eval')) {
+        return;
+      }
+      originalConsoleError.apply(console, args);
     };
   </script>
 </head>
