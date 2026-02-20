@@ -31,7 +31,156 @@ class UploadScreen extends ConsumerWidget {
 
   Widget _buildIdleView(BuildContext context, WidgetRef ref, ThemeData theme) {
     final isDesktop = Responsive.isDesktop(context);
+    final isMobile = !isDesktop;
     
+    if (isMobile) {
+      // Clean mobile layout - minimal scrolling
+      return Column(
+        children: [
+          // Compact header
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.primary.withValues(alpha: 0.08),
+                  theme.colorScheme.secondary.withValues(alpha: 0.08),
+                ],
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            theme.colorScheme.primary,
+                            theme.colorScheme.secondary,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.cloud_upload_rounded,
+                        size: 32,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Upload Your Music',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Share your creativity worldwide',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // Compact stats
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildCompactStat(theme, Icons.music_note_rounded, '10 songs'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildCompactStat(theme, Icons.storage_rounded, '1GB total'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildCompactStat(theme, Icons.file_present_rounded, '100MB'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          // File picker section
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  FilePickerWidget(
+                    onFilePicked: (result) {
+                      ref.read(uploadProvider.notifier).initiateUpload(result);
+                    },
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Compact format chips
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: theme.colorScheme.primary,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Supported Formats',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildMinimalChip(theme, 'MP3'),
+                            _buildMinimalChip(theme, 'M4A'),
+                            _buildMinimalChip(theme, 'WAV'),
+                            _buildMinimalChip(theme, 'FLAC'),
+                            _buildMinimalChip(theme, 'OGG'),
+                            _buildMinimalChip(theme, 'AAC'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    
+    // Desktop layout
     return SingleChildScrollView(
       padding: EdgeInsets.all(isDesktop ? 40 : 24),
       child: Center(
@@ -738,6 +887,59 @@ class UploadScreen extends ConsumerWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Compact mobile stat widget
+  Widget _buildCompactStat(ThemeData theme, IconData icon, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: theme.colorScheme.primary,
+            size: 20,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Minimal chip for format types
+  Widget _buildMinimalChip(ThemeData theme, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.primary,
         ),
       ),
     );
