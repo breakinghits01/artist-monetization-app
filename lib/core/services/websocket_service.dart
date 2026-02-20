@@ -53,7 +53,6 @@ class WebSocketService {
   Future<void> connect() async {
     // WebSocket disabled - Cloudflare Tunnel doesn't support WebSocket upgrades
     // Polling works reliably for notifications (30s interval)
-    print('🔔 Using polling for notifications (WebSocket incompatible with Cloudflare Tunnel)');
     _ref.read(webSocketStateProvider.notifier).state = WebSocketState.disconnected;
     return;
     

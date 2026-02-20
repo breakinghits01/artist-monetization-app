@@ -44,11 +44,9 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
       await Future.delayed(const Duration(milliseconds: 500));
       
       if (_webSocketService!.isConnected) {
-        print('✅ Using WebSocket for real-time notifications');
         _setupWebSocketListeners();
         _useWebSocket = true;
       } else {
-        print('⚠️ WebSocket connection failed, falling back to polling');
         _useWebSocket = false;
         _startAutoRefresh();
       }
@@ -57,7 +55,6 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
       fetchNotifications();
       
     } catch (e) {
-      print('⚠️ WebSocket initialization error, using polling: $e');
       _useWebSocket = false;
       _startAutoRefresh();
       fetchNotifications();
@@ -253,8 +250,6 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
       fetchNotifications(refresh: true);
       _ref.read(unreadCountProvider.notifier).fetchUnreadCount();
     });
-    
-    print('🔄 Auto-refresh started (interval: ${pollingInterval.inSeconds}s, WebSocket: $_useWebSocket)');
   }
   
   /// Pause auto-refresh (call when app goes to background)
@@ -262,7 +257,6 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
     _refreshTimer?.cancel();
     _refreshTimer = null;
     _isTimerActive = false;
-    print('⏸️ Notification auto-refresh paused');
   }
   
   /// Resume auto-refresh (call when app comes to foreground)
@@ -271,7 +265,6 @@ class NotificationListNotifier extends StateNotifier<AsyncValue<List<Notificatio
       _startAutoRefresh();
       // Fetch fresh data when resuming
       fetchNotifications(refresh: true);
-      print('▶️ Notification auto-refresh resumed');
     }
   }
 
