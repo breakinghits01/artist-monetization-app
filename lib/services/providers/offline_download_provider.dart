@@ -157,6 +157,17 @@ class OfflineDownloadStateNotifier extends StateNotifier<OfflineDownloadState> {
     return await _downloadManager.getLocalFilePath(songId);
   }
 
+  /// Get decrypted file path for playback
+  Future<String?> getDecryptedFilePath(String songId) async {
+    if (!isDownloaded(songId)) return null;
+    return await _downloadManager.getDecryptedFilePath(songId);
+  }
+
+  /// Clear playback cache (temporary decrypted files)
+  Future<void> clearPlaybackCache() async {
+    await _downloadManager.clearPlaybackCache();
+  }
+
   /// Get all downloaded songs
   Future<List<SongModel>> getDownloadedSongs() async {
     return await _downloadManager.getDownloadedSongs();

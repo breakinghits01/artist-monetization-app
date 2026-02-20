@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../features/player/models/song_model.dart';
+import 'file_encryption_service.dart';
 
 /// Offline download status for a song
 enum OfflineDownloadStatus {
@@ -30,20 +31,24 @@ class OfflineDownloadProgress {
 }
 
 /// Manages offline downloads for songs (Spotify-like)
-/// - Stores files in app-private encrypted storage
-/// - Only this app can access downloaded songs
+/// - Stores files in app-private encrypted storage (AES-256)
+/// - Only this app can decrypt and access downloaded songs
 /// - Tracks download states per song
+/// - Automatically deleted on app uninstall
 class OfflineDownloadManager {
   final Dio _dio;
   final FlutterSecureStorage _secureStorage;
+  final FileEncryptionService _encryptionService;
   final Map<String, CancelToken> _cancelTokens = {};
   final Map<String, OfflineDownloadProgress> _downloadProgress = {};
 
   OfflineDownloadManager({
     required Dio dio,
     FlutterSecureStorage? secureStorage,
+    FileEncryptionService? encryptionService,
   })  : _dio = dio,
-        _secureStorage = secureStorage ?? const FlutterSecureStorage();
+        _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+        _encryptionService = encryptionService ?? FileEncryptionService();
 
   /// Get app-private directory for offline songs
   Future<Directory> _getOfflineDirectory() async {
@@ -114,10 +119,11 @@ class OfflineDownloadManager {
     }
   }
 
-  /// Get local file path for a song
+  /// Get local file path for a song (encrypted file)
   Future<String> _getLocalFilePath(String songId, String format) async {
     final dir = await _getOfflineDirectory();
-    return '${dir.path}/$songId.$format';
+    // Use .encrypted extension to indicate encrypted file
+    return '${dir.path}/$songId.$format.encrypted';
   }
 
   /// Check if song is downloaded
@@ -193,22 +199,23 @@ class OfflineDownloadManager {
       debugPrint('✅ Download URL received: $downloadUrl');
 
       // Get local file path
-      final filePath = await _getLocalFilePath(songId, 'mp3');
-      debugPrint('📁 Saving to: $filePath');
+      final encryptedFilePath = await _getLocalFilePath(songId, 'mp3');
+      final tempFilePath = '$encryptedFilePath.temp'; // Temporary unencrypted file
+      debugPrint('📁 Saving to: $encryptedFilePath');
 
       // Create cancel token
       final cancelToken = CancelToken();
       _cancelTokens[songId] = cancelToken;
 
-      // Download file to app-private storage
-      debugPrint('⬇️ Starting download...');
+      // Download file to temporary location first
+      debugPrint('⬇️ Starting download to temp file...');
       await _dio.download(
         downloadUrl,
-        filePath,
+        tempFilePath,
         cancelToken: cancelToken,
         onReceiveProgress: (received, total) {
           final progress = total > 0 ? received / total : 0.0;
-          _updateProgress(songId, progress, OfflineDownloadStatus.downloading);
+          _updateProgress(songId, progress * 0.8, OfflineDownloadStatus.downloading); // 80% for download
           if (received % 100000 == 0 || progress == 1.0) {
             debugPrint('📊 Download progress: ${(progress * 100).toStringAsFixed(1)}%');
           }
@@ -216,6 +223,30 @@ class OfflineDownloadManager {
       );
 
       debugPrint('✅ Download completed successfully');
+      debugPrint('🔒 Encrypting file...');
+      
+      // Update progress for encryption phase
+      _updateProgress(songId, 0.85, OfflineDownloadStatus.downloading);
+      
+      // Encrypt the downloaded file
+      final tempFile = File(tempFilePath);
+      final encryptedFile = File(encryptedFilePath);
+      
+      final encrypted = await _encryptionService.encryptFile(tempFile, encryptedFile);
+      
+      if (!encrypted) {
+        throw Exception('Failed to encrypt file');
+      }
+      
+      debugPrint('✅ File encrypted successfully');
+      
+      // Delete temporary unencrypted file
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+        debugPrint('🗑️ Temporary file deleted');
+      }
+      
+      _updateProgress(songId, 0.95, OfflineDownloadStatus.downloading);
 
       // Save metadata
       await _saveMetadata(songId, song);
@@ -291,6 +322,75 @@ class OfflineDownloadManager {
   Future<String?> getLocalFilePath(String songId) async {
     if (!await isDownloaded(songId)) return null;
     return await _getLocalFilePath(songId, 'mp3');
+  }
+
+  /// Get decrypted file for playback
+  /// This creates a temporary decrypted file for the audio player
+  Future<String?> getDecryptedFilePath(String songId) async {
+    try {
+      if (!await isDownloaded(songId)) {
+        debugPrint('⚠️ Song not downloaded: $songId');
+        return null;
+      }
+
+      final encryptedPath = await _getLocalFilePath(songId, 'mp3');
+      final encryptedFile = File(encryptedPath);
+
+      if (!await encryptedFile.exists()) {
+        debugPrint('⚠️ Encrypted file not found: $encryptedPath');
+        return null;
+      }
+
+      // Create temp directory for decrypted playback files
+      final tempDir = await _getTempPlaybackDirectory();
+      final decryptedPath = '${tempDir.path}/$songId.mp3';
+      final decryptedFile = File(decryptedPath);
+
+      // Check if already decrypted
+      if (await decryptedFile.exists()) {
+        debugPrint('✅ Using cached decrypted file: $decryptedPath');
+        return decryptedPath;
+      }
+
+      debugPrint('🔓 Decrypting file for playback...');
+      final decrypted = await _encryptionService.decryptFile(encryptedFile, decryptedFile);
+
+      if (!decrypted) {
+        debugPrint('❌ Failed to decrypt file');
+        return null;
+      }
+
+      debugPrint('✅ File decrypted for playback: $decryptedPath');
+      return decryptedPath;
+    } catch (e) {
+      debugPrint('❌ Error getting decrypted file: $e');
+      return null;
+    }
+  }
+
+  /// Get temporary playback directory
+  Future<Directory> _getTempPlaybackDirectory() async {
+    final tempDir = await getTemporaryDirectory();
+    final playbackDir = Directory('${tempDir.path}/playback_cache');
+    
+    if (!await playbackDir.exists()) {
+      await playbackDir.create(recursive: true);
+    }
+    
+    return playbackDir;
+  }
+
+  /// Clear temporary playback cache
+  Future<void> clearPlaybackCache() async {
+    try {
+      final playbackDir = await _getTempPlaybackDirectory();
+      if (await playbackDir.exists()) {
+        await playbackDir.delete(recursive: true);
+        debugPrint('🗑️ Playback cache cleared');
+      }
+    } catch (e) {
+      debugPrint('❌ Error clearing playback cache: $e');
+    }
   }
 
   /// Get all downloaded songs

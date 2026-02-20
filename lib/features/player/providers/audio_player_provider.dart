@@ -227,10 +227,11 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       
       try {
         final offlineDownloadNotifier = _ref.read(offlineDownloadStateProvider.notifier);
-        localFilePath = await offlineDownloadNotifier.getLocalFilePath(song.id);
+        // Get the decrypted file path for playback
+        localFilePath = await offlineDownloadNotifier.getDecryptedFilePath(song.id);
         
         if (localFilePath != null && await File(localFilePath).exists()) {
-          print('📦 Playing from offline download: $localFilePath');
+          print('📦 Playing from decrypted offline file: $localFilePath');
           isPlayingFromDownload = true;
           _ref.read(playingFromDownloadProvider.notifier).state = true;
         } else {

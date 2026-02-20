@@ -49,6 +49,8 @@ dependencies:
   # Secure Storage
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.2.3
+  encrypt: ^5.0.3
+  pointycastle: ^3.9.1
   
   # UI Components
   google_fonts: ^6.2.1
