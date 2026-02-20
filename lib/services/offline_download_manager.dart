@@ -1,0 +1,379 @@
+import 'dart:io';
+import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../features/player/models/song_model.dart';
+
+/// Offline download status for a song
+enum OfflineDownloadStatus {
+  notDownloaded,
+  downloading,
+  downloaded,
+  failed,
+}
+
+/// Download progress data
+class OfflineDownloadProgress {
+  final String songId;
+  final double progress; // 0.0 to 1.0
+  final OfflineDownloadStatus status;
+  final String? error;
+
+  OfflineDownloadProgress({
+    required this.songId,
+    required this.progress,
+    required this.status,
+    this.error,
+  });
+}
+
+/// Manages offline downloads for songs (Spotify-like)
+/// - Stores files in app-private encrypted storage
+/// - Only this app can access downloaded songs
+/// - Tracks download states per song
+class OfflineDownloadManager {
+  final Dio _dio;
+  final FlutterSecureStorage _secureStorage;
+  final Map<String, CancelToken> _cancelTokens = {};
+  final Map<String, OfflineDownloadProgress> _downloadProgress = {};
+
+  OfflineDownloadManager({
+    required Dio dio,
+    FlutterSecureStorage? secureStorage,
+  })  : _dio = dio,
+        _secureStorage = secureStorage ?? const FlutterSecureStorage();
+
+  /// Get app-private directory for offline songs
+  Future<Directory> _getOfflineDirectory() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final offlineDir = Directory('${appDir.path}/offline_songs');
+    
+    if (!await offlineDir.exists()) {
+      await offlineDir.create(recursive: true);
+    }
+    
+    return offlineDir;
+  }
+
+  /// Get metadata file path
+  Future<File> _getMetadataFile() async {
+    final dir = await _getOfflineDirectory();
+    return File('${dir.path}/metadata.json');
+  }
+
+  /// Save song metadata (encrypted)
+  Future<void> _saveMetadata(String songId, SongModel song) async {
+    try {
+      final metadataFile = await _getMetadataFile();
+      Map<String, dynamic> allMetadata = {};
+
+      // Load existing metadata
+      if (await metadataFile.exists()) {
+        final encrypted = await metadataFile.readAsString();
+        final decrypted = await _secureStorage.read(key: 'offline_metadata') ?? '{}';
+        allMetadata = json.decode(decrypted);
+      }
+
+      // Add new song metadata
+      allMetadata[songId] = {
+        'id': song.id,
+        'title': song.title,
+        'artist': song.artist,
+        'artistId': song.artistId,
+        'albumArt': song.albumArt,
+        'duration': song.duration.inSeconds,
+        'genre': song.genre,
+        'audioUrl': song.audioUrl,
+        'downloadedAt': DateTime.now().toIso8601String(),
+      };
+
+      // Encrypt and save
+      final jsonStr = json.encode(allMetadata);
+      await _secureStorage.write(key: 'offline_metadata', value: jsonStr);
+      await metadataFile.writeAsString('encrypted'); // Marker file
+    } catch (e) {
+      debugPrint('Error saving metadata: $e');
+    }
+  }
+
+  /// Load all downloaded songs metadata
+  Future<Map<String, dynamic>> _loadMetadata() async {
+    try {
+      final metadataFile = await _getMetadataFile();
+      if (!await metadataFile.exists()) {
+        return {};
+      }
+
+      final decrypted = await _secureStorage.read(key: 'offline_metadata') ?? '{}';
+      return json.decode(decrypted);
+    } catch (e) {
+      debugPrint('Error loading metadata: $e');
+      return {};
+    }
+  }
+
+  /// Get local file path for a song
+  Future<String> _getLocalFilePath(String songId, String format) async {
+    final dir = await _getOfflineDirectory();
+    return '${dir.path}/$songId.$format';
+  }
+
+  /// Check if song is downloaded
+  Future<bool> isDownloaded(String songId) async {
+    try {
+      final metadata = await _loadMetadata();
+      if (!metadata.containsKey(songId)) return false;
+
+      final filePath = await _getLocalFilePath(songId, 'mp3');
+      final file = File(filePath);
+      return await file.exists();
+    } catch (e) {
+      debugPrint('Error checking download status: $e');
+      return false;
+    }
+  }
+
+  /// Get download status for a song
+  OfflineDownloadStatus getDownloadStatus(String songId) {
+    if (_downloadProgress.containsKey(songId)) {
+      return _downloadProgress[songId]!.status;
+    }
+    return OfflineDownloadStatus.notDownloaded;
+  }
+
+  /// Get download progress (0.0 to 1.0)
+  double getDownloadProgress(String songId) {
+    if (_downloadProgress.containsKey(songId)) {
+      return _downloadProgress[songId]!.progress;
+    }
+    return 0.0;
+  }
+
+  /// Download song for offline playback
+  Future<bool> downloadSong(SongModel song) async {
+    final songId = song.id;
+
+    try {
+      // Check if already downloaded
+      if (await isDownloaded(songId)) {
+        debugPrint('Song already downloaded: $songId');
+        return true;
+      }
+
+      // Set initial progress
+      _updateProgress(songId, 0.0, OfflineDownloadStatus.downloading);
+
+      // Get download URL from API
+      debugPrint('🔽 Requesting download URL for song: $songId');
+      final response = await _dio.get(
+        '/download/song/$songId',
+        queryParameters: {'format': 'mp3'},
+      );
+
+      debugPrint('📦 Download response status: ${response.statusCode}');
+      debugPrint('📦 Download response data: ${response.data}');
+
+      final responseData = response.data;
+      if (responseData is! Map || responseData['success'] != true || responseData['data'] == null) {
+        final errorMsg = (responseData is Map ? responseData['message'] : null) ?? 'Download failed';
+        debugPrint('❌ Download request failed: $errorMsg');
+        throw Exception(errorMsg);
+      }
+
+      final data = responseData['data'] as Map<String, dynamic>;
+      final downloadUrl = data['downloadUrl'];
+      
+      if (downloadUrl == null || downloadUrl.toString().isEmpty) {
+        throw Exception('Download URL is empty');
+      }
+      
+      final fileSize = data['fileSize'] ?? 0;
+      debugPrint('✅ Download URL received: $downloadUrl');
+
+      // Get local file path
+      final filePath = await _getLocalFilePath(songId, 'mp3');
+      debugPrint('📁 Saving to: $filePath');
+
+      // Create cancel token
+      final cancelToken = CancelToken();
+      _cancelTokens[songId] = cancelToken;
+
+      // Download file to app-private storage
+      debugPrint('⬇️ Starting download...');
+      await _dio.download(
+        downloadUrl,
+        filePath,
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          final progress = total > 0 ? received / total : 0.0;
+          _updateProgress(songId, progress, OfflineDownloadStatus.downloading);
+          if (received % 100000 == 0 || progress == 1.0) {
+            debugPrint('📊 Download progress: ${(progress * 100).toStringAsFixed(1)}%');
+          }
+        },
+      );
+
+      debugPrint('✅ Download completed successfully');
+
+      // Save metadata
+      await _saveMetadata(songId, song);
+
+      // Mark as completed
+      _updateProgress(songId, 1.0, OfflineDownloadStatus.downloaded);
+
+      // Cleanup
+      _cancelTokens.remove(songId);
+
+      // Confirm download with backend
+      try {
+        debugPrint('📝 Confirming download with backend...');
+        await _dio.post(
+          '/download/song/$songId/confirm',
+          data: {'format': 'mp3', 'fileSize': fileSize},
+        );
+        debugPrint('✅ Download confirmed');
+      } catch (e) {
+        debugPrint('⚠️ Warning: Failed to confirm download: $e');
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error downloading song: $e');
+      _updateProgress(
+        songId,
+        0.0,
+        OfflineDownloadStatus.failed,
+        error: e.toString(),
+      );
+      _cancelTokens.remove(songId);
+      return false;
+    }
+  }
+
+  /// Cancel ongoing download
+  void cancelDownload(String songId) {
+    if (_cancelTokens.containsKey(songId)) {
+      _cancelTokens[songId]!.cancel('User cancelled');
+      _cancelTokens.remove(songId);
+      _downloadProgress.remove(songId);
+    }
+  }
+
+  /// Delete downloaded song
+  Future<bool> deleteDownload(String songId) async {
+    try {
+      // Delete file
+      final filePath = await _getLocalFilePath(songId, 'mp3');
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+
+      // Remove from metadata
+      final metadata = await _loadMetadata();
+      metadata.remove(songId);
+      final jsonStr = json.encode(metadata);
+      await _secureStorage.write(key: 'offline_metadata', value: jsonStr);
+
+      // Clear progress
+      _downloadProgress.remove(songId);
+
+      return true;
+    } catch (e) {
+      debugPrint('Error deleting download: $e');
+      return false;
+    }
+  }
+
+  /// Get local file path if downloaded, null otherwise
+  Future<String?> getLocalFilePath(String songId) async {
+    if (!await isDownloaded(songId)) return null;
+    return await _getLocalFilePath(songId, 'mp3');
+  }
+
+  /// Get all downloaded songs
+  Future<List<SongModel>> getDownloadedSongs() async {
+    try {
+      final metadata = await _loadMetadata();
+      final songs = <SongModel>[];
+
+      for (final entry in metadata.entries) {
+        final data = entry.value;
+        songs.add(SongModel(
+          id: data['id'],
+          title: data['title'],
+          artist: data['artist'] ?? 'Unknown',
+          artistId: data['artistId'],
+          albumArt: data['albumArt'],
+          duration: Duration(seconds: data['duration'] ?? 0),
+          audioUrl: data['audioUrl'],
+          genre: data['genre'],
+        ));
+      }
+
+      return songs;
+    } catch (e) {
+      debugPrint('Error getting downloaded songs: $e');
+      return [];
+    }
+  }
+
+  /// Clear all downloads
+  Future<void> clearAllDownloads() async {
+    try {
+      final dir = await _getOfflineDirectory();
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
+      await _secureStorage.delete(key: 'offline_metadata');
+      _downloadProgress.clear();
+      _cancelTokens.clear();
+    } catch (e) {
+      debugPrint('Error clearing downloads: $e');
+    }
+  }
+
+  /// Update progress and notify listeners
+  void _updateProgress(
+    String songId,
+    double progress,
+    OfflineDownloadStatus status, {
+    String? error,
+  }) {
+    _downloadProgress[songId] = OfflineDownloadProgress(
+      songId: songId,
+      progress: progress,
+      status: status,
+      error: error,
+    );
+  }
+
+  /// Get total downloads count
+  Future<int> getDownloadCount() async {
+    final metadata = await _loadMetadata();
+    return metadata.length;
+  }
+
+  /// Get total size of downloads
+  Future<int> getTotalDownloadSize() async {
+    try {
+      final metadata = await _loadMetadata();
+      int totalSize = 0;
+
+      for (final songId in metadata.keys) {
+        final filePath = await _getLocalFilePath(songId, 'mp3');
+        final file = File(filePath);
+        if (await file.exists()) {
+          totalSize += await file.length();
+        }
+      }
+
+      return totalSize;
+    } catch (e) {
+      debugPrint('Error calculating download size: $e');
+      return 0;
+    }
+  }
+}

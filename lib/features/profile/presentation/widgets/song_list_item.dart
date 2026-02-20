@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../player/models/song_model.dart';
 import 'playing_indicator_overlay.dart';
-import '../../../../widgets/download_button.dart';
-import '../../../../services/providers/download_provider.dart';
+import '../../../../services/providers/offline_download_provider.dart';
+import '../../../../services/offline_download_manager.dart';
 
 /// Song list item widget for displaying song information
 class SongListItem extends ConsumerWidget {
@@ -34,11 +34,6 @@ class SongListItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
-    // Check if song is downloaded
-    final downloadStatus = ref.watch(
-      songDownloadedProvider((songId: song.id, songTitle: song.title)),
-    );
     
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -139,94 +134,115 @@ class SongListItem extends ConsumerWidget {
         ),
         subtitle: Row(
           children: [
-            if (downloadStatus.value != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.download_done, size: 10, color: Colors.green),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Downloaded',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
+            Expanded(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (song.genre != null) ...[
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              song.genre!,
+                              style: theme.textTheme.labelSmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.headphones,
+                                size: 12,
+                                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${song.playCount}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  fontSize: 11,
+                                ),
+                              ),
+                              // Downloaded indicator
+                              Consumer(
+                                builder: (context, ref, child) {
+                                  final status = ref.watch(songDownloadStatusProvider(song.id));
+                                  if (status == OfflineDownloadStatus.downloaded) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(left: 6),
+                                      child: Icon(
+                                        Icons.check_circle,
+                                        size: 14,
+                                        color: Colors.green,
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(width: 8),
                   ],
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            if (song.genre != null) ...[
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      song.genre!,
-                      style: theme.textTheme.labelSmall,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.headphones,
-                        size: 12,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${song.playCount}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 11,
+                  if (song.genre == null) ...[
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.headphones,
+                          size: 12,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(width: 8),
-            ],
-            if (song.genre == null) ...[
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.headphones,
-                    size: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
-                  ),
-                  const SizedBox(width: 4),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${song.playCount}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            fontSize: 11,
+                          ),
+                        ),
+                        // Downloaded indicator
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final status = ref.watch(songDownloadStatusProvider(song.id));
+                            if (status == OfflineDownloadStatus.downloaded) {
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: Icon(
+                                  Icons.check_circle,
+                                  size: 14,
+                                  color: Colors.green,
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Text(
-                    '${song.playCount}',
+                    _formatDuration(song.duration),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      fontSize: 11,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              _formatDuration(song.duration),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -254,11 +270,6 @@ class SongListItem extends ConsumerWidget {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            DownloadButton(
-              songId: song.id,
-              songTitle: song.title,
             ),
             const SizedBox(width: 8),
             IconButton(

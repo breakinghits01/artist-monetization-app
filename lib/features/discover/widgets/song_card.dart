@@ -1,21 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/song_model.dart';
-import '../../../widgets/download_button.dart';
-import '../../../services/providers/download_provider.dart';
+import '../models/song_model.dart' as discover;
 
 class SongCard extends ConsumerWidget {
-  final SongModel song;
+  final discover.SongModel song;
 
   const SongCard({super.key, required this.song});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Check if song is downloaded
-    final downloadStatus = ref.watch(
-      songDownloadedProvider((songId: song.id, songTitle: song.title)),
-    );
-
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1F3A),
@@ -104,53 +97,6 @@ class SongCard extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  // Downloaded badge
-                  if (downloadStatus.value != null)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.download_done, size: 12, color: Colors.white),
-                            SizedBox(width: 4),
-                            Text(
-                              'Downloaded',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  // Download button
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: DownloadButton(
-                        songId: song.id,
-                        songTitle: song.title,
-                        iconColor: Colors.white,
-                      ),
-                    ),
-                  ),
                   // Play button overlay
                   Positioned.fill(
                     child: Center(

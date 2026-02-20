@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io' show Platform;
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
@@ -13,7 +13,7 @@ import '../services/audio_service_handler.dart';
 import '../../discover/services/song_api_service.dart';
 import '../../profile/providers/user_songs_provider.dart';
 import '../../discover/providers/song_provider.dart';
-import '../../../services/providers/download_provider.dart';
+import '../../../services/providers/offline_download_provider.dart';
 
 /// Current song provider
 final currentSongProvider = StateProvider<SongModel?>((ref) => null);
@@ -221,24 +221,24 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Stop current playback first
       await _audioPlayer.stop();
 
-      // Check for downloaded file first (offline playback)
+      // Check for offline downloaded file first
       String? localFilePath;
       bool isPlayingFromDownload = false;
       
       try {
-        final downloadService = _ref.read(downloadServiceProvider);
-        localFilePath = await downloadService.getLocalFilePath(song.id, song.title);
+        final offlineDownloadNotifier = _ref.read(offlineDownloadStateProvider.notifier);
+        localFilePath = await offlineDownloadNotifier.getLocalFilePath(song.id);
         
-        if (localFilePath != null) {
-          print('📦 Found downloaded file: $localFilePath');
+        if (localFilePath != null && await File(localFilePath).exists()) {
+          print('📦 Playing from offline download: $localFilePath');
           isPlayingFromDownload = true;
           _ref.read(playingFromDownloadProvider.notifier).state = true;
         } else {
-          print('🌐 No local file found, will stream from network');
+          print('🌐 Streaming from network');
           _ref.read(playingFromDownloadProvider.notifier).state = false;
         }
       } catch (e) {
-        print('⚠️ Error checking for downloaded file: $e');
+        print('⚠️ Error checking offline download: $e');
         _ref.read(playingFromDownloadProvider.notifier).state = false;
       }
 
@@ -253,7 +253,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           // Continue playback even if session start fails
         }
       } else {
-        print('📦 Playing from download - skipping play session tracking');
+        print('📦 Playing from offline storage - skipping play session tracking');
       }
       
       print('🔗 Loading audio source...');

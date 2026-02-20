@@ -183,8 +183,8 @@ Major progress on web platform redesign, gamification systems, and token tipping
 
 **Android APK:**
 - Build available locally
-- Not yet published to Play Store
-- Contact admin for test APK
+- https://drive.google.com/drive/folders/1o7aBL3wnuSaXHtyJUz0dlS7G5whIzlYa?usp=sharing)
+- 
 
 **iOS App:**
 - Development in progress

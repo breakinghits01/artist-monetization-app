@@ -106,7 +106,7 @@ class DownloadService {
   /// Get available download formats for a song
   Future<List<DownloadFormat>> getAvailableFormats(String songId) async {
     try {
-      final response = await _dio.get('/api/v1/download/song/$songId/formats');
+      final response = await _dio.get('/download/song/$songId/formats');
       
       if (response.data['success'] == true && response.data['data'] != null) {
         final formats = (response.data['data']['formats'] as List)
@@ -131,7 +131,7 @@ class DownloadService {
     try {
       // Get download URL from API
       final response = await _dio.get(
-        '/api/v1/download/song/$songId',
+        '/download/song/$songId',
         queryParameters: {'format': format},
       );
 
@@ -200,6 +200,17 @@ class DownloadService {
       // Clean up cancel token
       _cancelTokens.remove(songId);
 
+      // Confirm download with backend (track in history)
+      try {
+        await _dio.post(
+          '/download/song/$songId/confirm',
+          data: {'format': format, 'fileSize': fileSize},
+        );
+      } catch (e) {
+        debugPrint('Warning: Failed to confirm download tracking: $e');
+        // Don't fail the download if tracking fails
+      }
+
       return filePath;
     } catch (e) {
       debugPrint('Error downloading song: $e');
@@ -246,7 +257,7 @@ class DownloadService {
   Future<List<DownloadHistory>> getDownloadHistory({int limit = 50}) async {
     try {
       final response = await _dio.get(
-        '/api/v1/download/history',
+        '/download/history',
         queryParameters: {'limit': limit},
       );
 
