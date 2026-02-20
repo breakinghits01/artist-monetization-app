@@ -13,12 +13,16 @@ import '../services/audio_service_handler.dart';
 import '../../discover/services/song_api_service.dart';
 import '../../profile/providers/user_songs_provider.dart';
 import '../../discover/providers/song_provider.dart';
+import '../../../services/providers/download_provider.dart';
 
 /// Current song provider
 final currentSongProvider = StateProvider<SongModel?>((ref) => null);
 
 /// Player expanded state
 final playerExpandedProvider = StateProvider<bool>((ref) => false);
+
+/// Playing from download provider (shows if current song is from local file)
+final playingFromDownloadProvider = StateProvider<bool>((ref) => false);
 
 /// Audio player provider - kept alive for app lifetime, manual cleanup available
 final audioPlayerProvider =
@@ -217,30 +221,64 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Stop current playback first
       await _audioPlayer.stop();
 
-      // Start play session for backend tracking
+      // Check for downloaded file first (offline playback)
+      String? localFilePath;
+      bool isPlayingFromDownload = false;
+      
       try {
-        final apiService = _ref.read(songApiServiceProvider);
-        await apiService.startPlaySession(song.id);
-        print('✅ Play session started for: ${song.id}');
+        final downloadService = _ref.read(downloadServiceProvider);
+        localFilePath = await downloadService.getLocalFilePath(song.id, song.title);
+        
+        if (localFilePath != null) {
+          print('📦 Found downloaded file: $localFilePath');
+          isPlayingFromDownload = true;
+          _ref.read(playingFromDownloadProvider.notifier).state = true;
+        } else {
+          print('🌐 No local file found, will stream from network');
+          _ref.read(playingFromDownloadProvider.notifier).state = false;
+        }
       } catch (e) {
-        print('⚠️ Failed to start play session (non-critical): $e');
-        // Continue playback even if session start fails
+        print('⚠️ Error checking for downloaded file: $e');
+        _ref.read(playingFromDownloadProvider.notifier).state = false;
+      }
+
+      // Start play session for backend tracking (only for streaming)
+      if (!isPlayingFromDownload) {
+        try {
+          final apiService = _ref.read(songApiServiceProvider);
+          await apiService.startPlaySession(song.id);
+          print('✅ Play session started for: ${song.id}');
+        } catch (e) {
+          print('⚠️ Failed to start play session (non-critical): $e');
+          // Continue playback even if session start fails
+        }
+      } else {
+        print('📦 Playing from download - skipping play session tracking');
       }
       
-      print('🔗 Loading audio URL...');
+      print('🔗 Loading audio source...');
       
-      // Convert relative URLs to absolute URLs
-      String audioUrl = song.audioUrl;
-      if (!audioUrl.startsWith('http')) {
-        // Relative URL - prepend base URL
-        audioUrl = '${ApiConfig.baseUrl}$audioUrl';
-        print('🔗 Converted to absolute URL: $audioUrl');
+      // Determine audio URL (local file or network stream)
+      String audioUrl;
+      if (isPlayingFromDownload && localFilePath != null) {
+        audioUrl = localFilePath;
+        print('📦 Using local file: $audioUrl');
       } else {
-        print('🔗 Using provided absolute URL: $audioUrl');
+        // Convert relative URLs to absolute URLs for network streaming
+        audioUrl = song.audioUrl;
+        if (!audioUrl.startsWith('http')) {
+          // Relative URL - prepend base URL
+          audioUrl = '${ApiConfig.baseUrl}$audioUrl';
+          print('🔗 Converted to absolute URL: $audioUrl');
+        } else {
+          print('🔗 Using provided absolute URL: $audioUrl');
+        }
       }
       
       print('🔗 Final URL: $audioUrl');
-      print('🔗 Base URL from config: ${ApiConfig.baseUrl}');
+      if (!isPlayingFromDownload) {
+        print('🔗 Base URL from config: ${ApiConfig.baseUrl}');
+      }
       
       // Prepare album art URL - filter out placeholder URLs and data URIs
       String? albumArtUrl;
@@ -274,20 +312,32 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       
       // Load audio and start playback with iOS lockscreen metadata
       try {
-        print('🎧 Setting audio URL: $audioUrl');
+        print('🎧 Setting audio source: $audioUrl');
         
         // CRITICAL for iOS: Use AudioSource with MediaItem tag (not setUrl)
-        final audioSource = AudioSource.uri(
-          Uri.parse(audioUrl),
-          tag: MediaItem(
-            id: song.id,
-            title: song.title, // REQUIRED: Must be non-empty
-            artist: song.artist, // REQUIRED: Must be non-empty  
-            album: 'Breaking Hits',
-            duration: song.duration,
-            artUri: albumArtUrl != null ? Uri.parse(albumArtUrl) : null,
-          ),
-        );
+        final audioSource = isPlayingFromDownload
+            ? AudioSource.file(
+                audioUrl,
+                tag: MediaItem(
+                  id: song.id,
+                  title: song.title, // REQUIRED: Must be non-empty
+                  artist: song.artist, // REQUIRED: Must be non-empty  
+                  album: 'Breaking Hits',
+                  duration: song.duration,
+                  artUri: albumArtUrl != null ? Uri.parse(albumArtUrl) : null,
+                ),
+              )
+            : AudioSource.uri(
+                Uri.parse(audioUrl),
+                tag: MediaItem(
+                  id: song.id,
+                  title: song.title, // REQUIRED: Must be non-empty
+                  artist: song.artist, // REQUIRED: Must be non-empty  
+                  album: 'Breaking Hits',
+                  duration: song.duration,
+                  artUri: albumArtUrl != null ? Uri.parse(albumArtUrl) : null,
+                ),
+              );
         
         // OPTIMIZATION: Set initialPosition to 0 and preload=false for faster start
         // This starts playback immediately without waiting for full buffer
@@ -297,7 +347,11 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           preload: true, // Preload to get duration, but play() won't wait
         );
         
-        print('▶️ Starting playback (optimized)...');
+        if (isPlayingFromDownload) {
+          print('▶️ Starting playback from downloaded file (instant)...');
+        } else {
+          print('▶️ Starting playback from network (optimized)...');
+        }
         // Play immediately - just_audio will handle buffering in background
         await _audioPlayer.play();
         print('✅ Audio player started with fast playback');

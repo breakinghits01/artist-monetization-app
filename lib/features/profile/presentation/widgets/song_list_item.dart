@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../player/models/song_model.dart';
 import 'playing_indicator_overlay.dart';
 import '../../../../widgets/download_button.dart';
+import '../../../../services/providers/download_provider.dart';
 
 /// Song list item widget for displaying song information
-class SongListItem extends StatelessWidget {
+class SongListItem extends ConsumerWidget {
   final SongModel song;
   final bool isCurrentlyPlaying;
   final bool isLiked;
@@ -30,8 +32,13 @@ class SongListItem extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    
+    // Check if song is downloaded
+    final downloadStatus = ref.watch(
+      songDownloadedProvider((songId: song.id, songTitle: song.title)),
+    );
     
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -132,6 +139,30 @@ class SongListItem extends StatelessWidget {
         ),
         subtitle: Row(
           children: [
+            if (downloadStatus.value != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.download_done, size: 10, color: Colors.green),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Downloaded',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
             if (song.genre != null) ...[
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

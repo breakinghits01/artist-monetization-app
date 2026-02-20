@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/song_model.dart';
 import '../../../widgets/download_button.dart';
+import '../../../services/providers/download_provider.dart';
 
-class SongCard extends StatelessWidget {
+class SongCard extends ConsumerWidget {
   final SongModel song;
 
   const SongCard({super.key, required this.song});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Check if song is downloaded
+    final downloadStatus = ref.watch(
+      songDownloadedProvider((songId: song.id, songTitle: song.title)),
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1F3A),
@@ -94,6 +101,37 @@ class SongCard extends StatelessWidget {
                           Icons.lock,
                           size: 14,
                           color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  // Downloaded badge
+                  if (downloadStatus.value != null)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.download_done, size: 12, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text(
+                              'Downloaded',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

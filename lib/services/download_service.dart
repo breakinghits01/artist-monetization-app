@@ -293,6 +293,44 @@ class DownloadService {
     }
   }
 
+  /// Check if a song is downloaded locally
+  Future<String?> getLocalFilePath(String songId, String songTitle) async {
+    try {
+      final directory = await _getDownloadDirectory();
+      final sanitizedTitle = songTitle.replaceAll(RegExp(r'[^\w\s-]'), '');
+      
+      // Check for MP3 first (most common format)
+      final mp3Path = '${directory.path}/$sanitizedTitle.mp3';
+      if (await File(mp3Path).exists()) {
+        return mp3Path;
+      }
+      
+      // Check for other formats
+      final formats = ['wav', 'flac', 'aac', 'm4a'];
+      for (final format in formats) {
+        final path = '${directory.path}/$sanitizedTitle.$format';
+        if (await File(path).exists()) {
+          return path;
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Error checking local file: $e');
+      return null;
+    }
+  }
+
+  /// Check if a song is downloaded (returns format if found)
+  Future<String?> isDownloaded(String songId, String songTitle) async {
+    final filePath = await getLocalFilePath(songId, songTitle);
+    if (filePath == null) return null;
+    
+    // Extract format from file path
+    final extension = filePath.split('.').last;
+    return extension;
+  }
+
   /// Clear completed downloads from progress tracker
   void clearCompleted() {
     _downloadProgress.removeWhere((key, value) => value.status == 'completed');

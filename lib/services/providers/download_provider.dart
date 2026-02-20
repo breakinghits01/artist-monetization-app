@@ -29,3 +29,9 @@ final availableFormatsProvider = FutureProvider.autoDispose.family<List<Download
   final downloadService = ref.watch(downloadServiceProvider);
   return await downloadService.getAvailableFormats(songId);
 });
+
+/// Song downloaded status provider - checks if a song is downloaded
+final songDownloadedProvider = FutureProvider.autoDispose.family<String?, ({String songId, String songTitle})>((ref, params) async {
+  final downloadService = ref.watch(downloadServiceProvider);
+  return await downloadService.isDownloaded(params.songId, params.songTitle);
+});
