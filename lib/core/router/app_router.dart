@@ -16,6 +16,7 @@ import '../../features/connect/screens/connect_screen.dart';
 import '../../features/upload/presentation/upload_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../screens/download_history_screen.dart';
+import '../../screens/download_manager_screen.dart';
 import '../constants/app_constants.dart';
 
 /// Router configuration provider with auth guards
@@ -156,6 +157,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const DownloadHistoryScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            );
+          },
+        ),
+      ),
+
+      // Download Manager Route (Active Downloads)
+      GoRoute(
+        path: '/download-manager',
+        name: 'download-manager',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const DownloadManagerScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return SlideTransition(
               position: Tween<Offset>(

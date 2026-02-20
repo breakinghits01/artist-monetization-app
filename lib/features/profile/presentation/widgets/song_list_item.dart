@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../player/models/song_model.dart';
 import 'playing_indicator_overlay.dart';
+import '../../../../widgets/download_button.dart';
 
 /// Song list item widget for displaying song information
 class SongListItem extends StatelessWidget {
@@ -222,6 +223,11 @@ class SongListItem extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(width: 8),
+            DownloadButton(
+              songId: song.id,
+              songTitle: song.title,
             ),
             const SizedBox(width: 8),
             IconButton(

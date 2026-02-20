@@ -61,20 +61,27 @@ class DownloadHistory {
 
 class DownloadProgress {
   final String songId;
+  final String songTitle;
   final String format;
   final double progress; // 0.0 to 1.0
   final int downloaded;
   final int total;
-  final String status; // downloading, completed, failed, paused
+  final String status; // downloading, completed, failed, paused, cancelled
+  final String? error;
 
   DownloadProgress({
     required this.songId,
+    required this.songTitle,
     required this.format,
     required this.progress,
     required this.downloaded,
     required this.total,
     required this.status,
+    this.error,
   });
+
+  int get downloadedBytes => downloaded;
+  int get fileSize => total;
 
   String get downloadedFormatted {
     final mb = downloaded / (1024 * 1024);
@@ -138,6 +145,7 @@ class DownloadService {
       // Create download progress tracker
       _downloadProgress[songId] = DownloadProgress(
         songId: songId,
+        songTitle: songTitle,
         format: format,
         progress: 0.0,
         downloaded: 0,
@@ -164,6 +172,7 @@ class DownloadService {
           
           _downloadProgress[songId] = DownloadProgress(
             songId: songId,
+            songTitle: songTitle,
             format: format,
             progress: progress,
             downloaded: received,
@@ -180,6 +189,7 @@ class DownloadService {
       // Mark as completed
       _downloadProgress[songId] = DownloadProgress(
         songId: songId,
+        songTitle: songTitle,
         format: format,
         progress: 1.0,
         downloaded: fileSize,
@@ -198,11 +208,13 @@ class DownloadService {
       if (_downloadProgress.containsKey(songId)) {
         _downloadProgress[songId] = DownloadProgress(
           songId: _downloadProgress[songId]!.songId,
+          songTitle: _downloadProgress[songId]!.songTitle,
           format: _downloadProgress[songId]!.format,
           progress: _downloadProgress[songId]!.progress,
           downloaded: _downloadProgress[songId]!.downloaded,
           total: _downloadProgress[songId]!.total,
           status: 'failed',
+          error: e.toString(),
         );
       }
       
@@ -219,14 +231,15 @@ class DownloadService {
       if (_downloadProgress.containsKey(songId)) {
         _downloadProgress[songId] = DownloadProgress(
           songId: _downloadProgress[songId]!.songId,
+          songTitle: _downloadProgress[songId]!.songTitle,
           format: _downloadProgress[songId]!.format,
           progress: _downloadProgress[songId]!.progress,
           downloaded: _downloadProgress[songId]!.downloaded,
           total: _downloadProgress[songId]!.total,
           status: 'cancelled',
         );
-        notifyListeners();
-      
+      }
+    }
   }
 
   /// Get download history

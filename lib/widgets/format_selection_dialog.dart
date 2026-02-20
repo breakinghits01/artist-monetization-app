@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import '../features/discover/models/song_model.dart';
 import '../services/download_service.dart';
 
 class FormatSelectionDialog extends StatelessWidget {
-  final SongModel song;
+  final String songId;
+  final String songTitle;
   final List<DownloadFormat> formats;
 
   const FormatSelectionDialog({
     Key? key,
-    required this.song,
+    required this.songId,
+    required this.songTitle,
     required this.formats,
   }) : super(key: key);
 
@@ -22,7 +23,7 @@ class FormatSelectionDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              song.title,
+              songTitle,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),

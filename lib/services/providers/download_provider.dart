@@ -21,7 +21,7 @@ final downloadProgressProvider = StreamProvider.autoDispose<Map<String, Download
 /// Download history provider
 final downloadHistoryProvider = FutureProvider.autoDispose<List<DownloadHistory>>((ref) async {
   final downloadService = ref.watch(downloadServiceProvider);
-  return await downloadService.getDownloadHistory();
+  return await downloadService.getDownloadHistory(limit: 50);
 });
 
 /// Available formats provider for a specific song

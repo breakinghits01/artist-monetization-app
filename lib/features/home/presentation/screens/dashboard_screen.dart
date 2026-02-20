@@ -21,6 +21,7 @@ import '../../providers/treasure_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/story_provider.dart';
 import '../../providers/wallet_provider.dart';
+import '../../../../services/providers/download_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -88,6 +89,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
         body: _screens[_selectedIndex],
+        floatingActionButton: _buildDownloadManagerFAB(),
         // Bottom area with mini player + navigation bar
         bottomNavigationBar: isPlayerExpanded
             ? null
@@ -154,6 +156,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       default:
         return 'Dynamic Artist';
     }
+  }
+
+  Widget? _buildDownloadManagerFAB() {
+    final activeDownloadsAsync = ref.watch(downloadProgressProvider);
+    
+    return activeDownloadsAsync.when(
+      data: (activeDownloads) {
+        if (activeDownloads.isEmpty) {
+          return null;
+        }
+
+        final activeCount = activeDownloads.length;
+        final downloadingCount = activeDownloads.values
+            .where((p) => p.status == 'downloading')
+            .length;
+
+        return FloatingActionButton.extended(
+          onPressed: () {
+            context.push('/download-manager');
+          },
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          icon: const Icon(Icons.download),
+          label: Text('$downloadingCount/$activeCount'),
+        );
+      },
+      loading: () => null,
+      error: (_, __) => null,
+    );
   }
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {

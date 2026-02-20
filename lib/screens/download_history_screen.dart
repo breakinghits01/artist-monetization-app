@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:open_file/open_file.dart';
 import '../services/download_service.dart';
 import '../services/providers/download_provider.dart';
 
@@ -110,9 +111,9 @@ class _HistoryTile extends StatelessWidget {
       child: ListTile(
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: history.song.coverArt.startsWith('http')
+          child: history.song.coverArt != null && history.song.coverArt!.startsWith('http')
               ? Image.network(
-                  history.song.coverArt,
+                  history.song.coverArt!,
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,
@@ -125,12 +126,19 @@ class _HistoryTile extends StatelessWidget {
                     );
                   },
                 )
-              : Image.memory(
-                  Uri.parse(history.song.coverArt).data!.contentAsBytes(),
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
-                ),
+              : history.song.coverArt != null
+                  ? Image.memory(
+                      Uri.parse(history.song.coverArt!).data!.contentAsBytes(),
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      width: 56,
+                      height: 56,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.music_note),
+                    ),
         ),
         title: Text(
           history.song.title,
@@ -141,7 +149,7 @@ class _HistoryTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              history.song.artistName ?? 'Unknown Artist',
+              history.song.artist?.username ?? 'Unknown Artist',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -184,9 +192,51 @@ class _HistoryTile extends StatelessWidget {
             ),
           ],
         ),
-        trailing: const Icon(Icons.download_done, color: Colors.green),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.folder_open, color: Colors.blue),
+              onPressed: () async {
+                await _openFile(context, history);
+              },
+              tooltip: 'Open file',
+            ),
+            const Icon(Icons.download_done, color: Colors.green),
+          ],
+        ),
         isThreeLine: true,
       ),
     );
+  }
+
+  Future<void> _openFile(BuildContext context, DownloadHistory history) async {
+    try {
+      // Try to construct the file path from download history
+      // The file should be in the download directory with format: {songId}_{title}.{format}
+      final fileName = '${history.song.id}_${history.song.title.replaceAll(RegExp(r'[^\w\s-]'), '')}.${history.format}';
+      
+      // Since we don't store the full path, we need to get the download directory
+      // This would ideally be stored in the download history in the future
+      final result = await OpenFile.open(fileName);
+      
+      if (result.type != ResultType.done && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

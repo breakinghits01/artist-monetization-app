@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/song_model.dart';
+import '../../../widgets/download_button.dart';
 
 class SongCard extends StatelessWidget {
   final SongModel song;
@@ -96,6 +97,22 @@ class SongCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                  // Download button
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: DownloadButton(
+                        songId: song.id,
+                        songTitle: song.title,
+                        iconColor: Colors.white,
+                      ),
+                    ),
+                  ),
                   // Play button overlay
                   Positioned.fill(
                     child: Center(

@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../features/discover/models/song_model.dart';
 import '../services/download_service.dart';
 import '../services/providers/download_provider.dart';
 import 'format_selection_dialog.dart';
 
 class DownloadButton extends ConsumerStatefulWidget {
-  final SongModel song;
+  final String songId;
+  final String songTitle;
   final bool isIconButton;
   final Color? iconColor;
 
   const DownloadButton({
     Key? key,
-    required this.song,
+    required this.songId,
+    required this.songTitle,
     this.isIconButton = true,
     this.iconColor,
   }) : super(key: key);
@@ -31,7 +32,7 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
       final downloadService = ref.read(downloadServiceProvider);
 
       // Get available formats
-      final formats = await downloadService.getAvailableFormats(widget.song.id);
+      final formats = await downloadService.getAvailableFormats(widget.songId);
 
       if (!mounted) return;
 
@@ -44,7 +45,8 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
       final selectedFormat = await showDialog<DownloadFormat>(
         context: context,
         builder: (context) => FormatSelectionDialog(
-          song: widget.song,
+          songId: widget.songId,
+          songTitle: widget.songTitle,
           formats: formats,
         ),
       );
@@ -71,7 +73,8 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
       context: context,
       barrierDismissible: false,
       builder: (context) => _DownloadProgressDialog(
-        song: widget.song,
+        songId: widget.songId,
+        songTitle: widget.songTitle,
         format: format,
         downloadService: downloadService,
       ),
@@ -120,13 +123,15 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
 }
 
 class _DownloadProgressDialog extends StatefulWidget {
-  final SongModel song;
+  final String songId;
+  final String songTitle;
   final DownloadFormat format;
   final DownloadService downloadService;
 
   const _DownloadProgressDialog({
     Key? key,
-    required this.song,
+    required this.songId,
+    required this.songTitle,
     required this.format,
     required this.downloadService,
   }) : super(key: key);
@@ -150,8 +155,8 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
   Future<void> _startDownload() async {
     try {
       final filePath = await widget.downloadService.downloadSong(
-        songId: widget.song.id,
-        songTitle: widget.song.title,
+        songId: widget.songId,
+        songTitle: widget.songTitle,
         format: widget.format.format,
         onProgress: (progress) {
           if (mounted) {
@@ -177,7 +182,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
   }
 
   void _cancelDownload() {
-    widget.downloadService.cancelDownload(widget.song.id);
+    widget.downloadService.cancelDownload(widget.songId);
     Navigator.of(context).pop();
   }
 
@@ -195,7 +200,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
             Text('${(_progress * 100).toStringAsFixed(0)}%'),
             const SizedBox(height: 8),
             Text(
-              widget.song.title,
+              widget.songTitle,
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
