@@ -397,14 +397,36 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Reset token earn state
       _ref.read(tokenEarnProvider.notifier).reset();
 
-      // Start play session for backend tracking
+      // Check if song is downloaded (offline)
+      bool isPlayingFromDownload = false;
       try {
-        final apiService = _ref.read(songApiServiceProvider);
-        await apiService.startPlaySession(song.id);
-        print('✅ Play session started for: ${song.id}');
+        final offlineDownloadNotifier = _ref.read(offlineDownloadStateProvider.notifier);
+        final localFilePath = await offlineDownloadNotifier.getDecryptedFilePath(song.id);
+        
+        if (localFilePath != null && await File(localFilePath).exists()) {
+          print('📦 Playing from decrypted offline file');
+          isPlayingFromDownload = true;
+          _ref.read(playingFromDownloadProvider.notifier).state = true;
+        } else {
+          _ref.read(playingFromDownloadProvider.notifier).state = false;
+        }
       } catch (e) {
-        print('⚠️ Failed to start play session (non-critical): $e');
-        // Continue playback even if session start fails
+        print('⚠️ Error checking offline download: $e');
+        _ref.read(playingFromDownloadProvider.notifier).state = false;
+      }
+
+      // Start play session for backend tracking (only for streaming)
+      if (!isPlayingFromDownload) {
+        try {
+          final apiService = _ref.read(songApiServiceProvider);
+          await apiService.startPlaySession(song.id);
+          print('✅ Play session started for: ${song.id}');
+        } catch (e) {
+          print('⚠️ Failed to start play session (non-critical): $e');
+          // Continue playback even if session start fails
+        }
+      } else {
+        print('📦 Playing from offline storage - skipping play session tracking');
       }
       
       // Find song index in list
@@ -417,27 +439,42 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         startIndex: startIndex,
       );
       
-      // Build audio sources for entire queue
-      final playlist = ConcatenatingAudioSource(
-        children: allSongs.map((s) {
-          final audioUrl = s.audioUrl.startsWith('http')
+      // Build audio sources for entire queue (check offline downloads)
+      final offlineDownloadNotifier = _ref.read(offlineDownloadStateProvider.notifier);
+      final List<AudioSource> audioSources = [];
+      
+      for (final s in allSongs) {
+        // Check if song is downloaded
+        String? localFilePath = await offlineDownloadNotifier.getDecryptedFilePath(s.id);
+        String audioUrl;
+        
+        if (localFilePath != null && await File(localFilePath).exists()) {
+          // Use local decrypted file
+          audioUrl = localFilePath;
+          print('📦 Queue: Using offline file for ${s.title}');
+        } else {
+          // Use network stream
+          audioUrl = s.audioUrl.startsWith('http')
               ? s.audioUrl
               : '${ApiConfig.baseUrl}${s.audioUrl}';
-              
-          // Filter out placeholder images and data URIs (data URIs don't work in Android notifications)
-          String? albumArtUrl;
-          if (s.albumArt != null && 
-              s.albumArt!.isNotEmpty &&
-              !s.albumArt!.contains('placeholder') &&
-              !s.albumArt!.contains('picsum.photos') &&
-              !s.albumArt!.startsWith('data:')) { // Skip data URIs for Android
-            // Support http/https URLs only
-            albumArtUrl = s.albumArt!.startsWith('http')
-                ? s.albumArt!
-                : '${ApiConfig.baseUrl}${s.albumArt}';
-          }
-              
-          return AudioSource.uri(
+          print('🌐 Queue: Using network stream for ${s.title}');
+        }
+        
+        // Filter out placeholder images and data URIs (data URIs don't work in Android notifications)
+        String? albumArtUrl;
+        if (s.albumArt != null && 
+            s.albumArt!.isNotEmpty &&
+            !s.albumArt!.contains('placeholder') &&
+            !s.albumArt!.contains('picsum.photos') &&
+            !s.albumArt!.startsWith('data:')) { // Skip data URIs for Android
+          // Support http/https URLs only
+          albumArtUrl = s.albumArt!.startsWith('http')
+              ? s.albumArt!
+              : '${ApiConfig.baseUrl}${s.albumArt}';
+        }
+        
+        audioSources.add(
+          AudioSource.uri(
             Uri.parse(audioUrl),
             tag: MediaItem(
               id: s.id,
@@ -447,9 +484,11 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
               duration: s.duration,
               artUri: albumArtUrl != null ? Uri.parse(albumArtUrl) : null,
             ),
-          );
-        }).toList(),
-      );
+          ),
+        );
+      }
+      
+      final playlist = ConcatenatingAudioSource(children: audioSources);
       
       // Load playlist and seek to start index
       // OPTIMIZATION: Use preload=true for instant playback
