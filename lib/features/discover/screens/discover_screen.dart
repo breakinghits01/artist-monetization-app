@@ -452,40 +452,25 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                   );
                 }
                 
+                // Convert all songs ONCE (not per-item) to ensure consistent queue references
+                final allPlayerSongs = songs.map((s) => player_song.SongModel(
+                  id: s.id,
+                  title: s.title,
+                  artist: s.artist?.username ?? 'Unknown Artist',
+                  artistId: s.artist?.id ?? '',
+                  albumArt: s.coverArt,
+                  audioUrl: s.audioUrl,
+                  duration: Duration(seconds: s.duration),
+                  tokenReward: s.price.toInt(),
+                  genre: s.genre,
+                  isPremium: s.exclusive,
+                  playCount: s.playCount,
+                )).toList();
+                
                 return SliverList.builder(
-                  itemCount: songs.length,
+                  itemCount: allPlayerSongs.length,
                   itemBuilder: (context, index) {
-                    final song = songs[index];
-                    
-                    // Convert to player song model on-demand (lazy conversion)
-                    final playerSong = player_song.SongModel(
-                      id: song.id,
-                      title: song.title,
-                      artist: song.artist?.username ?? 'Unknown Artist',
-                      artistId: song.artist?.id ?? '',
-                      albumArt: song.coverArt,
-                      audioUrl: song.audioUrl,
-                      duration: Duration(seconds: song.duration),
-                      tokenReward: song.price.toInt(),
-                      genre: song.genre,
-                      isPremium: song.exclusive,
-                      playCount: song.playCount,
-                    );
-                    
-                    // Convert all songs for queue context
-                    final allPlayerSongs = songs.map((s) => player_song.SongModel(
-                      id: s.id,
-                      title: s.title,
-                      artist: s.artist?.username ?? 'Unknown Artist',
-                      artistId: s.artist?.id ?? '',
-                      albumArt: s.coverArt,
-                      audioUrl: s.audioUrl,
-                      duration: Duration(seconds: s.duration),
-                      tokenReward: s.price.toInt(),
-                      genre: s.genre,
-                      isPremium: s.exclusive,
-                      playCount: s.playCount,
-                    )).toList();
+                    final playerSong = allPlayerSongs[index];
                     
                     return SongListTile(
                       song: playerSong,
