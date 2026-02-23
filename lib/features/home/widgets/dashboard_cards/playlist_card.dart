@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/dashboard_card_model.dart';
-import '../../../player/providers/audio_player_provider.dart';
-import '../../../player/data/sample_songs.dart';
 
-/// Playlist card widget
+/// Playlist card widget (Trending card)
 class PlaylistCard extends ConsumerWidget {
   final DashboardCardModel card;
 
@@ -17,84 +16,85 @@ class PlaylistCard extends ConsumerWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final cardHeight = screenWidth > 900 ? 200.0 : 160.0;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: isDark ? 4 : 2,
-      child: InkWell(
-        onTap: () {
-          _playSampleSong(ref);
-        },
-        child: Container(
-          height: cardHeight,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                theme.colorScheme.primary.withValues(alpha: 0.7),
-                theme.colorScheme.secondary.withValues(alpha: 0.7),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return Hero(
+      tag: 'trending_card',
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        elevation: isDark ? 4 : 2,
+        child: InkWell(
+          onTap: () {
+            // Navigate to trending screen
+            context.push('/trending');
+          },
+          child: Container(
+            height: cardHeight,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary.withValues(alpha: 0.7),
+                  theme.colorScheme.secondary.withValues(alpha: 0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-          ),
-          child: Stack(
-            children: [
-              // Content
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'TRENDING',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                // Content
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 12,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'TRENDING',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        card.title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      card.title,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      card.subtitle ?? '',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
+                      const SizedBox(height: 4),
+                      Text(
+                        card.subtitle ?? '',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              // Play button
-              Positioned(
-                right: 12,
-                top: 12,
-                child: GestureDetector(
-                  onTap: () => _playSampleSong(ref),
+                // View icon
+                Positioned(
+                  right: 12,
+                  top: 12,
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -109,26 +109,18 @@ class PlaylistCard extends ConsumerWidget {
                     ),
                     padding: const EdgeInsets.all(12),
                     child: Icon(
-                      Icons.play_arrow,
+                      Icons.arrow_forward,
                       color: theme.colorScheme.primary,
                       size: 24,
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
-  }
-
-  void _playSampleSong(WidgetRef ref) {
-    // Get a sample song from our collection
-    final sampleSong = SampleSongs.getRandom();
-    
-    // Play the song
-    ref.read(audioPlayerProvider.notifier).playSong(sampleSong);
   }
 }
 

@@ -14,6 +14,7 @@ import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/discover/screens/discover_screen.dart';
 import '../../features/connect/screens/connect_screen.dart';
 import '../../features/upload/presentation/upload_screen.dart';
+import '../../features/trending/screens/trending_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../constants/app_constants.dart';
 
@@ -142,6 +143,22 @@ final routerProvider = Provider<GoRouter>((ref) {
                 begin: const Offset(0, 1),
                 end: Offset.zero,
               ).animate(animation),
+              child: child,
+            );
+          },
+        ),
+      ),
+
+      // Trending Route (standalone with hero animation)
+      GoRoute(
+        path: '/trending',
+        name: 'trending',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const TrendingScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
               child: child,
             );
           },
