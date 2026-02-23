@@ -60,7 +60,14 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // OPTIMIZATION: Disable automatic stalling to start playback faster
       // Cloudflare R2 has fast CDN delivery, so we don't need to wait for large buffer
       await _audioPlayer.setAutomaticallyWaitsToMinimizeStalling(false);
-      print('✅ Audio player configured for fast CDN playback');
+      
+      // CRITICAL: Ensure shuffle is OFF by default (prevents queue jumping)
+      await _audioPlayer.setShuffleModeEnabled(false);
+      
+      // CRITICAL: Set loop mode to OFF by default (prevents unexpected behavior)
+      await _audioPlayer.setLoopMode(LoopMode.off);
+      
+      print('✅ Audio player configured: fast CDN playback, shuffle OFF, loop OFF');
     } catch (e) {
       print('⚠️ Could not configure optimal playback (non-critical): $e');
     }
@@ -463,17 +470,20 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       final List<AudioSource> audioSources = [];
       
       for (final s in allSongs) {
-        String audioUrl;
+        Uri audioUri;
         
         // Use pre-decrypted path if available (already decrypted above)
         if (decryptedPaths.containsKey(s.id)) {
-          audioUrl = decryptedPaths[s.id]!;
+          final filePath = decryptedPaths[s.id]!;
+          // CRITICAL: Use Uri.file() for local files, not Uri.parse()
+          audioUri = Uri.file(filePath);
           print('📦 Queue: Using pre-decrypted offline file for ${s.title}');
         } else {
           // Use network stream
-          audioUrl = s.audioUrl.startsWith('http')
+          final audioUrl = s.audioUrl.startsWith('http')
               ? s.audioUrl
               : '${ApiConfig.baseUrl}${s.audioUrl}';
+          audioUri = Uri.parse(audioUrl);
           print('🌐 Queue: Using network stream for ${s.title}');
         }
         
@@ -492,7 +502,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         
         audioSources.add(
           AudioSource.uri(
-            Uri.parse(audioUrl),
+            audioUri,
             tag: MediaItem(
               id: s.id,
               title: s.title,
@@ -507,6 +517,10 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       
       final playlist = ConcatenatingAudioSource(children: audioSources);
       
+      // CRITICAL: Disable shuffle before setting playlist to ensure correct queue order
+      await _audioPlayer.setShuffleModeEnabled(false);
+      print('🔀 Shuffle disabled for queue playback');
+      
       // Load playlist and seek to start index
       // OPTIMIZATION: Use preload=true for instant playback
       await _audioPlayer.setAudioSource(
@@ -515,6 +529,8 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         initialPosition: Duration.zero,
         preload: true, // Preload first song for instant start
       );
+      
+      print('📋 Playlist loaded: ${allSongs.length} songs, starting at index $startIndex');
       
       // Update Android audio service notification with current song
       if (_audioServiceHandler != null) {
