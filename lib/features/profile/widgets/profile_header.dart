@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/user_profile_model.dart';
 
 class ProfileHeader extends StatelessWidget {
@@ -52,12 +53,21 @@ class ProfileHeader extends StatelessWidget {
                   ? Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.network(
-                          profile.coverPhotoUrl!,
+                        CachedNetworkImage(
+                          imageUrl: profile.coverPhotoUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const SizedBox();
-                          },
+                          memCacheHeight: 400,
+                          memCacheWidth: 800,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[900],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white24,
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => const SizedBox(),
                         ),
                         // Gradient Overlay
                         Container(

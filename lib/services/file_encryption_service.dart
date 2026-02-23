@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:encrypt/encrypt.dart' as encrypt_lib;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:pointycastle/asymmetric/api.dart';
 
 /// Service for encrypting and decrypting files
 /// Uses AES-256 encryption for maximum security

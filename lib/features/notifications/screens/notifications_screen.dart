@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/notification_model.dart';
 import '../providers/notification_provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -232,10 +233,20 @@ class _NotificationCard extends StatelessWidget {
                     child: notification.sender.avatarUrl != null
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(22),
-                            child: Image.network(
-                              notification.sender.avatarUrl!,
+                            child: CachedNetworkImage(
+                              imageUrl: notification.sender.avatarUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Icon(
+                              memCacheHeight: 88,
+                              memCacheWidth: 88,
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[800],
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.white24,
+                                  size: 24,
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Icon(
                                 _getIconForType(notification.type),
                                 color: _getColorForType(notification.type),
                                 size: 24,

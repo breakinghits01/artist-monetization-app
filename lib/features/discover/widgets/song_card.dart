@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/song_model.dart' as discover;
 
 class SongCard extends ConsumerWidget {
@@ -40,10 +41,21 @@ class SongCard extends ConsumerWidget {
                     child: AspectRatio(
                       aspectRatio: 1,
                       child: song.coverArt != null
-                          ? Image.network(
-                              song.coverArt!,
+                          ? CachedNetworkImage(
+                              imageUrl: song.coverArt!,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _buildPlaceholder(context),
+                              memCacheHeight: 300,
+                              memCacheWidth: 300,
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[850],
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white24,
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => _buildPlaceholder(context),
                             )
                           : _buildPlaceholder(context),
                     ),

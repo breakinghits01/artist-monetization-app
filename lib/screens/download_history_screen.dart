@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import '../services/download_service.dart';
@@ -112,19 +113,30 @@ class _HistoryTile extends StatelessWidget {
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: history.song.coverArt != null && history.song.coverArt!.startsWith('http')
-              ? Image.network(
-                  history.song.coverArt!,
+              ? CachedNetworkImage(
+                  imageUrl: history.song.coverArt!,
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 56,
-                      height: 56,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.music_note),
-                    );
-                  },
+                  memCacheHeight: 112,
+                  memCacheWidth: 112,
+                  placeholder: (context, url) => Container(
+                    width: 56,
+                    height: 56,
+                    color: Colors.grey[800],
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white24,
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    width: 56,
+                    height: 56,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.music_note),
+                  ),
                 )
               : history.song.coverArt != null
                   ? Image.memory(

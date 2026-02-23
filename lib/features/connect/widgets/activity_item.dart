@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/activity_model.dart';
 
 class ActivityItem extends StatelessWidget {
@@ -88,12 +89,24 @@ class ActivityItem extends StatelessWidget {
                             if (activity.target!.coverArt != null)
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(4),
-                                child: Image.network(
-                                  activity.target!.coverArt!,
+                                child: CachedNetworkImage(
+                                  imageUrl: activity.target!.coverArt!,
                                   width: 32,
                                   height: 32,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
+                                  memCacheHeight: 64,
+                                  memCacheWidth: 64,
+                                  placeholder: (context, url) => Container(
+                                    width: 32,
+                                    height: 32,
+                                    color: Colors.grey.withValues(alpha: 0.2),
+                                    child: const Icon(
+                                      Icons.music_note,
+                                      size: 12,
+                                      color: Colors.white24,
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
                                     width: 32,
                                     height: 32,
                                     color: Colors.grey.withValues(alpha: 0.3),
