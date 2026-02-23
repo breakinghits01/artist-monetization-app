@@ -32,6 +32,11 @@ class FileEncryptionService {
       debugPrint('🔐 Generated new encryption key');
       return key;
     } catch (e) {
+      // Log detailed error for Android Keystore issues (Error -30 = KEY_PERMANENTLY_INVALIDATED)
+      if (e.toString().contains('ErrorCode(-30)') || e.toString().contains('KEY_PERMANENTLY_INVALIDATED')) {
+        debugPrint('❌ CRITICAL: Android Keystore access denied (app backgrounded?)');
+        debugPrint('💡 Encryption keys should be accessed only while app is in foreground');
+      }
       debugPrint('❌ Error getting encryption key: $e');
       rethrow;
     }
@@ -54,6 +59,11 @@ class FileEncryptionService {
       debugPrint('🔐 Generated new IV');
       return iv;
     } catch (e) {
+      // Log detailed error for Android Keystore issues
+      if (e.toString().contains('ErrorCode(-30)') || e.toString().contains('KEY_PERMANENTLY_INVALIDATED')) {
+        debugPrint('❌ CRITICAL: Android Keystore access denied (app backgrounded?)');
+        debugPrint('💡 IV should be accessed only while app is in foreground');
+      }
       debugPrint('❌ Error getting IV: $e');
       rethrow;
     }

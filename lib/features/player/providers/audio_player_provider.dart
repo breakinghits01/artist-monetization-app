@@ -222,12 +222,14 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       await _audioPlayer.stop();
 
       // Check for offline downloaded file first
+      // Pre-decrypt while app is in foreground (before potential backgrounding)
+      // This prevents Android Keystore access errors when app is backgrounded
       String? localFilePath;
       bool isPlayingFromDownload = false;
       
       try {
         final offlineDownloadNotifier = _ref.read(offlineDownloadStateProvider.notifier);
-        // Get the decrypted file path for playback
+        // Get the decrypted file path for playback (decrypts if needed)
         localFilePath = await offlineDownloadNotifier.getDecryptedFilePath(song.id);
         
         if (localFilePath != null && await File(localFilePath).exists()) {
@@ -439,19 +441,34 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         startIndex: startIndex,
       );
       
-      // Build audio sources for entire queue (check offline downloads)
+      // Pre-decrypt all offline songs in queue BEFORE building audio sources
+      // This ensures decryption happens while app is in foreground (before backgrounding)
+      // Critical for background playback: Android Keystore doesn't allow background access
+      print('🔓 Pre-decrypting offline songs for background playback...');
       final offlineDownloadNotifier = _ref.read(offlineDownloadStateProvider.notifier);
+      final Map<String, String> decryptedPaths = {};
+      
+      for (final s in allSongs) {
+        if (offlineDownloadNotifier.isDownloaded(s.id)) {
+          final decryptedPath = await offlineDownloadNotifier.getDecryptedFilePath(s.id);
+          if (decryptedPath != null && await File(decryptedPath).exists()) {
+            decryptedPaths[s.id] = decryptedPath;
+            print('✅ Pre-decrypted: ${s.title}');
+          }
+        }
+      }
+      print('🔓 Pre-decryption complete: ${decryptedPaths.length}/${allSongs.length} songs offline');
+      
+      // Build audio sources for entire queue using pre-decrypted paths
       final List<AudioSource> audioSources = [];
       
       for (final s in allSongs) {
-        // Check if song is downloaded
-        String? localFilePath = await offlineDownloadNotifier.getDecryptedFilePath(s.id);
         String audioUrl;
         
-        if (localFilePath != null && await File(localFilePath).exists()) {
-          // Use local decrypted file
-          audioUrl = localFilePath;
-          print('📦 Queue: Using offline file for ${s.title}');
+        // Use pre-decrypted path if available (already decrypted above)
+        if (decryptedPaths.containsKey(s.id)) {
+          audioUrl = decryptedPaths[s.id]!;
+          print('📦 Queue: Using pre-decrypted offline file for ${s.title}');
         } else {
           // Use network stream
           audioUrl = s.audioUrl.startsWith('http')
