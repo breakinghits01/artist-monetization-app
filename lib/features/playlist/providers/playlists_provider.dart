@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/playlist_model.dart';
 import '../services/playlist_service.dart';
@@ -31,6 +33,7 @@ class PlaylistsState {
 
 // Notifier class
 class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
+  static const String _cacheKey = 'playlists_cache';
   final PlaylistService _service;
   final Ref _ref;
 
@@ -38,7 +41,37 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
       : _service = PlaylistService(),
         super(PlaylistsState());
 
-  /// Load user's playlists
+  /// Load cached playlists from local storage
+  Future<List<PlaylistModel>> _loadCachedPlaylists(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cacheData = prefs.getString('${_cacheKey}_$userId');
+      
+      if (cacheData != null) {
+        final List<dynamic> jsonList = json.decode(cacheData);
+        final playlists = jsonList.map((json) => PlaylistModel.fromJson(json)).toList();
+        debugPrint('📦 Loaded ${playlists.length} playlists from cache');
+        return playlists;
+      }
+    } catch (e) {
+      debugPrint('⚠️ Cache load failed: $e');
+    }
+    return [];
+  }
+
+  /// Save playlists to local cache
+  Future<void> _savePlaylists(List<PlaylistModel> playlists, String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = playlists.map((p) => p.toJson()).toList();
+      await prefs.setString('${_cacheKey}_$userId', json.encode(jsonList));
+      debugPrint('💾 Cached ${playlists.length} playlists');
+    } catch (e) {
+      debugPrint('⚠️ Cache save failed: $e');
+    }
+  }
+
+  /// Load user's playlists (offline-first with network sync)
   Future<void> loadPlaylists() async {
     state = state.copyWith(isLoading: true, error: null);
 
@@ -55,13 +88,43 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
         return;
       }
 
-      debugPrint('📋 Loading playlists for user: $userId');
-      final playlists = await _service.getUserPlaylists(userId);
+      // Step 1: Load from cache first (instant UI)
+      final cached = await _loadCachedPlaylists(userId);
+      if (cached.isNotEmpty) {
+        state = state.copyWith(
+          playlists: cached,
+          isLoading: false,
+        );
+      }
 
-      state = state.copyWith(
-        playlists: playlists,
-        isLoading: false,
-      );
+      // Step 2: Try network update (background sync)
+      try {
+        debugPrint('📋 Loading playlists from network for user: $userId');
+        final fresh = await _service.getUserPlaylists(userId);
+        
+        // Save to cache for next time
+        await _savePlaylists(fresh, userId);
+        
+        state = state.copyWith(
+          playlists: fresh,
+          isLoading: false,
+        );
+        debugPrint('✅ Network sync complete: ${fresh.length} playlists');
+      } catch (networkError) {
+        debugPrint('⚠️ Network sync failed: $networkError');
+        
+        // Keep cached data if network fails
+        if (cached.isEmpty) {
+          state = state.copyWith(
+            isLoading: false,
+            error: 'Offline - no cached playlists available',
+          );
+        } else {
+          debugPrint('✅ Using cached data (offline mode)');
+          // Keep current cached state, no error
+          state = state.copyWith(isLoading: false);
+        }
+      }
     } catch (e) {
       debugPrint('❌ Error loading playlists: $e');
       state = state.copyWith(
@@ -88,9 +151,17 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
 
       if (playlist != null) {
         // Add to local state
+        final updatedPlaylists = [...state.playlists, playlist];
         state = state.copyWith(
-          playlists: [...state.playlists, playlist],
+          playlists: updatedPlaylists,
         );
+        
+        // Update cache
+        final currentUser = _ref.read(currentUserProvider);
+        final userId = currentUser?['_id'] ?? currentUser?['id'];
+        if (userId != null) {
+          await _savePlaylists(updatedPlaylists, userId);
+        }
       }
 
       return playlist;
