@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../offline_download_manager.dart';
 import '../../features/player/models/song_model.dart';
@@ -51,12 +52,33 @@ class PlaylistDownloadNotifier extends StateNotifier<Map<String, PlaylistDownloa
   Future<bool> downloadPlaylist(String playlistId, List<SongModel> songs) async {
     if (songs.isEmpty) return false;
 
-    // Initialize state
+    // Filter out already-downloaded songs for accurate progress tracking
+    final songsToDownload = <SongModel>[];
+    int alreadyDownloadedCount = 0;
+    
+    for (final song in songs) {
+      final isDownloaded = await _downloadManager.isDownloaded(song.id);
+      if (isDownloaded) {
+        alreadyDownloadedCount++;
+      } else {
+        songsToDownload.add(song);
+      }
+    }
+
+    // If all songs already downloaded, return success immediately
+    if (songsToDownload.isEmpty) {
+      debugPrint('✅ All ${songs.length} songs already downloaded in playlist $playlistId');
+      return true;
+    }
+
+    debugPrint('📥 Downloading ${songsToDownload.length} new songs ($alreadyDownloadedCount already downloaded)');
+
+    // Initialize state with accurate count (only songs that need downloading)
     state = {
       ...state,
       playlistId: PlaylistDownloadState(
         isDownloading: true,
-        totalCount: songs.length,
+        totalCount: songsToDownload.length,
         downloadedCount: 0,
         progress: 0.0,
       ),
@@ -65,15 +87,15 @@ class PlaylistDownloadNotifier extends StateNotifier<Map<String, PlaylistDownloa
     int successCount = 0;
     int failedCount = 0;
 
-    for (int i = 0; i < songs.length; i++) {
-      final song = songs[i];
+    for (int i = 0; i < songsToDownload.length; i++) {
+      final song = songsToDownload[i];
       
       // Update current song
       state = {
         ...state,
         playlistId: state[playlistId]!.copyWith(
           currentSongTitle: song.title,
-          progress: i / songs.length,
+          progress: i / songsToDownload.length,
         ),
       };
 
@@ -91,12 +113,11 @@ class PlaylistDownloadNotifier extends StateNotifier<Map<String, PlaylistDownloa
         ...state,
         playlistId: state[playlistId]!.copyWith(
           downloadedCount: successCount,
-          progress: (i + 1) / songs.length,
+          progress: (i + 1) / songsToDownload.length,
         ),
       };
 
-      // Refresh download status provider
-      _ref.invalidate(offlineDownloadStateProvider);
+      // No need to invalidate - progress callback handles state updates automatically
     }
 
     // Complete
@@ -112,6 +133,8 @@ class PlaylistDownloadNotifier extends StateNotifier<Map<String, PlaylistDownloa
       ),
     };
 
+    debugPrint('✅ Playlist download complete: $successCount succeeded, $failedCount failed, $alreadyDownloadedCount skipped');
+    
     return failedCount == 0;
   }
 

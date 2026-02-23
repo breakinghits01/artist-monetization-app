@@ -571,19 +571,34 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       // Not downloaded - regular download icon
       return IconButton(
         onPressed: () async {
+          // Get download state after completion to show accurate count
           final success = await ref.read(playlistDownloadProvider.notifier).downloadPlaylist(
             widget.playlistId,
             _songs,
           );
           
           if (mounted) {
+            // Get the final state to show accurate downloaded count
+            final downloadState = ref.read(playlistDownloadProvider)[widget.playlistId];
+            final downloadedCount = downloadState?.downloadedCount ?? 0;
+            
+            String message;
+            if (success) {
+              if (downloadedCount == 0) {
+                message = 'All songs already downloaded';
+              } else if (downloadedCount == _songs.length) {
+                message = 'Downloaded $downloadedCount song${downloadedCount > 1 ? 's' : ''}';
+              } else {
+                final skipped = _songs.length - downloadedCount;
+                message = 'Downloaded $downloadedCount new song${downloadedCount > 1 ? 's' : ''} ($skipped already saved)';
+              }
+            } else {
+              message = downloadState?.error ?? 'Some songs failed to download';
+            }
+            
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  success
-                      ? 'Downloaded ${_songs.length} songs'
-                      : 'Some songs failed to download',
-                ),
+                content: Text(message),
                 backgroundColor: success ? Colors.green : Colors.orange,
                 behavior: SnackBarBehavior.floating,
               ),
@@ -859,13 +874,27 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               );
               
               if (mounted) {
+                // Get the final state to show accurate downloaded count
+                final downloadState = ref.read(playlistDownloadProvider)[widget.playlistId];
+                final downloadedCount = downloadState?.downloadedCount ?? 0;
+                
+                String message;
+                if (success) {
+                  if (downloadedCount == 0) {
+                    message = 'All songs already downloaded';
+                  } else if (downloadedCount == _songs.length) {
+                    message = 'Downloaded $downloadedCount song${downloadedCount > 1 ? 's' : ''}';
+                  } else {
+                    final skipped = _songs.length - downloadedCount;
+                    message = 'Downloaded $downloadedCount new song${downloadedCount > 1 ? 's' : ''} ($skipped already saved)';
+                  }
+                } else {
+                  message = downloadState?.error ?? 'Some songs failed to download';
+                }
+                
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      success
-                          ? 'Downloaded ${_songs.length} songs'
-                          : 'Some songs failed to download',
-                    ),
+                    content: Text(message),
                     backgroundColor: success ? Colors.green : Colors.orange,
                     behavior: SnackBarBehavior.floating,
                   ),

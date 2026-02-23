@@ -63,18 +63,38 @@ class OfflineDownloadStateNotifier extends StateNotifier<OfflineDownloadState> {
 
   OfflineDownloadStateNotifier(this._downloadManager)
       : super(OfflineDownloadState()) {
+    // Hook up callback to receive progress updates
+    _downloadManager.onProgressUpdate = _onProgressUpdate;
     _loadDownloadedSongs();
+  }
+  
+  @override
+  void dispose() {
+    // Clean up callback to prevent memory leaks
+    _downloadManager.onProgressUpdate = null;
+    super.dispose();
+  }
+  
+  /// Called by OfflineDownloadManager when progress changes
+  void _onProgressUpdate(String songId, OfflineDownloadProgress progress) {
+    // Only update if notifier is still mounted
+    if (!mounted) return;
+    updateProgress(songId, progress);
   }
 
   /// Load all downloaded songs on init
   Future<void> _loadDownloadedSongs() async {
     final songs = await _downloadManager.getDownloadedSongs();
     final songIds = songs.map((s) => s.id).toSet();
+    if (!mounted) return; // Check if still mounted before updating state
     state = state.copyWith(downloadedSongIds: songIds);
   }
 
   /// Update progress for a song
   void updateProgress(String songId, OfflineDownloadProgress progress) {
+    // Safety check: don't update state if notifier is disposed
+    if (!mounted) return;
+    
     final newStates = Map<String, OfflineDownloadProgress>.from(state.downloadStates);
     newStates[songId] = progress;
 
@@ -94,9 +114,7 @@ class OfflineDownloadStateNotifier extends StateNotifier<OfflineDownloadState> {
   /// Download a song
   Future<bool> downloadSong(SongModel song) async {
     final success = await _downloadManager.downloadSong(song);
-    if (success) {
-      await _loadDownloadedSongs();
-    }
+    // No need to reload - progress callback handles state updates
     return success;
   }
 

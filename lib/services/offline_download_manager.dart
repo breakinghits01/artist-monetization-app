@@ -41,11 +41,15 @@ class OfflineDownloadManager {
   final FileEncryptionService _encryptionService;
   final Map<String, CancelToken> _cancelTokens = {};
   final Map<String, OfflineDownloadProgress> _downloadProgress = {};
+  
+  /// Callback to notify state changes
+  void Function(String, OfflineDownloadProgress)? onProgressUpdate;
 
   OfflineDownloadManager({
     required Dio dio,
     FlutterSecureStorage? secureStorage,
     FileEncryptionService? encryptionService,
+    this.onProgressUpdate,
   })  : _dio = dio,
         _secureStorage = secureStorage ?? const FlutterSecureStorage(),
         _encryptionService = encryptionService ?? FileEncryptionService();
@@ -76,7 +80,6 @@ class OfflineDownloadManager {
 
       // Load existing metadata
       if (await metadataFile.exists()) {
-        final encrypted = await metadataFile.readAsString();
         final decrypted = await _secureStorage.read(key: 'offline_metadata') ?? '{}';
         allMetadata = json.decode(decrypted);
       }
@@ -442,12 +445,22 @@ class OfflineDownloadManager {
     OfflineDownloadStatus status, {
     String? error,
   }) {
-    _downloadProgress[songId] = OfflineDownloadProgress(
+    final progressData = OfflineDownloadProgress(
       songId: songId,
       progress: progress,
       status: status,
       error: error,
     );
+    
+    _downloadProgress[songId] = progressData;
+    
+    // Notify StateNotifier (safe even if callback is null or notifier disposed)
+    try {
+      onProgressUpdate?.call(songId, progressData);
+    } catch (e) {
+      // Ignore errors if notifier is disposed during callback
+      debugPrint('Progress update callback error (likely disposed): $e');
+    }
   }
 
   /// Get total downloads count
