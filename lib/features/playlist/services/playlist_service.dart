@@ -40,10 +40,10 @@ class PlaylistService {
     } on DioException catch (e) {
       debugPrint('❌ Failed to fetch playlists: ${e.message}');
       debugPrint('Response: ${e.response?.data}');
-      return [];
+      rethrow; // Re-throw instead of returning empty list
     } catch (e) {
       debugPrint('❌ Unexpected error: $e');
-      return [];
+      rethrow; // Re-throw instead of returning empty list
     }
   }
 

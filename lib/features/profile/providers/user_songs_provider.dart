@@ -85,15 +85,41 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
         return;
       }
       
+      // STEP 1: Load cache first for instant UI
+      final prefs = await SharedPreferences.getInstance();
+      final cachedJson = prefs.getString(_storageKey);
+      if (cachedJson != null) {
+        try {
+          final List<dynamic> songsList = jsonDecode(cachedJson);
+          final cachedSongs = songsList.map((json) => _parseSong(json)).toList();
+          state = state.copyWith(
+            songs: cachedSongs,
+            isLoading: false,
+          );
+          print('📦 Loaded ${cachedSongs.length} songs from cache (instant)');
+        } catch (e) {
+          print('⚠️ Cache parse error: $e');
+        }
+      }
+      
+      // STEP 2: Fetch from network in background
       final endpoint = '${ApiConfig.songsEndpoint}/artist/$userId';
       print('🌐 Fetching songs from database: ${ApiConfig.baseUrl}$endpoint');
       print('👤 User ID: $userId');
       
-      // Get actual user token
-      final token = await _storage.getAccessToken();
+      // Get actual user token (may fail if Keystore unavailable)
+      String? token;
+      try {
+        token = await _storage.getAccessToken();
+      } catch (e) {
+        print('⚠️ Keystore error when reading token: $e');
+        // Keep cached data, skip network update
+        return;
+      }
+      
       if (token == null) {
-        print('⚠️ No auth token found');
-        state = state.copyWith(songs: [], isLoading: false);
+        print('⚠️ No auth token found - using cached data');
+        // Keep cached data, skip network update
         return;
       }
       
@@ -150,38 +176,71 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
         print('⚠️ Cannot connect to database: ${e.message}');
         print('📦 Loading from offline cache (data may be outdated)');
         
-        await _loadFromCache();
-        state = state.copyWith(
-          isLoading: false, 
-          error: 'Offline mode - showing cached songs'
-        );
+        // Load from cache and ensure state is updated
+        final prefs = await SharedPreferences.getInstance();
+        final songsJson = prefs.getString(_storageKey);
+        
+        if (songsJson != null) {
+          try {
+            final List<dynamic> songsList = jsonDecode(songsJson);
+            final songs = songsList.map((json) => _parseSong(json)).toList();
+            state = state.copyWith(
+              songs: songs,
+              isLoading: false,
+              error: null, // Don't show error if we have cached data
+            );
+            print('📦 Loaded ${songs.length} songs from cache');
+          } catch (cacheError) {
+            print('❌ Error parsing cache: $cacheError');
+            state = state.copyWith(
+              songs: [],
+              isLoading: false,
+              error: 'Offline - no cached data available'
+            );
+          }
+        } else {
+          print('❌ No cached songs available');
+          state = state.copyWith(
+            songs: [],
+            isLoading: false,
+            error: 'Offline - no cached data available'
+          );
+        }
       }
     } catch (e) {
       print('❌ Error loading from database: $e');
       print('📦 Falling back to cache');
       
-      await _loadFromCache();
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Offline mode'
-      );
-    }
-  }
-
-  /// Load from local cache (fallback)
-  Future<void> _loadFromCache() async {
-    try {
+      // Load from cache and ensure state is updated
       final prefs = await SharedPreferences.getInstance();
       final songsJson = prefs.getString(_storageKey);
       
       if (songsJson != null) {
-        final List<dynamic> songsList = jsonDecode(songsJson);
-        final songs = songsList.map((json) => _parseSong(json)).toList();
-        state = state.copyWith(songs: songs);
-        print('📦 Loaded ${songs.length} songs from cache');
+        try {
+          final List<dynamic> songsList = jsonDecode(songsJson);
+          final songs = songsList.map((json) => _parseSong(json)).toList();
+          state = state.copyWith(
+            songs: songs,
+            isLoading: false,
+            error: null, // Don't show error if we have cached data
+          );
+          print('📦 Loaded ${songs.length} songs from cache');
+        } catch (cacheError) {
+          print('❌ Error parsing cache: $cacheError');
+          state = state.copyWith(
+            songs: [],
+            isLoading: false,
+            error: 'Offline - no cached data available'
+          );
+        }
+      } else {
+        print('❌ No cached songs available');
+        state = state.copyWith(
+          songs: [],
+          isLoading: false,
+          error: 'Offline - no cached data available'
+        );
       }
-    } catch (e) {
-      print('❌ Error loading from cache: $e');
     }
   }
 

@@ -58,14 +58,22 @@ class DioClient {
           return handler.next(response);
         },
         onError: (error, handler) async {
-          // Suppress non-critical 400 errors (e.g., playcount without active session)
+          // Suppress non-critical errors
           final isCriticalError = error.response?.statusCode != 400 ||
               !error.requestOptions.path.contains('/play');
           
-          if (isCriticalError) {
+          // Also suppress connection errors (expected when offline)
+          final isConnectionError = error.type == DioExceptionType.connectionError ||
+              error.type == DioExceptionType.connectionTimeout ||
+              error.type == DioExceptionType.receiveTimeout ||
+              error.type == DioExceptionType.sendTimeout;
+          
+          if (isCriticalError && !isConnectionError) {
             // Log error
             print('ERROR[${error.response?.statusCode}] => DATA: ${error.response?.data}');
             print('MESSAGE: ${error.message}');
+          } else if (isConnectionError) {
+            print('⚠️ Network unavailable (offline mode)');
           }
 
           // Handle 401 Unauthorized - Token expired

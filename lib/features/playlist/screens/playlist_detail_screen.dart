@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../../core/config/api_config.dart';
 import '../models/playlist_model.dart';
 import '../providers/playlists_provider.dart';
@@ -34,7 +36,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   List<SongModel> _songs = [];
   bool _isLoading = true;
   String? _error;
-  final Dio _dio = Dio();
+  final Dio _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+  ));
 
   @override
   void initState() {
@@ -42,11 +47,60 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     _loadPlaylist();
   }
 
+  String get _cacheKey => 'playlist_detail_${widget.playlistId}';
+
+  Future<bool> _loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cacheData = prefs.getString(_cacheKey);
+      
+      if (cacheData != null) {
+        final Map<String, dynamic> cached = json.decode(cacheData);
+        final playlist = PlaylistModel.fromJson(cached['playlist']);
+        final songs = (cached['songs'] as List)
+            .map((s) => SongModel.fromJson(s))
+            .toList();
+        
+        setState(() {
+          _playlist = playlist;
+          _songs = songs;
+          _isLoading = false;
+        });
+        
+        debugPrint('📦 Loaded playlist from cache: ${songs.length} songs');
+        return true;
+      }
+    } catch (e) {
+      debugPrint('⚠️ Cache load failed: $e');
+    }
+    return false;
+  }
+
+  Future<void> _saveToCache(PlaylistModel playlist, List<SongModel> songs) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cacheData = {
+        'playlist': playlist.toJson(),
+        'songs': songs.map((s) => s.toJson()).toList(),
+        'cachedAt': DateTime.now().toIso8601String(),
+      };
+      await prefs.setString(_cacheKey, json.encode(cacheData));
+      debugPrint('💾 Cached playlist: ${songs.length} songs');
+    } catch (e) {
+      debugPrint('⚠️ Cache save failed: $e');
+    }
+  }
+
   Future<void> _loadPlaylist() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
+
+    final hasCache = await _loadFromCache();
+    if (hasCache) {
+      debugPrint('📦 Showing cached playlist');
+    }
 
     try {
       // Get playlist details with populated songs
@@ -136,16 +190,39 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         
         final playlist = PlaylistModel.fromJson(data);
         
+        await _saveToCache(playlist, songs);
+        
         setState(() {
           _playlist = playlist;
           _songs = songs;
           _isLoading = false;
         });
+        debugPrint('✅ Network sync complete: ${songs.length} songs');
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        String errorMessage = 'Failed to load playlist';
+        if (e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.sendTimeout) {
+          errorMessage = 'Connection timeout';
+        } else if (e.type == DioExceptionType.connectionError) {
+          errorMessage = 'No internet connection';
+        }
+        
+        if (!hasCache) {
+          setState(() {
+            _error = errorMessage;
+            _isLoading = false;
+          });
+        } else {
+          debugPrint('⚠️ Network failed but using cached data');
+        }
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !hasCache) {
         setState(() {
-          _error = e.toString();
+          _error = 'Failed to load playlist';
           _isLoading = false;
         });
       }

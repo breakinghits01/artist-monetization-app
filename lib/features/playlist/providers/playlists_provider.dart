@@ -73,9 +73,9 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
 
   /// Load user's playlists (offline-first with network sync)
   Future<void> loadPlaylists() async {
-    state = state.copyWith(isLoading: true, error: null);
-
     try {
+      state = state.copyWith(isLoading: true, error: null);
+
       // Get current user ID
       final currentUser = _ref.read(currentUserProvider);
       final userId = currentUser?['_id'] ?? currentUser?['id'];
@@ -95,6 +95,11 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
           playlists: cached,
           isLoading: false,
         );
+        debugPrint('📦 Showing ${cached.length} cached playlists');
+      } else {
+        // No cache, but stop loading spinner
+        debugPrint('⚠️ No cached playlists found');
+        state = state.copyWith(isLoading: false);
       }
 
       // Step 2: Try network update (background sync)
@@ -102,14 +107,21 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
         debugPrint('📋 Loading playlists from network for user: $userId');
         final fresh = await _service.getUserPlaylists(userId);
         
-        // Save to cache for next time
-        await _savePlaylists(fresh, userId);
-        
-        state = state.copyWith(
-          playlists: fresh,
-          isLoading: false,
-        );
-        debugPrint('✅ Network sync complete: ${fresh.length} playlists');
+        // Only update if we got data OR if we had no cache
+        // Don't overwrite cached playlists with empty response
+        if (fresh.isNotEmpty || cached.isEmpty) {
+          // Save to cache for next time
+          await _savePlaylists(fresh, userId);
+          
+          state = state.copyWith(
+            playlists: fresh,
+            isLoading: false,
+          );
+          debugPrint('✅ Network sync complete: ${fresh.length} playlists');
+        } else {
+          // Network returned empty but we have cache - keep cache
+          debugPrint('⚠️ Network returned 0 playlists, keeping ${cached.length} cached playlists');
+        }
       } catch (networkError) {
         debugPrint('⚠️ Network sync failed: $networkError');
         
@@ -121,12 +133,12 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
           );
         } else {
           debugPrint('✅ Using cached data (offline mode)');
-          // Keep current cached state, no error
-          state = state.copyWith(isLoading: false);
+          // Already set loading to false above
         }
       }
     } catch (e) {
       debugPrint('❌ Error loading playlists: $e');
+      // Ensure loading is always set to false
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),

@@ -48,9 +48,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       }
     });
     
-    // Load playlists on initial load
+    // Load playlists on initial load only if starting on playlists tab
+    // Otherwise, tab listener will handle it when user switches
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(playlistsProvider.notifier).loadPlaylists();
+      if (_tabController.index == 2) {
+        ref.read(playlistsProvider.notifier).loadPlaylists();
+      }
     });
   }
 
@@ -435,43 +438,46 @@ extension _PlaylistsTab on _ProfileScreenState {
     if (playlistsState.playlists.isEmpty) {
       return SliverFillRemaining(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.playlist_play,
-                size: 80,
-                color: theme.colorScheme.primary.withValues(alpha: 0.3),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'No Playlists',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.playlist_play,
+                  size: 64,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Create your first playlist',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                const SizedBox(height: 16),
+                Text(
+                  'No Playlists',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () async {
-                  final result = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => const CreatePlaylistDialog(),
-                  );
-                  if (result == true) {
-                    ref.read(playlistsProvider.notifier).loadPlaylists();
-                  }
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Create Playlist'),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  'Create your first playlist',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () async {
+                    final result = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => const CreatePlaylistDialog(),
+                    );
+                    if (result == true) {
+                      ref.read(playlistsProvider.notifier).loadPlaylists();
+                    }
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Create Playlist'),
+                ),
+              ],
+            ),
           ),
         ),
       );
