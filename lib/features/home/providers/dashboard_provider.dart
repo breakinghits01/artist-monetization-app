@@ -1,16 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/dashboard_card_model.dart';
+import '../../artist/providers/artist_provider.dart';
 
 /// Dashboard cards provider
 final dashboardCardsProvider =
     StateNotifierProvider<
       DashboardCardsNotifier,
       AsyncValue<List<DashboardCardModel>>
-    >((ref) => DashboardCardsNotifier());
+    >((ref) => DashboardCardsNotifier(ref));
 
 class DashboardCardsNotifier
     extends StateNotifier<AsyncValue<List<DashboardCardModel>>> {
-  DashboardCardsNotifier() : super(const AsyncValue.loading()) {
+  final Ref _ref;
+  
+  DashboardCardsNotifier(this._ref) : super(const AsyncValue.loading()) {
     loadCards();
   }
 
@@ -18,11 +21,13 @@ class DashboardCardsNotifier
     try {
       state = const AsyncValue.loading();
 
-      // TODO: Replace with actual API call
-      await Future.delayed(const Duration(milliseconds: 700));
+      await Future.delayed(const Duration(milliseconds: 500));
 
-      // Mock data
-      final cards = [
+      // Fetch featured artist dynamically
+      final featuredArtist = await _ref.read(featuredArtistProvider.future);
+
+      // Build cards list
+      final cards = <DashboardCardModel>[
         DashboardCardModel(
           id: '1',
           type: DashboardCardType.trendingPlaylist,
@@ -32,15 +37,30 @@ class DashboardCardsNotifier
           metadata: {'playCount': 12000, 'trendPercentage': 85},
           createdAt: DateTime.now(),
         ),
-        DashboardCardModel(
-          id: '2',
-          type: DashboardCardType.artistSpotlight,
-          title: 'Rising Star',
-          subtitle: '1.2K followers • 45 songs',
-          imageUrl: '',
-          metadata: {'followers': 1200, 'songs': 45},
-          createdAt: DateTime.now(),
-        ),
+      ];
+
+      // Add artist spotlight if available
+      if (featuredArtist != null) {
+        cards.add(
+          DashboardCardModel(
+            id: '2',
+            type: DashboardCardType.artistSpotlight,
+            title: featuredArtist.username,
+            subtitle:
+                '${_formatCount(featuredArtist.followerCount)} followers • ${featuredArtist.songCount} songs',
+            imageUrl: featuredArtist.profilePicture ?? '',
+            metadata: {
+              'artistId': featuredArtist.id,
+              'followers': featuredArtist.followerCount,
+              'songs': featuredArtist.songCount,
+            },
+            createdAt: DateTime.now(),
+          ),
+        );
+      }
+
+      // Add other static cards
+      cards.addAll([
         DashboardCardModel(
           id: '3',
           type: DashboardCardType.dailyChallenge,
@@ -75,7 +95,7 @@ class DashboardCardsNotifier
           metadata: {'reward': 100},
           createdAt: DateTime.now(),
         ),
-      ];
+      ]);
 
       state = AsyncValue.data(cards);
     } catch (error, stackTrace) {
@@ -83,7 +103,18 @@ class DashboardCardsNotifier
     }
   }
 
+  String _formatCount(int count) {
+    if (count >= 1000000) {
+      return '${(count / 1000000).toStringAsFixed(1)}M';
+    } else if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)}K';
+    }
+    return count.toString();
+  }
+
   Future<void> refresh() async {
+    // Invalidate featured artist to get fresh data
+    _ref.invalidate(featuredArtistProvider);
     await loadCards();
   }
 }

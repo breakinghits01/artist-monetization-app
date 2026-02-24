@@ -1,107 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/dashboard_card_model.dart';
+import '../../../artist/models/artist_model.dart';
+import '../../../artist/widgets/artist_profile_card.dart';
 
-/// Artist spotlight card widget
-class ArtistSpotlightCard extends StatelessWidget {
+/// Artist spotlight card widget - integrates with real artist data
+class ArtistSpotlightCard extends ConsumerWidget {
   final DashboardCardModel card;
 
   const ArtistSpotlightCard({super.key, required this.card});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final artistId = card.metadata?['artistId'] as String?;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: isDark ? 4 : 2,
-      child: InkWell(
+    // If we have artist ID in metadata, use it to build the card
+    if (artistId != null) {
+      // Create artist model from card data
+      final artist = ArtistModel(
+        id: artistId,
+        username: card.title,
+        profilePicture: card.imageUrl?.isNotEmpty == true ? card.imageUrl : null,
+        followerCount: card.metadata?['followers'] as int? ?? 0,
+        followingCount: 0,
+        songCount: card.metadata?['songs'] as int? ?? 0,
+      );
+
+      return ArtistProfileCard(
+        artist: artist,
         onTap: () {
-          // Navigate to artist profile
+          // TODO: Navigate to artist profile screen
+          print('Navigate to artist: $artistId');
         },
-        child: Container(
-          height: 220,
-          decoration: BoxDecoration(color: theme.colorScheme.surface),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Artist image placeholder
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.3),
-                        theme.colorScheme.secondary.withValues(alpha: 0.3),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.person,
-                      size: 64,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                    ),
-                  ),
-                ),
-              ),
-              // Artist info
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      card.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      card.subtitle ?? '',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {},
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                            ),
-                            child: const Text('Follow'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.card_giftcard, size: 20),
-                          onPressed: () {},
-                          style: IconButton.styleFrom(
-                            backgroundColor: theme.colorScheme.primary
-                                .withValues(alpha: 0.1),
-                          ),
-                          tooltip: 'Tip Artist',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+      );
+    }
+
+    // Fallback to loading state if no artist data
+    return Card(
+      child: Container(
+        height: 200,
+        alignment: Alignment.center,
+        child: const CircularProgressIndicator(),
       ),
     );
   }
 }
+

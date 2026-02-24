@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/utils/responsive.dart';
 import '../providers/upload_provider.dart';
 import '../widgets/file_picker_widget.dart';
@@ -582,11 +583,13 @@ class UploadScreen extends ConsumerWidget {
   Widget _buildPublishedView(BuildContext context, ThemeData theme, song) {
     final isDesktop = Responsive.isDesktop(context);
     
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(isDesktop ? 40 : 24),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isDesktop ? 600 : double.infinity),
+    return Consumer(
+      builder: (context, ref, child) {
+        return Center(
+          child: Padding(
+            padding: EdgeInsets.all(isDesktop ? 40 : 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: isDesktop ? 600 : double.infinity),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -650,8 +653,10 @@ class UploadScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () {
-                    // Navigate to profile to see the song
-                    // Note: Dashboard handles navigation
+                    // Reset upload state first
+                    ref.read(uploadProvider.notifier).reset();
+                    // Navigate to profile to see the uploaded song
+                    context.go('/profile');
                   },
                   icon: const Icon(Icons.library_music_rounded),
                   label: const Text('View in Profile'),
@@ -669,9 +674,7 @@ class UploadScreen extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     // Reset and upload another
-                    context.findAncestorStateOfType<ConsumerState>()?.ref
-                        .read(uploadProvider.notifier)
-                        .reset();
+                    ref.read(uploadProvider.notifier).reset();
                   },
                   icon: const Icon(Icons.add_rounded),
                   label: const Text('Upload Another'),
@@ -687,6 +690,8 @@ class UploadScreen extends ConsumerWidget {
           ),
         ),
       ),
+        );
+      },
     );
   }
 

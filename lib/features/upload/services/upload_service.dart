@@ -12,7 +12,14 @@ import 'audio_metadata_extractor.dart';
 
 /// Upload service for handling file uploads
 class UploadService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
+  final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: ApiConfig.baseUrl,
+      connectTimeout: const Duration(minutes: 5), // 5 min for large files
+      receiveTimeout: const Duration(minutes: 5),
+      sendTimeout: const Duration(minutes: 5),
+    ),
+  );
   final StorageService _storage = StorageService();
   
   /// Validate and initiate upload
@@ -132,6 +139,7 @@ class UploadService {
         'price': metadata.price.toString(),
         'description': metadata.description ?? '',
         'exclusive': metadata.exclusive.toString(),
+        'duration': duration.toString(), // Add duration field
       });
       
       // Single upload request to /songs/upload
