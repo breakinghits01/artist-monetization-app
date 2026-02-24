@@ -304,7 +304,13 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
       audioUrl: json['fileUrl'] ?? json['audioUrl'] ?? '',
       genre: json['genre'] ?? 'Unknown',
       tokenReward: json['price'] ?? json['tokenReward'] ?? 10,
-      playCount: json['playCount'] ?? 0, // Add play count from backend
+      playCount: json['playCount'] ?? 0,
+      likeCount: json['likeCount'] ?? 0,
+      dislikeCount: json['dislikeCount'] ?? 0,
+      commentCount: json['commentCount'] ?? 0,
+      shareCount: json['shareCount'] ?? 0,
+      averageRating: (json['averageRating'] ?? 0.0).toDouble(),
+      ratingCount: json['ratingCount'] ?? 0,
     );
   }
 
@@ -344,6 +350,13 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
       'audioUrl': song.audioUrl,
       'genre': song.genre,
       'tokenReward': song.tokenReward,
+      'playCount': song.playCount,
+      'likeCount': song.likeCount,
+      'dislikeCount': song.dislikeCount,
+      'commentCount': song.commentCount,
+      'shareCount': song.shareCount,
+      'averageRating': song.averageRating,
+      'ratingCount': song.ratingCount,
     };
   }
 }

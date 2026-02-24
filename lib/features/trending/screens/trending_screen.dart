@@ -413,20 +413,22 @@ class _TrendingSongTile extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(
-                          Icons.headphones,
-                          size: 14,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${song.playCount}',
-                          style: theme.textTheme.bodySmall?.copyWith(
+                        if (song.playCount > 0) ...[
+                          Icon(
+                            Icons.headphones,
+                            size: 14,
                             color: theme.colorScheme.onSurface.withOpacity(0.5),
-                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                        const SizedBox(width: 12),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${song.playCount}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
                         const TokenIcon(size: 14, withShadow: false),
                         const SizedBox(width: 4),
                         Text(

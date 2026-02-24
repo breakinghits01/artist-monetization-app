@@ -158,22 +158,23 @@ class SongListItem extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.headphones,
-                                size: 12,
-                                color: theme.colorScheme.onSurface.withOpacity(0.5),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${song.playCount}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                  fontSize: 11,
+                          if (song.playCount > 0)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.headphones,
+                                  size: 12,
+                                  color: theme.colorScheme.onSurface.withOpacity(0.5),
                                 ),
-                              ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${song.playCount}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                    fontSize: 11,
+                                  ),
+                                ),
                               // Downloaded indicator
                               Consumer(
                                 builder: (context, ref, child) {
@@ -198,7 +199,7 @@ class SongListItem extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                   ],
-                  if (song.genre == null) ...[
+                  if (song.genre == null && song.playCount > 0) ...[
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

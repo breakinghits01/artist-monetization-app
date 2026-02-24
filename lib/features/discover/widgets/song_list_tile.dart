@@ -152,20 +152,22 @@ class SongListTile extends ConsumerWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                // Playcount (headphones icon)
-                Icon(
-                  Icons.headphones,
-                  size: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${song.playCount}',
-                  style: theme.textTheme.bodySmall?.copyWith(
+                // Playcount (headphones icon) - only show if > 0
+                if (song.playCount > 0) ...[
+                  Icon(
+                    Icons.headphones,
+                    size: 12,
                     color: theme.colorScheme.onSurface.withOpacity(0.5),
                   ),
-                ),
-                const SizedBox(width: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${song.playCount}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 // Like button with rounded background and animation
                 Consumer(
                   builder: (context, ref, child) {
@@ -208,19 +210,21 @@ class SongListTile extends ConsumerWidget {
                                     ? Colors.white // White when liked
                                     : theme.colorScheme.onSurface.withOpacity(0.5),
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${likeState.likeCount}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: likeState.isLiked
-                                      ? Colors.white // White when liked
-                                      : theme.colorScheme.onSurface.withOpacity(0.5),
-                                  fontWeight: likeState.isLiked
-                                      ? FontWeight.bold // Bold only when liked
-                                      : FontWeight.normal,
-                                  fontSize: 12,
+                              if (likeState.likeCount > 0) ...[
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${likeState.likeCount}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: likeState.isLiked
+                                        ? Colors.white // White when liked
+                                        : theme.colorScheme.onSurface.withOpacity(0.5),
+                                    fontWeight: likeState.isLiked
+                                        ? FontWeight.bold // Bold only when liked
+                                        : FontWeight.normal,
+                                    fontSize: 12,
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                         ),
@@ -271,19 +275,21 @@ class SongListTile extends ConsumerWidget {
                                     ? Colors.white // White when disliked
                                     : theme.colorScheme.onSurface.withOpacity(0.5),
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${likeState.dislikeCount}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: likeState.isDisliked
-                                      ? Colors.white // White when disliked
-                                      : theme.colorScheme.onSurface.withOpacity(0.5),
-                                  fontWeight: likeState.isDisliked
-                                      ? FontWeight.bold // Bold only when disliked
-                                      : FontWeight.normal,
-                                  fontSize: 12,
+                              if (likeState.dislikeCount > 0) ...[
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${likeState.dislikeCount}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: likeState.isDisliked
+                                        ? Colors.white // White when disliked
+                                        : theme.colorScheme.onSurface.withOpacity(0.5),
+                                    fontWeight: likeState.isDisliked
+                                        ? FontWeight.bold // Bold only when disliked
+                                        : FontWeight.normal,
+                                    fontSize: 12,
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                         ),
@@ -309,14 +315,16 @@ class SongListTile extends ConsumerWidget {
                           size: 14,
                           color: theme.colorScheme.onSurface.withOpacity(0.5),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${song.commentCount}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
-                            fontSize: 12,
+                        if (song.commentCount > 0) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '${song.commentCount}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -339,14 +347,16 @@ class SongListTile extends ConsumerWidget {
                           size: 14,
                           color: theme.colorScheme.onSurface.withOpacity(0.5),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${song.shareCount}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
-                            fontSize: 12,
+                        if (song.shareCount > 0) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '${song.shareCount}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
