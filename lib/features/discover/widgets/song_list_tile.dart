@@ -6,6 +6,7 @@ import '../../player/providers/audio_player_provider.dart';
 import '../../player/widgets/audio_wave_indicator.dart';
 import '../../../shared/widgets/token_icon.dart';
 import '../../../core/theme/app_colors_extension.dart';
+import '../../engagement/providers/like_provider.dart';
 
 /// Song list tile for browse/discover screens
 class SongListTile extends ConsumerWidget {
@@ -118,19 +119,6 @@ class SongListTile extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(
-                  Icons.headphones,
-                  size: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${song.playCount}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 const TokenIcon(size: 12, withShadow: false),
                 const SizedBox(width: 4),
                 Text(
@@ -158,6 +146,211 @@ class SongListTile extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ],
+            ),
+            // Engagement row (headphones + like + dislike + comment + share)
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                // Playcount (headphones icon)
+                Icon(
+                  Icons.headphones,
+                  size: 12,
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${song.playCount}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Like button with rounded background and animation
+                Consumer(
+                  builder: (context, ref, child) {
+                    final likeState = ref.watch(likeProvider(song.id));
+                    
+                    return AnimatedScale(
+                      scale: likeState.isLoading ? 0.9 : 1.0,
+                      duration: const Duration(milliseconds: 150),
+                      child: InkWell(
+                        onTap: likeState.isLoading
+                            ? null
+                            : () {
+                                print('👆 Like button tapped for song: ${song.id}');
+                                ref.read(likeProvider(song.id).notifier).toggleLike();
+                              },
+                        borderRadius: BorderRadius.circular(12),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: likeState.isLiked
+                                ? theme.colorScheme.primary // Pink background when liked
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: likeState.isLiked
+                                ? Border.all(
+                                    color: theme.colorScheme.primary,
+                                    width: 1,
+                                  )
+                                : null, // No border when unliked
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.thumb_up_outlined,
+                                size: 14,
+                                color: likeState.isLiked
+                                    ? Colors.white // White when liked
+                                    : theme.colorScheme.onSurface.withOpacity(0.5),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${likeState.likeCount}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: likeState.isLiked
+                                      ? Colors.white // White when liked
+                                      : theme.colorScheme.onSurface.withOpacity(0.5),
+                                  fontWeight: likeState.isLiked
+                                      ? FontWeight.bold // Bold only when liked
+                                      : FontWeight.normal,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 4),
+                // Dislike button with rounded background and animation
+                Consumer(
+                  builder: (context, ref, child) {
+                    final likeState = ref.watch(likeProvider(song.id));
+                    
+                    return AnimatedScale(
+                      scale: likeState.isLoading ? 0.9 : 1.0,
+                      duration: const Duration(milliseconds: 150),
+                      child: InkWell(
+                        onTap: likeState.isLoading
+                            ? null
+                            : () {
+                                print('👎 Dislike button tapped for song: ${song.id}');
+                                ref.read(likeProvider(song.id).notifier).toggleDislike();
+                              },
+                        borderRadius: BorderRadius.circular(12),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: likeState.isDisliked
+                                ? Colors.red.shade400 // Red background when disliked
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: likeState.isDisliked
+                                ? Border.all(
+                                    color: Colors.red.shade400,
+                                    width: 1,
+                                  )
+                                : null, // No border when not disliked
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.thumb_down_outlined,
+                                size: 14,
+                                color: likeState.isDisliked
+                                    ? Colors.white // White when disliked
+                                    : theme.colorScheme.onSurface.withOpacity(0.5),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${likeState.dislikeCount}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: likeState.isDisliked
+                                      ? Colors.white // White when disliked
+                                      : theme.colorScheme.onSurface.withOpacity(0.5),
+                                  fontWeight: likeState.isDisliked
+                                      ? FontWeight.bold // Bold only when disliked
+                                      : FontWeight.normal,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 10),
+                // Comment icon with consistent padding
+                InkWell(
+                  onTap: () {
+                    // TODO: Open comments bottom sheet
+                    print('Comments tapped for song: ${song.id}');
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.comment_outlined,
+                          size: 14,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${song.commentCount}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                // Share icon with consistent padding
+                InkWell(
+                  onTap: () {
+                    // TODO: Open share bottom sheet
+                    print('Share tapped for song: ${song.id}');
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.share_outlined,
+                          size: 14,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${song.shareCount}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ],

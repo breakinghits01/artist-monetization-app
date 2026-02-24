@@ -23,7 +23,7 @@ class DashboardCardsNotifier
 
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // Fetch featured artist dynamically
+      // Fetch rising artist dynamically (most active content creator)
       final featuredArtist = await _ref.read(featuredArtistProvider.future);
 
       // Build cards list

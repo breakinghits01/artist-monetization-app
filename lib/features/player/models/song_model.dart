@@ -11,6 +11,15 @@ class SongModel {
   final String? genre;
   final bool isPremium;
   final int playCount; // Number of times this song has been played
+  
+  // Engagement metrics
+  final int likeCount;
+  final int dislikeCount;
+  final int commentCount;
+  final int shareCount;
+  final double? averageRating; // 0-5 stars
+  final int ratingCount;
+  final int engagementScore;
 
   const SongModel({
     required this.id,
@@ -24,6 +33,13 @@ class SongModel {
     this.genre,
     this.isPremium = false,
     this.playCount = 0,
+    this.likeCount = 0,
+    this.dislikeCount = 0,
+    this.commentCount = 0,
+    this.shareCount = 0,
+    this.averageRating,
+    this.ratingCount = 0,
+    this.engagementScore = 0,
   });
 
   factory SongModel.fromJson(Map<String, dynamic> json) {
@@ -48,6 +64,13 @@ class SongModel {
       genre: json['genre'] as String?,
       isPremium: json['isPremium'] as bool? ?? false,
       playCount: json['playCount'] as int? ?? 0,
+      likeCount: json['likeCount'] as int? ?? 0,
+      dislikeCount: json['dislikeCount'] as int? ?? 0,
+      commentCount: json['commentCount'] as int? ?? 0,
+      shareCount: json['shareCount'] as int? ?? 0,
+      averageRating: (json['averageRating'] as num?)?.toDouble(),
+      ratingCount: json['ratingCount'] as int? ?? 0,
+      engagementScore: json['engagementScore'] as int? ?? 0,
     );
   }
 
@@ -56,6 +79,13 @@ class SongModel {
       '_id': id,
       'title': title,
       'artist': {'name': artist, '_id': artistId},
+      'likeCount': likeCount,
+      'dislikeCount': dislikeCount,
+      'commentCount': commentCount,
+      'shareCount': shareCount,
+      'averageRating': averageRating,
+      'ratingCount': ratingCount,
+      'engagementScore': engagementScore,
       'albumArt': albumArt,
       'audioUrl': audioUrl,
       'duration': duration.inSeconds,
@@ -78,6 +108,13 @@ class SongModel {
     String? genre,
     bool? isPremium,
     int? playCount,
+    int? likeCount,
+    int? dislikeCount,
+    int? commentCount,
+    int? shareCount,
+    double? averageRating,
+    int? ratingCount,
+    int? engagementScore,
   }) {
     return SongModel(
       id: id ?? this.id,
@@ -91,6 +128,13 @@ class SongModel {
       genre: genre ?? this.genre,
       isPremium: isPremium ?? this.isPremium,
       playCount: playCount ?? this.playCount,
+      likeCount: likeCount ?? this.likeCount,
+      dislikeCount: dislikeCount ?? this.dislikeCount,
+      commentCount: commentCount ?? this.commentCount,
+      shareCount: shareCount ?? this.shareCount,
+      averageRating: averageRating ?? this.averageRating,
+      ratingCount: ratingCount ?? this.ratingCount,
+      engagementScore: engagementScore ?? this.engagementScore,
     );
   }
 }

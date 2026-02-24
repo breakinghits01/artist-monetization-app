@@ -18,16 +18,18 @@ final discoverArtistsProvider = FutureProvider.autoDispose
   return result['artists'] as List<ArtistModel>;
 });
 
-/// Provider for featured artist on home screen
+/// Provider for featured artist on home screen (Rising Artist)
+/// Showcases the most active content creator by song count
 final featuredArtistProvider = FutureProvider<ArtistModel?>((ref) async {
   final apiService = ref.watch(artistApiServiceProvider);
 
   try {
-    // Get top artist by follower count
+    // Get rising artist: prioritize content creators (most songs)
+    // This ensures active artists with quality content are featured
     final result = await apiService.discoverArtists(
       page: 1,
       limit: 1,
-      sortBy: 'followerCount',
+      sortBy: 'songCount', // Sort by content volume for rising artists
     );
 
     final artists = result['artists'] as List<ArtistModel>;
