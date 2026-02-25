@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
 import '../models/artist_model.dart';
 import '../services/follow_api_service.dart';
+import '../../../core/services/storage_service.dart';
 
 // Follow status map (artistId -> isFollowing)
 final followStatusMapProvider = StateProvider<Map<String, bool>>((ref) => {});
@@ -134,6 +136,24 @@ class FollowActions {
 // Check follow status provider (for specific artist)
 final artistFollowStatusProvider =
     FutureProvider.family<bool, String>((ref, artistId) async {
+  // Get current user ID from storage
+  final storage = StorageService();
+  final userDataString = await storage.getUserData();
+  
+  // Can't follow yourself - return false immediately
+  if (userDataString != null) {
+    try {
+      final userData = jsonDecode(userDataString);
+      final currentUserId = userData['_id'] ?? userData['id'];
+      
+      if (currentUserId == artistId) {
+        return false;
+      }
+    } catch (e) {
+      // Error parsing user data, continue to fetch
+    }
+  }
+
   // Check if status is already in map
   final statusMap = ref.watch(followStatusMapProvider);
   if (statusMap.containsKey(artistId)) {
@@ -141,12 +161,17 @@ final artistFollowStatusProvider =
   }
 
   // Fetch from API
-  final apiService = ref.watch(followApiServiceProvider);
-  final isFollowing = await apiService.checkFollowStatus(artistId);
+  try {
+    final apiService = ref.watch(followApiServiceProvider);
+    final isFollowing = await apiService.checkFollowStatus(artistId);
 
-  // Update map
-  final mapNotifier = ref.read(followStatusMapProvider.notifier);
-  mapNotifier.state = {...mapNotifier.state, artistId: isFollowing};
+    // Update map
+    final mapNotifier = ref.read(followStatusMapProvider.notifier);
+    mapNotifier.state = {...mapNotifier.state, artistId: isFollowing};
 
-  return isFollowing;
+    return isFollowing;
+  } catch (e) {
+    // If error (like 401), return false
+    return false;
+  }
 });

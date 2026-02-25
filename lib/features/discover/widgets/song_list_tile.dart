@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors_extension.dart';
 import '../../engagement/providers/like_provider.dart';
 import '../../engagement/widgets/comments_bottom_sheet.dart';
 import '../../engagement/widgets/share_bottom_sheet.dart';
+import '../../song_detail/screens/song_detail_screen.dart';
 
 /// Song list tile for browse/discover screens
 class SongListTile extends ConsumerWidget {
@@ -394,16 +395,15 @@ class SongListTile extends ConsumerWidget {
           },
         ),
         onTap: onTap ?? () {
-          if (isCurrentSong) {
-            ref.read(audioPlayerProvider.notifier).playPause();
-          } else {
-            // Use queue if available, otherwise single song
-            if (allSongs != null && allSongs!.isNotEmpty) {
-              ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs!);
-            } else {
-              ref.read(audioPlayerProvider.notifier).playSong(song);
-            }
-          }
+          // Navigate to song detail screen
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => SongDetailScreen(
+                song: song,
+                allSongs: allSongs,
+              ),
+            ),
+          );
         },
       ),
     );
