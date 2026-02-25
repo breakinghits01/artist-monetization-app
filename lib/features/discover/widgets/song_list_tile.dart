@@ -7,6 +7,8 @@ import '../../player/widgets/audio_wave_indicator.dart';
 import '../../../shared/widgets/token_icon.dart';
 import '../../../core/theme/app_colors_extension.dart';
 import '../../engagement/providers/like_provider.dart';
+import '../../engagement/widgets/comments_bottom_sheet.dart';
+import '../../engagement/widgets/share_bottom_sheet.dart';
 
 /// Song list tile for browse/discover screens
 class SongListTile extends ConsumerWidget {
@@ -301,8 +303,12 @@ class SongListTile extends ConsumerWidget {
                 // Comment icon with consistent padding
                 InkWell(
                   onTap: () {
-                    // TODO: Open comments bottom sheet
-                    print('Comments tapped for song: ${song.id}');
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => CommentsBottomSheet(song: song),
+                    );
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
@@ -333,8 +339,11 @@ class SongListTile extends ConsumerWidget {
                 // Share icon with consistent padding
                 InkWell(
                   onTap: () {
-                    // TODO: Open share bottom sheet
-                    print('Share tapped for song: ${song.id}');
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => ShareBottomSheet(song: song),
+                    );
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
