@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../player/models/song_model.dart';
 import '../../player/providers/audio_player_provider.dart';
 import '../../engagement/providers/like_provider.dart';
+import '../../engagement/providers/comment_provider.dart';
 import '../../engagement/widgets/share_bottom_sheet.dart';
 import '../../engagement/widgets/comments_bottom_sheet.dart';
 
@@ -25,6 +26,7 @@ class ActionButtonsRow extends ConsumerWidget {
     final isCurrentSong = currentSong?.id == song.id;
     final isPlaying = isCurrentSong && playerState.isPlaying;
     final likeState = ref.watch(likeProvider(song.id));
+    final commentState = ref.watch(commentProvider(song.id));
 
     return Wrap(
       spacing: 8,
@@ -85,7 +87,9 @@ class ActionButtonsRow extends ConsumerWidget {
         // Comment Button
         _SecondaryButton(
           icon: Icons.comment_outlined,
-          label: song.commentCount > 0 ? '${song.commentCount}' : 'Comment',
+          label: commentState.comments.isNotEmpty 
+              ? '${commentState.comments.length}' 
+              : 'Comment',
           onPressed: () {
             showModalBottomSheet(
               context: context,

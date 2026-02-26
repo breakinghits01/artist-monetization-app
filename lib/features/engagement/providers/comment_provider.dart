@@ -39,12 +39,12 @@ class CommentModel {
       id: json['_id'] ?? json['id'] ?? '',
       userId: userData is Map ? (userData['_id'] ?? '') : userData ?? '',
       username: userData is Map ? (userData['username'] ?? 'Unknown') : 'Unknown',
-      userAvatar: userData is Map ? userData['avatarUrl'] : null,
+      userAvatar: userData is Map ? (userData['profilePicture'] ?? userData['avatarUrl']) : null,
       songId: json['songId'] ?? '',
-      text: json['text'] ?? '',
-      parentId: json['parentId'],
-      likeCount: json['likeCount'] ?? 0,
-      isLikedByUser: json['isLikedByUser'] ?? false,
+      text: json['content'] ?? json['text'] ?? '', // Backend uses 'content'
+      parentId: json['parentCommentId'] ?? json['parentId'],
+      likeCount: json['likes'] ?? json['likeCount'] ?? 0,
+      isLikedByUser: json['userHasLiked'] ?? json['isLikedByUser'] ?? false,
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
       isDeleted: json['deletedAt'] != null,
@@ -159,8 +159,8 @@ class CommentNotifier extends StateNotifier<CommentState> {
       final response = await _dio.post(
         '${ApiConfig.baseUrl}/api/${ApiConfig.apiVersion}/songs/$songId/comments',
         data: {
-          'text': text,
-          if (parentId != null) 'parentId': parentId,
+          'content': text, // Backend expects 'content' not 'text'
+          if (parentId != null) 'parentCommentId': parentId,
         },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
@@ -185,7 +185,7 @@ class CommentNotifier extends StateNotifier<CommentState> {
 
       final response = await _dio.put(
         '${ApiConfig.baseUrl}/api/${ApiConfig.apiVersion}/comments/$commentId',
-        data: {'text': newText},
+        data: {'content': newText}, // Backend expects 'content'
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
