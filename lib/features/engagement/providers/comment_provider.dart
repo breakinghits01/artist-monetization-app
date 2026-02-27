@@ -14,6 +14,7 @@ class CommentModel {
   final String? parentId;
   final int likeCount;
   final bool isLikedByUser;
+  final int replyCount; // Number of replies from backend
   final DateTime createdAt;
   final DateTime? updatedAt;
   final bool isDeleted;
@@ -28,6 +29,7 @@ class CommentModel {
     this.parentId,
     required this.likeCount,
     required this.isLikedByUser,
+    this.replyCount = 0,
     required this.createdAt,
     this.updatedAt,
     required this.isDeleted,
@@ -45,6 +47,7 @@ class CommentModel {
       parentId: json['parentCommentId'] ?? json['parentId'],
       likeCount: json['likes'] ?? json['likeCount'] ?? 0,
       isLikedByUser: json['userHasLiked'] ?? json['isLikedByUser'] ?? false,
+      replyCount: json['replyCount'] ?? 0, // Backend provides this
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
       isDeleted: json['deletedAt'] != null,
@@ -52,9 +55,10 @@ class CommentModel {
   }
 }
 
-/// Comment state
+/// Comment state with separated top-level comments and replies
 class CommentState {
-  final List<CommentModel> comments;
+  final List<CommentModel> comments; // Only top-level comments (parentId == null)
+  final Map<String, List<CommentModel>> repliesMap; // Replies grouped by parentId
   final bool isLoading;
   final String? error;
   final bool hasMore;
@@ -62,6 +66,7 @@ class CommentState {
 
   const CommentState({
     this.comments = const [],
+    this.repliesMap = const {},
     this.isLoading = false,
     this.error,
     this.hasMore = true,
@@ -70,6 +75,7 @@ class CommentState {
 
   CommentState copyWith({
     List<CommentModel>? comments,
+    Map<String, List<CommentModel>>? repliesMap,
     bool? isLoading,
     String? error,
     bool? hasMore,
@@ -77,6 +83,7 @@ class CommentState {
   }) {
     return CommentState(
       comments: comments ?? this.comments,
+      repliesMap: repliesMap ?? this.repliesMap,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       hasMore: hasMore ?? this.hasMore,
@@ -98,7 +105,7 @@ class CommentNotifier extends StateNotifier<CommentState> {
     loadComments();
   }
 
-  /// Load comments from backend
+  /// Load comments from backend (only top-level comments)
   Future<void> loadComments({bool refresh = false}) async {
     if (refresh) {
       state = const CommentState(isLoading: true);
@@ -119,8 +126,12 @@ class CommentNotifier extends StateNotifier<CommentState> {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        final commentsList = (data['comments'] as List)
+        final allComments = (data['comments'] as List)
             .map((json) => CommentModel.fromJson(json))
+            .toList();
+        
+        final commentsList = allComments
+            .where((comment) => comment.parentId == null) // Only top-level
             .toList();
 
         if (refresh) {
@@ -190,7 +201,7 @@ class CommentNotifier extends StateNotifier<CommentState> {
       );
 
       if (response.statusCode == 200) {
-        // Update locally
+        // Update in top-level comments
         final updatedComments = state.comments.map((comment) {
           if (comment.id == commentId) {
             return CommentModel(
@@ -203,6 +214,7 @@ class CommentNotifier extends StateNotifier<CommentState> {
               parentId: comment.parentId,
               likeCount: comment.likeCount,
               isLikedByUser: comment.isLikedByUser,
+              replyCount: comment.replyCount,
               createdAt: comment.createdAt,
               updatedAt: DateTime.now(),
               isDeleted: comment.isDeleted,
@@ -211,7 +223,35 @@ class CommentNotifier extends StateNotifier<CommentState> {
           return comment;
         }).toList();
 
-        state = state.copyWith(comments: updatedComments);
+        // Update in replies map
+        final updatedRepliesMap = Map<String, List<CommentModel>>.from(state.repliesMap);
+        updatedRepliesMap.forEach((parentId, replies) {
+          updatedRepliesMap[parentId] = replies.map((reply) {
+            if (reply.id == commentId) {
+              return CommentModel(
+                id: reply.id,
+                userId: reply.userId,
+                username: reply.username,
+                userAvatar: reply.userAvatar,
+                songId: reply.songId,
+                text: newText,
+                parentId: reply.parentId,
+                likeCount: reply.likeCount,
+                isLikedByUser: reply.isLikedByUser,
+                replyCount: reply.replyCount,
+                createdAt: reply.createdAt,
+                updatedAt: DateTime.now(),
+                isDeleted: reply.isDeleted,
+              );
+            }
+            return reply;
+          }).toList();
+        });
+
+        state = state.copyWith(
+          comments: updatedComments,
+          repliesMap: updatedRepliesMap,
+        );
         return true;
       }
       return false;
@@ -233,11 +273,51 @@ class CommentNotifier extends StateNotifier<CommentState> {
       );
 
       if (response.statusCode == 200) {
-        // Remove from local state
-        final updatedComments = state.comments
-            .where((comment) => comment.id != commentId)
-            .toList();
-        state = state.copyWith(comments: updatedComments);
+        // Check if this is a reply (has parentId) and decrement parent's reply count
+        String? deletedReplyParentId;
+        state.repliesMap.forEach((parentId, replies) {
+          if (replies.any((reply) => reply.id == commentId)) {
+            deletedReplyParentId = parentId;
+          }
+        });
+        
+        // Remove from top-level comments
+        final updatedComments = state.comments.map((comment) {
+          // If deleting a reply, decrement parent's reply count
+          if (deletedReplyParentId != null && comment.id == deletedReplyParentId) {
+            return CommentModel(
+              id: comment.id,
+              userId: comment.userId,
+              username: comment.username,
+              userAvatar: comment.userAvatar,
+              songId: comment.songId,
+              text: comment.text,
+              parentId: comment.parentId,
+              likeCount: comment.likeCount,
+              isLikedByUser: comment.isLikedByUser,
+              replyCount: comment.replyCount > 0 ? comment.replyCount - 1 : 0,
+              createdAt: comment.createdAt,
+              updatedAt: comment.updatedAt,
+              isDeleted: comment.isDeleted,
+            );
+          }
+          return comment;
+        }).where((comment) => comment.id != commentId).toList();
+        
+        // Remove from replies map
+        final updatedRepliesMap = Map<String, List<CommentModel>>.from(state.repliesMap);
+        updatedRepliesMap.forEach((parentId, replies) {
+          updatedRepliesMap[parentId] = replies
+              .where((reply) => reply.id != commentId)
+              .toList();
+        });
+        // Remove empty reply lists
+        updatedRepliesMap.removeWhere((key, value) => value.isEmpty);
+
+        state = state.copyWith(
+          comments: updatedComments,
+          repliesMap: updatedRepliesMap,
+        );
         return true;
       }
       return false;
@@ -253,7 +333,7 @@ class CommentNotifier extends StateNotifier<CommentState> {
       final token = await StorageService().getAccessToken();
       if (token == null) return;
 
-      // Optimistic update
+      // Optimistic update - check top-level comments
       final updatedComments = state.comments.map((comment) {
         if (comment.id == commentId) {
           return CommentModel(
@@ -268,6 +348,7 @@ class CommentNotifier extends StateNotifier<CommentState> {
                 ? comment.likeCount - 1 
                 : comment.likeCount + 1,
             isLikedByUser: !comment.isLikedByUser,
+            replyCount: comment.replyCount,
             createdAt: comment.createdAt,
             updatedAt: comment.updatedAt,
             isDeleted: comment.isDeleted,
@@ -276,7 +357,37 @@ class CommentNotifier extends StateNotifier<CommentState> {
         return comment;
       }).toList();
 
-      state = state.copyWith(comments: updatedComments);
+      // Optimistic update - check replies map
+      final updatedRepliesMap = Map<String, List<CommentModel>>.from(state.repliesMap);
+      updatedRepliesMap.forEach((parentId, replies) {
+        updatedRepliesMap[parentId] = replies.map((reply) {
+          if (reply.id == commentId) {
+            return CommentModel(
+              id: reply.id,
+              userId: reply.userId,
+              username: reply.username,
+              userAvatar: reply.userAvatar,
+              songId: reply.songId,
+              text: reply.text,
+              parentId: reply.parentId,
+              likeCount: reply.isLikedByUser 
+                  ? reply.likeCount - 1 
+                  : reply.likeCount + 1,
+              isLikedByUser: !reply.isLikedByUser,
+              replyCount: reply.replyCount,
+              createdAt: reply.createdAt,
+              updatedAt: reply.updatedAt,
+              isDeleted: reply.isDeleted,
+            );
+          }
+          return reply;
+        }).toList();
+      });
+
+      state = state.copyWith(
+        comments: updatedComments,
+        repliesMap: updatedRepliesMap,
+      );
 
       // Sync with server
       await _dio.post(
@@ -290,10 +401,81 @@ class CommentNotifier extends StateNotifier<CommentState> {
     }
   }
 
-  /// Get replies for a comment
+  /// Get replies for a comment from the repliesMap
   List<CommentModel> getReplies(String parentId) {
-    return state.comments
-        .where((comment) => comment.parentId == parentId)
-        .toList();
+    return state.repliesMap[parentId] ?? [];
+  }
+
+  /// Load replies for a specific comment
+  Future<void> loadReplies(String commentId) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.baseUrl}/api/${ApiConfig.apiVersion}/comments/$commentId/replies',
+        queryParameters: {'page': 1, 'limit': 50},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final repliesList = (data['replies'] as List)
+            .map((json) => CommentModel.fromJson(json))
+            .toList();
+
+        // Store replies in the map keyed by parent comment ID
+        final updatedRepliesMap = Map<String, List<CommentModel>>.from(state.repliesMap);
+        updatedRepliesMap[commentId] = repliesList;
+
+        state = state.copyWith(repliesMap: updatedRepliesMap);
+      }
+    } catch (e) {
+      print('❌ Error loading replies: $e');
+    }
+  }
+
+  /// Reply to a comment
+  Future<bool> replyToComment(String parentCommentId, String text) async {
+    try {
+      final token = await StorageService().getAccessToken();
+      if (token == null) return false;
+
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/api/${ApiConfig.apiVersion}/comments/$parentCommentId/reply',
+        data: {'content': text},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 201) {
+        // Increment reply count for the parent comment
+        final updatedComments = state.comments.map((comment) {
+          if (comment.id == parentCommentId) {
+            return CommentModel(
+              id: comment.id,
+              userId: comment.userId,
+              username: comment.username,
+              userAvatar: comment.userAvatar,
+              songId: comment.songId,
+              text: comment.text,
+              parentId: comment.parentId,
+              likeCount: comment.likeCount,
+              isLikedByUser: comment.isLikedByUser,
+              replyCount: comment.replyCount + 1,
+              createdAt: comment.createdAt,
+              updatedAt: comment.updatedAt,
+              isDeleted: comment.isDeleted,
+            );
+          }
+          return comment;
+        }).toList();
+        
+        state = state.copyWith(comments: updatedComments);
+        
+        // Load/reload replies for this parent to get the new reply
+        await loadReplies(parentCommentId);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Error replying to comment: $e');
+      return false;
+    }
   }
 }

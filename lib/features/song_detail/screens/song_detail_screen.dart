@@ -473,6 +473,7 @@ class _CommentsPanelState extends ConsumerState<_CommentsPanel> {
       );
     }
 
+    // Comments are already filtered - only top-level comments in the list
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 16),
       itemCount: commentState.comments.length,
@@ -505,20 +506,29 @@ class _CommentListItemState extends ConsumerState<_CommentListItem> {
   bool _isDeleting = false;
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _isReplying = false;
+  bool _isSubmittingReply = false;
+  bool _showReplies = false;
   late TextEditingController _editController;
   late FocusNode _editFocusNode;
+  late TextEditingController _replyController;
+  late FocusNode _replyFocusNode;
 
   @override
   void initState() {
     super.initState();
     _editController = TextEditingController(text: widget.comment.text);
     _editFocusNode = FocusNode();
+    _replyController = TextEditingController();
+    _replyFocusNode = FocusNode();
   }
 
   @override
   void dispose() {
     _editController.dispose();
     _editFocusNode.dispose();
+    _replyController.dispose();
+    _replyFocusNode.dispose();
     super.dispose();
   }
 
@@ -667,6 +677,92 @@ class _CommentListItemState extends ConsumerState<_CommentListItem> {
     return null;
   }
 
+  void _startReplying() {
+    setState(() {
+      _isReplying = true;
+      _replyController.text = '@${widget.comment.username} ';
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _replyFocusNode.requestFocus();
+      // Move cursor to end
+      _replyController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _replyController.text.length),
+      );
+    });
+  }
+
+  void _cancelReply() {
+    setState(() {
+      _isReplying = false;
+      _replyController.clear();
+    });
+  }
+
+  Future<void> _submitReply() async {
+    final text = _replyController.text.trim();
+    
+    if (text.isEmpty || text == '@${widget.comment.username}') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reply cannot be empty'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmittingReply = true);
+
+    try {
+      final commentNotifier = ref.read(commentProvider(widget.songId).notifier);
+      final success = await commentNotifier.replyToComment(widget.comment.id, text);
+
+      if (mounted) {
+        if (success) {
+          setState(() {
+            _isReplying = false;
+            _isSubmittingReply = false;
+            _showReplies = true; // Auto-expand replies
+          });
+          _replyController.clear();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Reply posted!'),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          setState(() => _isSubmittingReply = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to post reply'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmittingReply = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _toggleReplies() {
+    setState(() => _showReplies = !_showReplies);
+    if (_showReplies) {
+      // Load replies if not already loaded
+      ref.read(commentProvider(widget.songId).notifier).loadReplies(widget.comment.id);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -795,6 +891,36 @@ class _CommentListItemState extends ConsumerState<_CommentListItem> {
                             ),
                           ),
                           
+                          // Reply button (for all comments except when editing/replying)
+                          if (!_isEditing && !_isReplying) ...[
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: _isDeleting ? null : _startReplying,
+                              borderRadius: BorderRadius.circular(4),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.reply_outlined,
+                                      size: 14,
+                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Reply',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        fontSize: 11,
+                                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                          
                           // Edit and Delete buttons (only for own comments)
                           if (isOwnComment && !_isEditing) ...[
                             const SizedBox(width: 8),
@@ -837,6 +963,77 @@ class _CommentListItemState extends ConsumerState<_CommentListItem> {
                           ],
                         ],
                       ),
+
+                      // Reply input field
+                      if (_isReplying) ...[
+                        const SizedBox(height: 12),
+                        _buildReplyField(theme),
+                      ],
+
+                      // View replies button - show if comment has replies
+                      if (!_isReplying && widget.comment.parentId == null && widget.comment.replyCount > 0) ...[
+                        Builder(
+                          builder: (context) {
+                            final commentNotifier = ref.watch(commentProvider(widget.songId).notifier);
+                            final replies = commentNotifier.getReplies(widget.comment.id);
+                            final displayCount = replies.isNotEmpty ? replies.length : widget.comment.replyCount;
+                            
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 8),
+                                InkWell(
+                                  onTap: _toggleReplies,
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _showReplies 
+                                              ? Icons.expand_less 
+                                              : Icons.expand_more,
+                                          size: 16,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _showReplies 
+                                              ? 'Hide replies' 
+                                              : '$displayCount ${displayCount == 1 ? 'reply' : 'replies'}',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            fontSize: 12,
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                // Display replies
+                                if (_showReplies)
+                                  AnimatedSize(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                    child: Column(
+                                      children: replies.map((reply) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(left: 32, top: 8),
+                                          child: _CommentListItem(
+                                            comment: reply,
+                                            songId: widget.songId,
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -845,6 +1042,85 @@ class _CommentListItemState extends ConsumerState<_CommentListItem> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildReplyField(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _replyController,
+            focusNode: _replyFocusNode,
+            maxLines: 3,
+            minLines: 1,
+            enabled: !_isSubmittingReply,
+            style: theme.textTheme.bodySmall,
+            decoration: InputDecoration(
+              hintText: 'Write a reply...',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              hintStyle: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: _isSubmittingReply ? null : _cancelReply,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  'Cancel',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: _isSubmittingReply ? null : _submitReply,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                ),
+                child: _isSubmittingReply
+                    ? SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      )
+                    : Text(
+                        'Reply',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

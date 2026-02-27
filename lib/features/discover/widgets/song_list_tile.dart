@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../../player/models/song_model.dart';
 import '../../player/providers/audio_player_provider.dart';
 import '../../player/widgets/audio_wave_indicator.dart';
 import '../../../shared/widgets/token_icon.dart';
 import '../../../core/theme/app_colors_extension.dart';
 import '../../engagement/providers/like_provider.dart';
+import '../../engagement/providers/comment_provider.dart';
 import '../../engagement/widgets/comments_bottom_sheet.dart';
 import '../../engagement/widgets/share_bottom_sheet.dart';
-import '../../song_detail/screens/song_detail_screen.dart';
 
 /// Song list tile for browse/discover screens
 class SongListTile extends ConsumerWidget {
@@ -301,40 +302,47 @@ class SongListTile extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(width: 10),
-                // Comment icon with consistent padding
-                InkWell(
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => CommentsBottomSheet(song: song),
+                // Comment icon with real-time count
+                Consumer(
+                  builder: (context, ref, child) {
+                    final commentState = ref.watch(commentProvider(song.id));
+                    final commentCount = commentState.comments.length;
+                    
+                    return InkWell(
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => CommentsBottomSheet(song: song),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.comment_outlined,
+                              size: 14,
+                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            ),
+                            if (commentCount > 0) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                '$commentCount',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     );
                   },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.comment_outlined,
-                          size: 14,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                        if (song.commentCount > 0) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '${song.commentCount}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.5),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 4),
                 // Share icon with consistent padding
@@ -395,15 +403,8 @@ class SongListTile extends ConsumerWidget {
           },
         ),
         onTap: onTap ?? () {
-          // Navigate to song detail screen
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => SongDetailScreen(
-                song: song,
-                allSongs: allSongs,
-              ),
-            ),
-          );
+          // Navigate to song detail screen with URL change
+          context.go('/song/${song.id}', extra: song);
         },
       ),
     );

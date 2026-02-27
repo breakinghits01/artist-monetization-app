@@ -16,6 +16,8 @@ import '../../features/connect/screens/connect_screen.dart';
 import '../../features/upload/presentation/upload_screen.dart';
 import '../../features/trending/screens/trending_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
+import '../../features/song_detail/widgets/song_detail_wrapper.dart';
+import '../../features/player/models/song_model.dart' as player_song;
 import '../constants/app_constants.dart';
 
 /// Router configuration provider with auth guards
@@ -126,6 +128,36 @@ final routerProvider = Provider<GoRouter>((ref) {
               key: state.pageKey,
               child: const ProfileScreen(),
             ),
+          ),
+          
+          // Song Detail Route - Inside shell for consistent layout
+          GoRoute(
+            path: '/song/:songId',
+            name: 'song-detail',
+            pageBuilder: (context, state) {
+              final songId = state.pathParameters['songId']!;
+              final songData = state.extra as player_song.SongModel?;
+              
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: SongDetailWrapper(
+                  songId: songId,
+                  initialSong: songData,
+                ),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(1, 0),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeInOut,
+                    )),
+                    child: child,
+                  );
+                },
+              );
+            },
           ),
         ],
       ),
