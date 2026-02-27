@@ -2,6 +2,7 @@
 enum DashboardCardType {
   trendingPlaylist,
   artistSpotlight,
+  risingStars,
   exclusiveBundle,
   newSingle,
   dailyChallenge,

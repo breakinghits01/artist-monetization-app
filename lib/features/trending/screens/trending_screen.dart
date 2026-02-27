@@ -94,7 +94,7 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
                         right: -50,
                         top: -50,
                         child: Icon(
-                          Icons.trending_up,
+                          Icons.emoji_events,
                           size: 200,
                           color: Colors.white.withValues(alpha: 0.1),
                         ),

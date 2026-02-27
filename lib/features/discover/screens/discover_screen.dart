@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../player/models/song_model.dart' as player_song;
 import '../providers/song_provider.dart';
 import '../widgets/song_list_tile.dart';
@@ -104,7 +105,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title Row with Search Icon
+                        // Title Row with Search Icon and Rising Stars Button
                         Row(
                           children: [
                             Icon(
@@ -133,6 +134,16 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                                 ],
                               ),
                             ),
+                            // Rising Stars Button
+                            OutlinedButton.icon(
+                              onPressed: () => context.push('/rising-stars'),
+                              icon: const Icon(Icons.emoji_events, size: 18),
+                              label: const Text('Rising Stars'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             // Search Toggle Button
                             IconButton(
                               onPressed: () {

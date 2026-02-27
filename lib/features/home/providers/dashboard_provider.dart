@@ -37,28 +37,17 @@ class DashboardCardsNotifier
           metadata: {'playCount': 12000, 'trendPercentage': 85},
           createdAt: DateTime.now(),
         ),
+        // Rising Stars card
+        DashboardCardModel(
+          id: '2',
+          type: DashboardCardType.risingStars,
+          title: 'Rising Stars',
+          subtitle: 'Top trending artists this month',
+          imageUrl: '',
+          metadata: {},
+          createdAt: DateTime.now(),
+        ),
       ];
-
-      // Add artist spotlight if available
-      if (featuredArtist != null) {
-        cards.add(
-          DashboardCardModel(
-            id: '2',
-            type: DashboardCardType.artistSpotlight,
-            title: featuredArtist.username,
-            subtitle:
-                '${_formatCount(featuredArtist.followerCount)} followers • ${featuredArtist.songCount} songs',
-            imageUrl: featuredArtist.profilePicture ?? '',
-            metadata: {
-              'artistId': featuredArtist.id,
-              'followers': featuredArtist.followerCount,
-              'songs': featuredArtist.songCount,
-            },
-            createdAt: DateTime.now(),
-          ),
-        );
-      }
-
       // Add other static cards
       cards.addAll([
         DashboardCardModel(

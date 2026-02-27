@@ -17,6 +17,7 @@ import '../../features/upload/presentation/upload_screen.dart';
 import '../../features/trending/screens/trending_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/song_detail/widgets/song_detail_wrapper.dart';
+import '../../features/rising_stars/screens/rising_stars_screen.dart';
 import '../../features/player/models/song_model.dart' as player_song;
 import '../constants/app_constants.dart';
 
@@ -188,6 +189,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const TrendingScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+        ),
+      ),
+
+      // Rising Stars Route (standalone with hero animation, like trending)
+      GoRoute(
+        path: '/rising-stars',
+        name: 'rising-stars',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const RisingStarsScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: animation,

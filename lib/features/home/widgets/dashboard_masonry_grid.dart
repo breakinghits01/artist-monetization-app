@@ -7,6 +7,7 @@ import '../providers/dashboard_provider.dart';
 import 'dashboard_cards/artist_spotlight_card.dart';
 import 'dashboard_cards/challenge_card.dart';
 import 'dashboard_cards/playlist_card.dart';
+import 'dashboard_cards/rising_stars_card.dart';
 
 /// Pinterest-style masonry grid for dashboard cards
 class DashboardMasonryGrid extends ConsumerWidget {
@@ -65,6 +66,8 @@ class DashboardMasonryGrid extends ConsumerWidget {
         return ArtistSpotlightCard(card: card);
       case DashboardCardType.trendingPlaylist:
         return PlaylistCard(card: card);
+      case DashboardCardType.risingStars:
+        return RisingStarsCard(card: card);
       case DashboardCardType.dailyChallenge:
         return ChallengeCard(card: card);
       case DashboardCardType.exclusiveBundle:
