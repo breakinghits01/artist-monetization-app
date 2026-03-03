@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../models/dashboard_card_model.dart';
+import '../../providers/dashboard_view_provider.dart';
 
 /// Rising Stars card for dashboard
-class RisingStarsCard extends StatelessWidget {
+class RisingStarsCard extends ConsumerWidget {
   final DashboardCardModel card;
 
   const RisingStarsCard({
@@ -12,7 +15,7 @@ class RisingStarsCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
@@ -24,7 +27,16 @@ class RisingStarsCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         elevation: isDark ? 4 : 2,
         child: InkWell(
-          onTap: () => context.push('/rising-stars'),
+          onTap: () {
+            // Desktop: Switch content view in place
+            // Mobile: Navigate to full screen route
+            if (Responsive.isDesktop(context)) {
+              ref.read(dashboardViewProvider.notifier).state =
+                  DashboardView.risingStars;
+            } else {
+              context.go('/rising-stars');
+            }
+          },
           child: Container(
             height: cardHeight,
             decoration: BoxDecoration(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/rising_stars_provider.dart';
 import '../widgets/artist_ranking_card.dart';
 import '../models/artist_ranking_model.dart';
@@ -73,7 +74,7 @@ class _RisingStarsScreenState extends ConsumerState<RisingStarsScreen>
                 pinned: true,
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => context.pop(),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
                   title: const Text(
@@ -82,55 +83,52 @@ class _RisingStarsScreenState extends ConsumerState<RisingStarsScreen>
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  background: Hero(
-                    tag: 'rising_stars_card',
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.amber.withValues(alpha: 0.9),
-                            Colors.orange.withValues(alpha: 0.9),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Stack(
-                        children: [
-                          // Decorative elements
-                          Positioned(
-                            right: -50,
-                            top: -50,
-                            child: Icon(
-                              Icons.emoji_events,
-                              size: 200,
-                              color: Colors.white.withValues(alpha: 0.1),
-                            ),
-                          ),
-                          Positioned(
-                            left: 20,
-                            bottom: 60,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade700,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Text(
-                                '⭐ RISING',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.amber.withValues(alpha: 0.9),
+                          Colors.orange.withValues(alpha: 0.9),
                         ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                    ),
+                    child: Stack(
+                      children: [
+                        // Decorative elements
+                        Positioned(
+                          right: -50,
+                          top: -50,
+                          child: Icon(
+                            Icons.emoji_events,
+                            size: 200,
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        Positioned(
+                          left: 20,
+                          bottom: 60,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade700,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              '⭐ RISING',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

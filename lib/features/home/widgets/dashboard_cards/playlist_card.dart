@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../models/dashboard_card_model.dart';
+import '../../providers/dashboard_view_provider.dart';
 
 /// Playlist card widget (Trending card)
 class PlaylistCard extends ConsumerWidget {
@@ -23,8 +25,14 @@ class PlaylistCard extends ConsumerWidget {
         elevation: isDark ? 4 : 2,
         child: InkWell(
           onTap: () {
-            // Navigate to trending screen
-            context.push('/trending');
+            // Desktop: Switch content view in place
+            // Mobile: Navigate to full screen route
+            if (Responsive.isDesktop(context)) {
+              ref.read(dashboardViewProvider.notifier).state =
+                  DashboardView.trending;
+            } else {
+              context.go('/trending');
+            }
           },
           child: Container(
             height: cardHeight,

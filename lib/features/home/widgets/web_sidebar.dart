@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/dashboard_view_provider.dart';
 
 /// Sidebar navigation for desktop/tablet layouts
 class WebSidebar extends ConsumerWidget {
@@ -10,6 +11,7 @@ class WebSidebar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final currentLocation = GoRouterState.of(context).uri.path;
+    final currentView = ref.watch(dashboardViewProvider);
 
     return Container(
       width: 280,
@@ -78,15 +80,67 @@ class WebSidebar extends ConsumerWidget {
                 _NavItem(
                   icon: Icons.home_rounded,
                   label: 'Home',
-                  isActive: currentLocation == '/home',
-                  onTap: () => context.go('/home'),
+                  isActive: currentLocation == '/home' && 
+                            currentView == DashboardView.dashboard,
+                  onTap: () {
+                    context.go('/home');
+                    ref.read(dashboardViewProvider.notifier).state =
+                        DashboardView.dashboard;
+                  },
                 ),
+                
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'DISCOVER',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                
                 _NavItem(
                   icon: Icons.explore_rounded,
                   label: 'Discover',
                   isActive: currentLocation == '/discover',
                   onTap: () => context.go('/discover'),
                 ),
+                _NavItem(
+                  icon: Icons.trending_up_rounded,
+                  label: 'Trending',
+                  isActive: currentLocation == '/home' && 
+                            currentView == DashboardView.trending,
+                  onTap: () {
+                    // Navigate to home and switch view
+                    context.go('/home');
+                    ref.read(dashboardViewProvider.notifier).state =
+                        DashboardView.trending;
+                  },
+                ),
+                _NavItem(
+                  icon: Icons.emoji_events_rounded,
+                  label: 'Rising Stars',
+                  isActive: currentLocation == '/home' && 
+                            currentView == DashboardView.risingStars,
+                  onTap: () {
+                    // Navigate to home and switch view
+                    context.go('/home');
+                    ref.read(dashboardViewProvider.notifier).state =
+                        DashboardView.risingStars;
+                  },
+                ),
+                
+                const SizedBox(height: 8),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Divider(),
+                ),
+                const SizedBox(height: 8),
+                
                 _NavItem(
                   icon: Icons.upload_rounded,
                   label: 'Upload',

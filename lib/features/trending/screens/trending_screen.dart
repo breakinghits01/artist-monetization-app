@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../../player/models/song_model.dart';
 import '../../player/providers/audio_player_provider.dart';
 import '../../player/widgets/audio_wave_indicator.dart';
@@ -65,7 +66,7 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
               pinned: true,
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => context.pop(),
               ),
               flexibleSpace: FlexibleSpaceBar(
               title: const Text(
@@ -78,54 +79,54 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
                 tag: 'trending_card',
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.9),
-                        theme.colorScheme.secondary.withValues(alpha: 0.9),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      // Decorative elements
-                      Positioned(
-                        right: -50,
-                        top: -50,
-                        child: Icon(
-                          Icons.emoji_events,
-                          size: 200,
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      Positioned(
-                        left: 20,
-                        bottom: 60,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            '🔥 HOT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary.withValues(alpha: 0.9),
+                      theme.colorScheme.secondary.withValues(alpha: 0.9),
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                ),
+                child: Stack(
+                  children: [
+                    // Decorative elements
+                    Positioned(
+                      right: -50,
+                      top: -50,
+                      child: Icon(
+                        Icons.emoji_events,
+                        size: 200,
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    Positioned(
+                      left: 20,
+                      bottom: 60,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          '🔥 HOT',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+          ),
           ),
 
           // Content

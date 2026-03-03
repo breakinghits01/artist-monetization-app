@@ -21,6 +21,9 @@ import '../../providers/treasure_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/story_provider.dart';
 import '../../providers/wallet_provider.dart';
+import '../../providers/dashboard_view_provider.dart';
+import '../../../trending/screens/trending_screen.dart';
+import '../../../rising_stars/screens/rising_stars_screen.dart';
 import '../../../../services/providers/download_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -251,10 +254,107 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-// Dashboard Tab Widget
+// Dashboard Tab Widget - Supports dynamic content views
 class _DashboardTab extends ConsumerWidget {
   const _DashboardTab();
 
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentView = ref.watch(dashboardViewProvider);
+    final isDesktop = Responsive.isDesktop(context);
+
+    // On desktop, render different content based on view state
+    // On mobile, always show dashboard (other views use full routes)
+    if (isDesktop) {
+      return _DashboardContentSwitcher(currentView: currentView);
+    }
+
+    // Mobile: Always show dashboard home
+    return _DashboardHome();
+  }
+}
+
+// Switches between different content views on desktop
+class _DashboardContentSwitcher extends ConsumerWidget {
+  final DashboardView currentView;
+
+  const _DashboardContentSwitcher({required this.currentView});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    switch (currentView) {
+      case DashboardView.dashboard:
+        return _DashboardHome();
+      case DashboardView.trending:
+        return const _DashboardContentWrapper(
+          title: 'Trending Now',
+          child: TrendingScreen(),
+        );
+      case DashboardView.risingStars:
+        return const _DashboardContentWrapper(
+          title: 'Rising Stars',
+          child: RisingStarsScreen(),
+        );
+    }
+  }
+}
+
+// Wrapper for non-dashboard content views with back navigation
+class _DashboardContentWrapper extends ConsumerWidget {
+  final String title;
+  final Widget child;
+
+  const _DashboardContentWrapper({
+    required this.title,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        // Header with back button
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Back to Dashboard',
+                onPressed: () {
+                  ref.read(dashboardViewProvider.notifier).state =
+                      DashboardView.dashboard;
+                },
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Content
+        Expanded(child: child),
+      ],
+    );
+  }
+}
+
+// Dashboard home view with masonry grid
+class _DashboardHome extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);

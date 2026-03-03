@@ -102,11 +102,6 @@ class ArtistRankingCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Rising score with breakdown
-                    _buildScoreBreakdown(context),
                   ],
                 ),
               ),
@@ -141,13 +136,6 @@ class ArtistRankingCard extends StatelessWidget {
       spacing: 12,
       runSpacing: 4,
       children: [
-        if (artist.recentFollowerCount > 0)
-          _buildStatChip(
-            context,
-            Icons.person_add_outlined,
-            artist.recentFollowerCount,
-            Colors.blue,
-          ),
         if (artist.recentLikesCount > 0)
           _buildStatChip(
             context,
