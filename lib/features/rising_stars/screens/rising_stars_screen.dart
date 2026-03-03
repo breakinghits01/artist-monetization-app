@@ -65,6 +65,7 @@ class _RisingStarsScreenState extends ConsumerState<RisingStarsScreen>
       body: Stack(
         children: [
           CustomScrollView(
+            key: const PageStorageKey<String>('rising_stars_scroll'),
             controller: _scrollController,
             slivers: [
               // Hero Header with expandable app bar

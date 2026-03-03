@@ -10,6 +10,7 @@ import '../../features/auth/providers/auth_provider.dart';
 import '../../features/home/presentation/screens/dashboard_screen.dart';
 import '../../features/home/widgets/desktop_layout.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/profile/presentation/screens/user_profile_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/discover/screens/discover_screen.dart';
 import '../../features/connect/screens/connect_screen.dart';
@@ -129,6 +130,19 @@ final routerProvider = Provider<GoRouter>((ref) {
               key: state.pageKey,
               child: const ProfileScreen(),
             ),
+          ),
+
+          // Public User Profile Route - View any user's profile
+          GoRoute(
+            path: '/profile/:userId',
+            name: 'user-profile',
+            pageBuilder: (context, state) {
+              final userId = state.pathParameters['userId']!;
+              return NoTransitionPage(
+                key: state.pageKey,
+                child: UserProfileScreen(userId: userId),
+              );
+            },
           ),
           
           // Song Detail Route - Inside shell for consistent layout

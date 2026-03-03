@@ -57,6 +57,7 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
         body: Stack(
           children: [
             CustomScrollView(
+              key: const PageStorageKey<String>('trending_scroll'),
               controller: _scrollController,
               slivers: [
             // Hero Header
