@@ -61,24 +61,26 @@ class _RisingStarsScreenState extends ConsumerState<RisingStarsScreen>
     final theme = Theme.of(context);
     final state = ref.watch(risingStarsProvider);
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          CustomScrollView(
-            key: const PageStorageKey<String>('rising_stars_scroll'),
-            controller: _scrollController,
-            slivers: [
-              // Hero Header with expandable app bar
+    return Stack(
+      children: [
+        CustomScrollView(
+          key: const PageStorageKey<String>('rising_stars_scroll'),
+          controller: _scrollController,
+          slivers: [
+              // Animated shrinking banner with pinned title
               SliverAppBar(
                 expandedHeight: 200,
                 pinned: true,
+                automaticallyImplyLeading: false,
                 flexibleSpace: FlexibleSpaceBar(
                   title: const Text(
                     'Rising Stars',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
+                  centerTitle: true,
                   background: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -130,12 +132,9 @@ class _RisingStarsScreenState extends ConsumerState<RisingStarsScreen>
                 ),
               ),
 
-              // Filter Chips Section
+              // Filter Chips
               SliverToBoxAdapter(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: _buildFilterChips(context, state, theme),
-                ),
+                child: _buildFilterChips(context, state, theme),
               ),
 
               // Rankings List or States
@@ -186,8 +185,7 @@ class _RisingStarsScreenState extends ConsumerState<RisingStarsScreen>
             ],
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildFilterChips(

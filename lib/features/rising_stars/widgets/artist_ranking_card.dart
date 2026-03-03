@@ -22,8 +22,8 @@ class ArtistRankingCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         onTap: () {
-          // Navigate to artist profile
-          context.push('/profile/${artist.id}');
+          // Navigate to artist profile with ID (backend doesn't support username lookup)
+          context.go('/profile/${artist.id}');
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

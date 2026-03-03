@@ -112,26 +112,14 @@ class WebSidebar extends ConsumerWidget {
                 _NavItem(
                   icon: Icons.trending_up_rounded,
                   label: 'Trending',
-                  isActive: currentLocation == '/home' && 
-                            currentView == DashboardView.trending,
-                  onTap: () {
-                    // Navigate to home and switch view
-                    context.go('/home');
-                    ref.read(dashboardViewProvider.notifier).state =
-                        DashboardView.trending;
-                  },
+                  isActive: currentLocation == '/trending',
+                  onTap: () => context.go('/trending'),
                 ),
                 _NavItem(
                   icon: Icons.emoji_events_rounded,
                   label: 'Rising Stars',
-                  isActive: currentLocation == '/home' && 
-                            currentView == DashboardView.risingStars,
-                  onTap: () {
-                    // Navigate to home and switch view
-                    context.go('/home');
-                    ref.read(dashboardViewProvider.notifier).state =
-                        DashboardView.risingStars;
-                  },
+                  isActive: currentLocation == '/rising-stars',
+                  onTap: () => context.go('/rising-stars'),
                 ),
                 
                 const SizedBox(height: 8),

@@ -4,8 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../player/models/song_model.dart';
 import '../../player/providers/audio_player_provider.dart';
 import '../../player/widgets/audio_wave_indicator.dart';
-import '../../player/widgets/player_wrapper.dart';
-import '../../player/widgets/mini_player.dart';
 import '../providers/trending_provider.dart';
 import '../../../shared/widgets/token_icon.dart';
 import '../../../core/theme/app_colors_extension.dart';
@@ -52,75 +50,76 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
     final trendingSongsAsync = ref.watch(trendingSongsProvider);
     final currentSong = ref.watch(currentSongProvider);
 
-    return PlayerWrapper(
-      child: Scaffold(
-        body: Stack(
-          children: [
-            CustomScrollView(
-              key: const PageStorageKey<String>('trending_scroll'),
-              controller: _scrollController,
-              slivers: [
-            // Hero Header
+    return Stack(
+      children: [
+        CustomScrollView(
+          key: const PageStorageKey<String>('trending_scroll'),
+          controller: _scrollController,
+          slivers: [
+            // Animated shrinking banner with pinned title
             SliverAppBar(
               expandedHeight: 200,
               pinned: true,
+              automaticallyImplyLeading: false,
               flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
-                'Trending Now',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary.withValues(alpha: 0.9),
-                      theme.colorScheme.secondary.withValues(alpha: 0.9),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                title: const Text(
+                  'Trending Now',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    // Decorative elements
-                    Positioned(
-                      right: -50,
-                      top: -50,
-                      child: Icon(
-                        Icons.emoji_events,
-                        size: 200,
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
+                centerTitle: true,
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primary.withValues(alpha: 0.9),
+                        theme.colorScheme.secondary.withValues(alpha: 0.9),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    Positioned(
-                      left: 20,
-                      bottom: 60,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                  ),
+                  child: Stack(
+                    children: [
+                      // Decorative elements
+                      Positioned(
+                        right: -50,
+                        top: -50,
+                        child: Icon(
+                          Icons.emoji_events,
+                          size: 200,
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          '🔥 HOT',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                      ),
+                      Positioned(
+                        left: 20,
+                        bottom: 60,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            '🔥 HOT',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
           // Content
           trendingSongsAsync.when(
@@ -212,27 +211,13 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
             },
           ),
           
-          // Add bottom padding for mini player
-          if (currentSong != null)
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 90),
-            ),
-        ],
-      ),
-      
-      // Mini player at bottom
-      if (currentSong != null)
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: SafeArea(
-            child: const MiniPlayer(),
+          // Bottom padding to ensure proper scroll behavior
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 100),
           ),
-        ),
         ],
       ),
-      ),
+      ],
     );
   }
 }
@@ -474,10 +459,10 @@ class _TrendingSongTile extends ConsumerWidget {
                   }
                 },
               ),
-            ],
-          ),
-        ),
-      ),
-    );
+            ], // End of Row children
+          ), // End of Padding child (Row)
+        ), // End of InkWell child (Padding)
+      ), // End of Card child (InkWell)
+    ); // End of return Card
   }
 }

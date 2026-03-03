@@ -26,7 +26,8 @@ final publicUserSongsProvider =
   final dio = ref.watch(dioProvider);
   
   try {
-    final endpoint = '${ApiConfig.songsEndpoint}/artist/$userId';
+    // Use relative path without /api/v1 since dio baseUrl already includes it
+    final endpoint = '/songs/artist/$userId';
     final response = await dio.get(endpoint);
 
     if (response.statusCode == 200) {

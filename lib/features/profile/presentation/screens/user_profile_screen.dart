@@ -70,73 +70,74 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
     final profileAsync = ref.watch(publicUserProfileProvider(widget.userId));
     final songsAsync = ref.watch(publicUserSongsProvider(widget.userId));
 
-    return Scaffold(
-      body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: theme.colorScheme.error,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Failed to load profile',
-                style: theme.textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString(),
-                style: theme.textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    context.go('/');
-                  }
-                },
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Go Back'),
-              ),
-            ],
-          ),
+    return profileAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load profile',
+              style: theme.textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/');
+                }
+              },
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Go Back'),
+            ),
+          ],
         ),
-        data: (artist) {
-          return Scaffold(
-            body: LayoutBuilder(
-              builder: (context, constraints) {
-                final isWideScreen = constraints.maxWidth > 900;
-                
-                return CustomScrollView(
+      ),
+      data: (artist) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isWideScreen = constraints.maxWidth > 900;
+            
+            return CustomScrollView(
                   slivers: [
-                    // SliverAppBar with gradient banner - consistent with Trending/Rising Stars
-                    SliverAppBar(
-                      expandedHeight: 200,
-                      pinned: true,
-                      automaticallyImplyLeading: true,
-                      flexibleSpace: FlexibleSpaceBar(
-                        title: Text(
-                          artist.username,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                    // Banner - simple gradient container, no app bar
+                    SliverToBoxAdapter(
+                      child: Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              theme.colorScheme.primary.withValues(alpha: 0.9),
+                              theme.colorScheme.secondary.withValues(alpha: 0.9),
+                            ],
                           ),
                         ),
-                        background: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                theme.colorScheme.primary.withValues(alpha: 0.9),
-                                theme.colorScheme.secondary.withValues(alpha: 0.9),
-                              ],
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 40),
+                            child: Text(
+                              artist.username,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
@@ -192,11 +193,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                   ],
                 );
               },
-            ),
-          );
-        },
-      ),
-    );
+            );
+          },
+        );
   }
 
   Widget _buildProfileSidebar(ArtistModel artist, ThemeData theme) {
