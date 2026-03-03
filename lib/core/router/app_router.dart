@@ -160,6 +160,26 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+
+          // Trending Route - Inside shell for desktop layout with sidebar
+          GoRoute(
+            path: '/trending',
+            name: 'trending',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const TrendingScreen(),
+            ),
+          ),
+
+          // Rising Stars Route - Inside shell for desktop layout with sidebar
+          GoRoute(
+            path: '/rising-stars',
+            name: 'rising-stars',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const RisingStarsScreen(),
+            ),
+          ),
         ],
       ),
 
@@ -176,38 +196,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                 begin: const Offset(0, 1),
                 end: Offset.zero,
               ).animate(animation),
-              child: child,
-            );
-          },
-        ),
-      ),
-
-      // Trending Route (standalone with hero animation)
-      GoRoute(
-        path: '/trending',
-        name: 'trending',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const TrendingScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-        ),
-      ),
-
-      // Rising Stars Route (standalone with hero animation, like trending)
-      GoRoute(
-        path: '/rising-stars',
-        name: 'rising-stars',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const RisingStarsScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
               child: child,
             );
           },

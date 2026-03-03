@@ -28,14 +28,9 @@ class RisingStarsCard extends ConsumerWidget {
         elevation: isDark ? 4 : 2,
         child: InkWell(
           onTap: () {
-            // Desktop: Switch content view in place
-            // Mobile: Navigate to full screen route
-            if (Responsive.isDesktop(context)) {
-              ref.read(dashboardViewProvider.notifier).state =
-                  DashboardView.risingStars;
-            } else {
-              context.go('/rising-stars');
-            }
+            // Navigate to rising-stars route with URL update
+            // Desktop will show in content area, mobile shows full screen
+            context.go('/rising-stars');
           },
           child: Container(
             height: cardHeight,

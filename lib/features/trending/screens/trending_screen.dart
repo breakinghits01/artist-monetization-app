@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:go_router/go_router.dart';
 import '../../player/models/song_model.dart';
 import '../../player/providers/audio_player_provider.dart';
 import '../../player/widgets/audio_wave_indicator.dart';
@@ -64,10 +63,6 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
             SliverAppBar(
               expandedHeight: 200,
               pinned: true,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.pop(),
-              ),
               flexibleSpace: FlexibleSpaceBar(
               title: const Text(
                 'Trending Now',
@@ -75,10 +70,8 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              background: Hero(
-                tag: 'trending_card',
-                child: Container(
-                  decoration: BoxDecoration(
+              background: Container(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
                       theme.colorScheme.primary.withValues(alpha: 0.9),
@@ -126,7 +119,6 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
                 ),
               ),
             ),
-          ),
           ),
 
           // Content

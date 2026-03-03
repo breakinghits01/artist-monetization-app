@@ -25,14 +25,9 @@ class PlaylistCard extends ConsumerWidget {
         elevation: isDark ? 4 : 2,
         child: InkWell(
           onTap: () {
-            // Desktop: Switch content view in place
-            // Mobile: Navigate to full screen route
-            if (Responsive.isDesktop(context)) {
-              ref.read(dashboardViewProvider.notifier).state =
-                  DashboardView.trending;
-            } else {
-              context.go('/trending');
-            }
+            // Navigate to trending route with URL update
+            // Desktop will show in content area, mobile shows full screen
+            context.go('/trending');
           },
           child: Container(
             height: cardHeight,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../providers/rising_stars_provider.dart';
 import '../widgets/artist_ranking_card.dart';
 import '../models/artist_ranking_model.dart';
@@ -72,10 +71,6 @@ class _RisingStarsScreenState extends ConsumerState<RisingStarsScreen>
               SliverAppBar(
                 expandedHeight: 200,
                 pinned: true,
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => context.pop(),
-                ),
                 flexibleSpace: FlexibleSpaceBar(
                   title: const Text(
                     'Rising Stars',
