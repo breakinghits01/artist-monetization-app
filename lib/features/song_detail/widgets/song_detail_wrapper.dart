@@ -62,7 +62,13 @@ class SongDetailWrapper extends ConsumerWidget {
           title: const Text('Loading...'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/');
+              }
+            },
           ),
         ),
         body: const Center(
@@ -75,7 +81,13 @@ class SongDetailWrapper extends ConsumerWidget {
           title: const Text('Error'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/');
+              }
+            },
           ),
         ),
         body: Center(
@@ -100,7 +112,13 @@ class SongDetailWrapper extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: () => context.pop(),
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/');
+                  }
+                },
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Go Back'),
               ),
