@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../player/models/song_model.dart';
 import '../../discover/services/song_api_service.dart';
 import '../screens/song_detail_screen.dart';
@@ -56,16 +57,26 @@ class SongDetailWrapper extends ConsumerWidget {
     return songAsync.when(
       data: (song) => SongDetailScreen(song: song),
       loading: () => Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: const Text('Loading...'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
         ),
         body: const Center(
           child: CircularProgressIndicator(),
         ),
       ),
       error: (error, stack) => Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: const Text('Error'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
         ),
         body: Center(
           child: Column(
@@ -89,7 +100,7 @@ class SongDetailWrapper extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => context.pop(),
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Go Back'),
               ),
