@@ -394,24 +394,17 @@ class _TrendingSongTile extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
+                    // First row: Genre/Category + Token
                     Row(
                       children: [
-                        if (song.playCount > 0) ...[
-                          Icon(
-                            Icons.headphones,
-                            size: 14,
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        Text(
+                          song.genre ?? 'Unknown',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            fontWeight: FontWeight.w500,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${song.playCount}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.5),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
+                        ),
+                        const SizedBox(width: 8),
                         const TokenIcon(size: 14, withShadow: false),
                         const SizedBox(width: 4),
                         Text(
@@ -444,10 +437,27 @@ class _TrendingSongTile extends ConsumerWidget {
                         ],
                       ],
                     ),
-                    // Engagement row (like + dislike + comment + share)
+                    // Second row: Play count + Like + Dislike + Comment + Share
                     const SizedBox(height: 6),
                     Row(
                       children: [
+                        // Play count
+                        if (song.playCount > 0) ...[
+                          Icon(
+                            Icons.headphones,
+                            size: 14,
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${song.playCount}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
                         // Like button with rounded background and animation
                         Consumer(
                           builder: (context, ref, child) {
