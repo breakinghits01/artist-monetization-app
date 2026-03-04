@@ -142,6 +142,24 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       }),
     );
     
+    // Listen to loop mode changes
+    _subscriptions.add(
+      _audioPlayer.loopModeStream.listen((loopMode) {
+        if (!_isDisposed) {
+          state = state.copyWith(loopMode: loopMode);
+        }
+      }),
+    );
+    
+    // Listen to shuffle mode changes
+    _subscriptions.add(
+      _audioPlayer.shuffleModeEnabledStream.listen((shuffleEnabled) {
+        if (!_isDisposed) {
+          state = state.copyWith(shuffleMode: shuffleEnabled);
+        }
+      }),
+    );
+    
     // CRITICAL: Listen to current index changes (lockscreen skip sync)
     // This is the SINGLE SOURCE OF TRUTH for queue position
     // All track changes (next, previous, lockscreen) flow through here

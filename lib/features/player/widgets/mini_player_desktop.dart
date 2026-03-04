@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:just_audio/just_audio.dart';
 import '../providers/audio_player_provider.dart';
 import '../models/song_model.dart';
 import '../models/player_state.dart' as models;
@@ -395,6 +396,23 @@ class MiniPlayerDesktop extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        // Shuffle
+        IconButton(
+          icon: const Icon(Icons.shuffle),
+          iconSize: 24,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: 40,
+            minHeight: 40,
+          ),
+          color: playerState.shuffleMode
+              ? theme.colorScheme.primary
+              : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          onPressed: () {
+            ref.read(audioPlayerProvider.notifier).toggleShuffle();
+          },
+        ),
+        const SizedBox(width: 8),
         // Skip backward
         IconButton(
           icon: const Icon(Icons.skip_previous),
@@ -453,6 +471,27 @@ class MiniPlayerDesktop extends ConsumerWidget {
           color: theme.colorScheme.onSurface,
           onPressed: () {
             ref.read(audioPlayerProvider.notifier).playNext();
+          },
+        ),
+        const SizedBox(width: 8),
+        // Repeat
+        IconButton(
+          icon: Icon(
+            playerState.loopMode == LoopMode.one
+                ? Icons.repeat_one
+                : Icons.repeat,
+          ),
+          iconSize: 24,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: 40,
+            minHeight: 40,
+          ),
+          color: playerState.loopMode != LoopMode.off
+              ? theme.colorScheme.primary
+              : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          onPressed: () {
+            ref.read(audioPlayerProvider.notifier).toggleLoopMode();
           },
         ),
       ],
