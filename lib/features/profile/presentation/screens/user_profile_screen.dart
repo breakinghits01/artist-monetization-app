@@ -796,6 +796,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
   }
 
   Widget _buildSongsTab(AsyncValue<List<SongModel>> songsAsync, ThemeData theme) {
+    final currentSong = ref.watch(currentSongProvider);
+    final hasMiniPlayer = currentSong != null;
+    
     return songsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(
@@ -817,7 +820,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.fromLTRB(
+            8,
+            8,
+            8,
+            hasMiniPlayer ? 100 : 8, // Extra bottom padding when mini player is visible
+          ),
           itemCount: songs.length,
           itemBuilder: (context, index) {
             final song = songs[index];

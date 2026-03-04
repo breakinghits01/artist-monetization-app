@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../../core/config/api_config.dart';
+import '../../../core/utils/responsive.dart';
 import '../models/playlist_model.dart';
 import '../providers/playlists_provider.dart';
 import '../../player/models/song_model.dart';
@@ -459,8 +460,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         ],
       ),
       
-      // Mini player at bottom
-      if (hasSong)
+      // Mini player at bottom (only on mobile, desktop uses DesktopLayout's bottomSheet)
+      if (hasSong && !Responsive.isDesktop(context))
         Positioned(
           left: 0,
           right: 0,

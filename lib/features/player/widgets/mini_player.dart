@@ -31,9 +31,10 @@ class MiniPlayer extends ConsumerWidget {
         }
       },
       child: GlassContainer(
+        width: double.infinity,
         height: 72,
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        margin: EdgeInsets.zero,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           children: [
             // Progress bar with token indicator
@@ -67,52 +68,56 @@ class MiniPlayer extends ConsumerWidget {
   ) {
     return SizedBox(
       height: 3,
-      child: Stack(
-        children: [
-          // Background
-          Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          // Progress with gradient
-          FractionallySizedBox(
-            widthFactor: playerState.progress,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.secondary,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          // Token earn indicator at 80%
-          if (tokenState.progress >= 0.8 && !tokenState.hasRewarded)
-            Positioned(
-              left: MediaQuery.of(context).size.width * 0.77,
-              top: -2,
-              child: Container(
-                width: 8,
-                height: 8,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              // Background
+              Container(
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: theme.colorScheme.tokenPrimary,
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.tokenPrimary.withValues(alpha: 0.6),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ],
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-        ],
+              // Progress with gradient
+              FractionallySizedBox(
+                widthFactor: playerState.progress,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primary,
+                        theme.colorScheme.secondary,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Token earn indicator at 80%
+              if (tokenState.progress >= 0.8 && !tokenState.hasRewarded)
+                Positioned(
+                  left: constraints.maxWidth * 0.77,
+                  top: -2,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: theme.colorScheme.tokenPrimary,
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.tokenPrimary.withValues(alpha: 0.6),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

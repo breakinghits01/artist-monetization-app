@@ -23,22 +23,31 @@ class DesktopLayout extends ConsumerWidget {
 
     return PlayerWrapper(
       child: Scaffold(
-        body: Row(
+        body: Stack(
           children: [
-            const WebSidebar(),
-            Expanded(
-              child: Column(
-                children: [
-                  const WebTopBar(),
-                  Expanded(child: child),
-                ],
-              ),
+            Row(
+              children: [
+                const WebSidebar(),
+                Expanded(
+                  child: Column(
+                    children: [
+                      const WebTopBar(),
+                      Expanded(child: child),
+                    ],
+                  ),
+                ),
+              ],
             ),
+            // Mini player positioned at bottom, starting after sidebar
+            if (currentSong != null && !isPlayerExpanded)
+              Positioned(
+                left: 280, // Start after sidebar width
+                right: 0,
+                bottom: 0,
+                child: const MiniPlayer(),
+              ),
           ],
         ),
-        bottomSheet: currentSong != null && !isPlayerExpanded
-            ? const MiniPlayer()
-            : null,
       ),
     );
   }
