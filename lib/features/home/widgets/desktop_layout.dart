@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../player/widgets/player_wrapper.dart';
-import '../../player/widgets/mini_player.dart';
+import '../../player/widgets/mini_player_desktop.dart';
 import '../../player/providers/audio_player_provider.dart';
 import 'web_sidebar.dart';
 import 'web_top_bar.dart';
@@ -44,7 +44,7 @@ class DesktopLayout extends ConsumerWidget {
                 left: 280, // Start after sidebar width
                 right: 0,
                 bottom: 0,
-                child: const MiniPlayer(),
+                child: const MiniPlayerDesktop(),
               ),
           ],
         ),
