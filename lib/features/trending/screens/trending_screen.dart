@@ -586,36 +586,31 @@ class _TrendingSongTile extends ConsumerWidget {
                           },
                         ),
                         const SizedBox(width: 10),
-                        // Comment icon with real-time count
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final commentState = ref.watch(commentProvider(song.id));
-                            final commentCount = commentState.comments.length;
-                            
-                            return InkWell(
-                              onTap: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => CommentsBottomSheet(song: song),
-                                );
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.comment_outlined,
-                                      size: 14,
-                                      color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                    ),
-                                    if (commentCount > 0) ...[
+                        // Comment icon with total count (including replies)
+                        InkWell(
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => CommentsBottomSheet(song: song),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.comment_outlined,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                ),
+                                if (song.commentCount > 0) ...[
                                       const SizedBox(width: 4),
                                       Text(
-                                        '$commentCount',
+                                        '${song.commentCount}',
                                         style: theme.textTheme.bodySmall?.copyWith(
                                           color: theme.colorScheme.onSurface.withOpacity(0.5),
                                           fontSize: 12,
@@ -625,8 +620,7 @@ class _TrendingSongTile extends ConsumerWidget {
                                   ],
                                 ),
                               ),
-                            );
-                          },
+                            ),
                         ),
                         const SizedBox(width: 4),
                         // Share icon with consistent padding

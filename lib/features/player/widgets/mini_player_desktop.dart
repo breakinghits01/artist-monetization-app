@@ -178,7 +178,7 @@ class MiniPlayerDesktop extends ConsumerWidget {
         _buildEngagementButton(
           icon: Icons.comment_outlined,
           theme: theme,
-          count: commentState.comments.isNotEmpty ? commentState.comments.length : null,
+          count: song.commentCount > 0 ? song.commentCount : null,
           onPressed: () {
             showModalBottomSheet(
               context: context,

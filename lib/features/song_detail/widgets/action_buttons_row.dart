@@ -85,10 +85,9 @@ class ActionButtonsRow extends ConsumerWidget {
         ),
 
         // Comment Button
-        _SecondaryButton(
-          icon: Icons.comment_outlined,
-          label: commentState.comments.isNotEmpty 
-              ? '${commentState.comments.length}' 
+        _SecondaryButton(\n          icon: Icons.comment_outlined,
+          label: song.commentCount > 0 
+              ? '${song.commentCount}' 
               : 'Comment',
           onPressed: () {
             showModalBottomSheet(

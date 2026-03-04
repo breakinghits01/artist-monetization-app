@@ -187,7 +187,7 @@ class SongDetailScreen extends ConsumerWidget {
         ),
         _StatItem(
           icon: Icons.comment,
-          label: '${commentState.comments.length} comments',
+          label: '${song.commentCount} comments',
           theme: theme,
         ),
         if (song.shareCount > 0)
