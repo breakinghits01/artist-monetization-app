@@ -12,6 +12,8 @@ class SongModel {
   final bool featured;
   final Artist? artist;
   final DateTime createdAt;
+  final int commentCount;
+  final int shareCount;
 
   const SongModel({
     required this.id,
@@ -27,6 +29,8 @@ class SongModel {
     required this.featured,
     this.artist,
     required this.createdAt,
+    this.commentCount = 0,
+    this.shareCount = 0,
   });
 
   factory SongModel.fromJson(Map<String, dynamic> json) {
@@ -51,6 +55,8 @@ class SongModel {
       featured: json['featured'] ?? false,
       artist: artist,
       createdAt: DateTime.parse(json['createdAt']),
+      commentCount: json['commentCount'] ?? 0,
+      shareCount: json['shareCount'] ?? 0,
     );
   }
 

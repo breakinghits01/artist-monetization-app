@@ -324,20 +324,18 @@ class SongListTile extends ConsumerWidget {
                           color: theme.colorScheme.onSurface.withOpacity(0.5),
                         ),
                         if (song.commentCount > 0) ...[
-                              const SizedBox(width: 4),
-                              Text(
-                                '${song.commentCount}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${song.commentCount}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                ),
+                  ),
                 ),
                 const SizedBox(width: 4),
                 // Share icon with consistent padding

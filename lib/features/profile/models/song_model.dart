@@ -10,6 +10,8 @@ class Song {
   final String? audioUrl;
   final double? price;
   final bool isLiked;
+  final int commentCount;
+  final int shareCount;
 
   const Song({
     required this.id,
@@ -23,6 +25,8 @@ class Song {
     this.audioUrl,
     this.price,
     this.isLiked = false,
+    this.commentCount = 0,
+    this.shareCount = 0,
   });
 
   Song copyWith({
@@ -37,6 +41,8 @@ class Song {
     String? audioUrl,
     double? price,
     bool? isLiked,
+    int? commentCount,
+    int? shareCount,
   }) {
     return Song(
       id: id ?? this.id,
@@ -50,6 +56,8 @@ class Song {
       audioUrl: audioUrl ?? this.audioUrl,
       price: price ?? this.price,
       isLiked: isLiked ?? this.isLiked,
+      commentCount: commentCount ?? this.commentCount,
+      shareCount: shareCount ?? this.shareCount,
     );
   }
 
@@ -66,6 +74,8 @@ class Song {
       'audioUrl': audioUrl,
       'price': price,
       'isLiked': isLiked,
+      'commentCount': commentCount,
+      'shareCount': shareCount,
     };
   }
 
@@ -88,6 +98,8 @@ class Song {
       audioUrl: json['audioUrl'],
       price: json['price']?.toDouble(),
       isLiked: json['isLiked'] ?? false,
+      commentCount: json['commentCount'] ?? 0,
+      shareCount: json['shareCount'] ?? 0,
     );
   }
 }

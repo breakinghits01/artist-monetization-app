@@ -85,7 +85,8 @@ class ActionButtonsRow extends ConsumerWidget {
         ),
 
         // Comment Button
-        _SecondaryButton(\n          icon: Icons.comment_outlined,
+        _SecondaryButton(
+          icon: Icons.comment_outlined,
           label: song.commentCount > 0 
               ? '${song.commentCount}' 
               : 'Comment',

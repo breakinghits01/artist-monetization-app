@@ -24,11 +24,9 @@ final songByIdProvider = FutureProvider.family<SongModel, String>((ref, songId) 
     genre: discoverSong.genre,
     isPremium: discoverSong.exclusive,
     playCount: discoverSong.playCount,
-    // Engagement metrics will be loaded by providers when screen opens
-    likeCount: 0,
-    dislikeCount: 0,
-    commentCount: 0,
-    shareCount: 0,
+    // Use actual engagement metrics from API
+    commentCount: discoverSong.commentCount,
+    shareCount: discoverSong.shareCount,
   );
 });
 

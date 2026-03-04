@@ -476,6 +476,8 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                   genre: s.genre,
                   isPremium: s.exclusive,
                   playCount: s.playCount,
+                  commentCount: s.commentCount,
+                  shareCount: s.shareCount,
                 )).toList();
                 
                 return SliverList.builder(

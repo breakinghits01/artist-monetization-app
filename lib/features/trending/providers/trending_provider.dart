@@ -16,7 +16,7 @@ final trendingSongsProvider = FutureProvider<List<SongModel>>((ref) async {
   
   final discoverSongs = result['songs'] as List;
   
-  // Convert to player song models
+  // Convert to player song models with engagement metrics
   return discoverSongs.map((s) => SongModel(
     id: s.id,
     title: s.title,
@@ -29,5 +29,7 @@ final trendingSongsProvider = FutureProvider<List<SongModel>>((ref) async {
     genre: s.genre,
     isPremium: s.exclusive,
     playCount: s.playCount,
+    commentCount: s.commentCount,
+    shareCount: s.shareCount,
   )).toList();
 });
