@@ -764,10 +764,12 @@ class _CommentListItemState extends ConsumerState<_CommentListItem> {
 
   void _toggleReplies() {
     setState(() => _showReplies = !_showReplies);
-    if (_showReplies) {
-      // Load replies if not already loaded
-      ref.read(commentProvider(widget.songId).notifier).loadReplies(widget.comment.id);
-    }
+    // Replies should already be loaded from initial API call
+    // No need to call loadReplies() since backend returns all comments
+    final commentState = ref.read(commentProvider(widget.songId));
+    print('🔍 Toggle replies for ${widget.comment.id.substring(0, 8)}: showReplies=$_showReplies');
+    print('🗺️ RepliesMap has keys: ${commentState.repliesMap.keys.map((k) => k.substring(0, 8)).toList()}');
+    print('💬 Replies for this comment: ${commentState.repliesMap[widget.comment.id]?.length ?? 0}');
   }
 
   @override
@@ -981,8 +983,9 @@ class _CommentListItemState extends ConsumerState<_CommentListItem> {
                       if (!_isReplying && widget.comment.parentId == null && widget.comment.replyCount > 0) ...[
                         Builder(
                           builder: (context) {
-                            final commentNotifier = ref.watch(commentProvider(widget.songId).notifier);
-                            final replies = commentNotifier.getReplies(widget.comment.id);
+                            // Watch the state to rebuild when replies are loaded
+                            final commentState = ref.watch(commentProvider(widget.songId));
+                            final replies = commentState.repliesMap[widget.comment.id] ?? [];
                             final displayCount = replies.isNotEmpty ? replies.length : widget.comment.replyCount;
                             
                             return Column(

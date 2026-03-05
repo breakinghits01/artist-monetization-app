@@ -130,20 +130,28 @@ class CommentNotifier extends StateNotifier<CommentState> {
             .map((json) => CommentModel.fromJson(json))
             .toList();
         
+        print('📊 Total comments from API: ${allComments.length}');
+        
         final commentsList = allComments
             .where((comment) => comment.parentId == null) // Only top-level
             .toList();
+        
+        print('📝 Top-level comments: ${commentsList.length}');
 
         // Build replies map from all comments
         final newRepliesMap = <String, List<CommentModel>>{};
         for (final comment in allComments) {
           if (comment.parentId != null) {
+            print('💬 Reply found: id=${comment.id.substring(0, 8)}, parentId=${comment.parentId?.substring(0, 8)}, text="${comment.text}"');
             if (!newRepliesMap.containsKey(comment.parentId)) {
               newRepliesMap[comment.parentId!] = [];
             }
             newRepliesMap[comment.parentId!]!.add(comment);
           }
         }
+        
+        print('🗺️ Replies map keys: ${newRepliesMap.keys.map((k) => k.substring(0, 8)).toList()}');
+        print('🗺️ Replies map values: ${newRepliesMap.map((k, v) => MapEntry(k.substring(0, 8), v.length))}');
 
         if (refresh) {
           state = state.copyWith(
