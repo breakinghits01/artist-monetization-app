@@ -134,17 +134,40 @@ class CommentNotifier extends StateNotifier<CommentState> {
             .where((comment) => comment.parentId == null) // Only top-level
             .toList();
 
+        // Build replies map from all comments
+        final newRepliesMap = <String, List<CommentModel>>{};
+        for (final comment in allComments) {
+          if (comment.parentId != null) {
+            if (!newRepliesMap.containsKey(comment.parentId)) {
+              newRepliesMap[comment.parentId!] = [];
+            }
+            newRepliesMap[comment.parentId!]!.add(comment);
+          }
+        }
+
         if (refresh) {
           state = state.copyWith(
             comments: commentsList,
+            repliesMap: newRepliesMap,
             isLoading: false,
             error: null,
             hasMore: commentsList.length >= 20,
             currentPage: 2,
           );
         } else {
+          // Merge replies maps for pagination
+          final mergedRepliesMap = Map<String, List<CommentModel>>.from(state.repliesMap);
+          newRepliesMap.forEach((key, value) {
+            if (mergedRepliesMap.containsKey(key)) {
+              mergedRepliesMap[key] = [...mergedRepliesMap[key]!, ...value];
+            } else {
+              mergedRepliesMap[key] = value;
+            }
+          });
+
           state = state.copyWith(
             comments: [...state.comments, ...commentsList],
+            repliesMap: mergedRepliesMap,
             isLoading: false,
             error: null,
             hasMore: commentsList.length >= 20,

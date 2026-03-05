@@ -1,10 +1,25 @@
 #!/bin/bash
 
+echo "🏗️  Building backend API..."
+cd "/Users/DekZ/Development/projects/app monitization/api_dynamic_artist_monetization"
+npm run build
+
+if [ $? -ne 0 ]; then
+    echo "❌ Backend build failed!"
+    exit 1
+fi
+
+echo ""
+echo "🔄 Restarting API server (PM2)..."
+pm2 restart artist-api-dev
+
+echo ""
 echo "🏗️  Building Flutter web..."
+cd "/Users/DekZ/Development/projects/app monitization/dynamic_artist_monetization"
 flutter build web --release
 
 if [ $? -ne 0 ]; then
-    echo "❌ Build failed!"
+    echo "❌ Frontend build failed!"
     exit 1
 fi
 

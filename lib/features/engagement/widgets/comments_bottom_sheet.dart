@@ -256,9 +256,8 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                               return const SizedBox.shrink();
                             }
 
-                            final replies = ref
-                                .read(commentProvider(widget.song.id).notifier)
-                                .getReplies(comment.id);
+                            // Get replies from the already-watched commentState
+                            final replies = commentState.repliesMap[comment.id] ?? [];
 
                             return _CommentTile(
                               comment: comment,
