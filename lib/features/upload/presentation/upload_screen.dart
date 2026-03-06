@@ -120,7 +120,7 @@ class UploadScreen extends ConsumerWidget {
           // File picker section
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Extra bottom padding for mini player
               child: Column(
                 children: [
                   FilePickerWidget(
@@ -183,7 +183,12 @@ class UploadScreen extends ConsumerWidget {
     
     // Desktop layout
     return SingleChildScrollView(
-      padding: EdgeInsets.all(isDesktop ? 40 : 24),
+      padding: EdgeInsets.fromLTRB(
+        isDesktop ? 40 : 24, 
+        isDesktop ? 40 : 24, 
+        isDesktop ? 40 : 24, 
+        isDesktop ? 140 : 124, // Extra bottom padding for mini player
+      ),
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: isDesktop ? 800 : double.infinity),

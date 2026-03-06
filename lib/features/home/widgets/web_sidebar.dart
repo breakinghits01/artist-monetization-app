@@ -195,7 +195,7 @@ class _NavItem extends StatelessWidget {
                 Icon(
                   icon,
                   color: isActive
-                      ? theme.colorScheme.primary
+                      ? Colors.white
                       : theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
                 const SizedBox(width: 16),
@@ -203,9 +203,9 @@ class _NavItem extends StatelessWidget {
                   label,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: isActive
-                        ? theme.colorScheme.primary
+                        ? Colors.white
                         : theme.colorScheme.onSurface.withOpacity(0.7),
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ],
