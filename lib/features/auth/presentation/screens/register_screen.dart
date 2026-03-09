@@ -22,6 +22,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   String _selectedRole = 'fan'; // Default role
+  bool _isRegistering = false; // Guard against double submission
 
   @override
   void dispose() {
@@ -37,9 +38,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
-    // Capture context-dependent objects BEFORE async operations
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final navigator = GoRouter.of(context);
+    // Prevent double submission
+    if (_isRegistering) {
+      print('⚠️ Registration already in progress, ignoring duplicate call');
+      return;
+    }
+
+    setState(() {
+      _isRegistering = true;
+    });
+
+    // Capture ScaffoldMessenger BEFORE any async operations
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       print('🔥 Starting registration...');
@@ -53,8 +63,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       print('🔥 REGISTRATION SUCCESS - No exception thrown');
       print('🔥 About to show snackbar...');
       
-      // Use captured scaffoldMessenger (works even if widget unmounts)
-      scaffoldMessenger.showSnackBar(
+      // Show success snackbar (works even if widget unmounts)
+      messenger.showSnackBar(
         SnackBar(
           content: Row(
             children: const [
@@ -88,36 +98,114 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // Wait for user to see the success message
       await Future.delayed(const Duration(seconds: 2));
       
-      print('🔥 Navigating to login screen now...');
-      // Use captured navigator
-      navigator.go(AppConstants.loginRoute);
+      print('🔥 ABOUT TO NAVIGATE TO LOGIN - This should ONLY show on SUCCESS');
       
-      print('✅ Navigation complete');
+      // Check if widget is still mounted before navigating
+      if (!mounted) {
+        print('⚠️ Widget unmounted, cannot navigate');
+        return;
+      }
+      
+      // Navigate using fresh context
+      context.go(AppConstants.loginRoute);
+      
+      print('✅ Navigation complete - You should be on login screen now');
     } on ApiException catch (e) {
       print('❌ ApiException caught: ${e.message}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
+      print('🛑 STAYING ON REGISTRATION SCREEN - NOT NAVIGATING');
+      
+      // Show error snackbar FIRST (works even if widget unmounts)
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  e.message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
+          backgroundColor: Colors.red.shade600,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
+        ),
+      );
+      
+      // Delay before resetting flag to prevent navigation issues
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Reset flag if still mounted
+      if (mounted) {
+        setState(() {
+          _isRegistering = false;
+        });
       }
+      
+      // IMPORTANT: Do NOT navigate on error - stay on registration screen
+      print('✅ Error handled, staying on registration screen');
+      return; // Explicitly return to prevent any further execution
     } catch (e) {
       print('❌ Generic exception caught: $e');
       print('❌ Exception type: ${e.runtimeType}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Registration failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
+      
+      // Show error snackbar FIRST (works even if widget unmounts)
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Registration failed: ${e.toString()}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
+          backgroundColor: Colors.red.shade600,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
+        ),
+      );
+      
+      // Delay before resetting flag to prevent navigation issues
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Reset flag if still mounted
+      if (mounted) {
+        setState(() {
+          _isRegistering = false;
+        });
       }
+      
+      // IMPORTANT: Do NOT navigate on error - stay on registration screen
+      print('✅ Error handled, staying on registration screen');
+      return; // Explicitly return to prevent any further execution
     }
   }
 
