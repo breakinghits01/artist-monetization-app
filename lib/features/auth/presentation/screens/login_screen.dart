@@ -89,22 +89,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       navigator.go(AppConstants.homeRoute);
     } on ApiException catch (e) {
       print('❌ API Exception: ${e.message}');
-      ScaffoldMessenger.of(context).showSnackBar(
+      // Use captured scaffoldMessenger (works even if widget unmounts)
+      scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text(e.message),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  e.message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade600,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
         ),
       );
     } catch (e) {
       print('❌ Unexpected error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
+      // Use captured scaffoldMessenger (works even if widget unmounts)
+      scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('Login failed: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Login failed: ${e.toString()}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade600,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
         ),
       );
     }
