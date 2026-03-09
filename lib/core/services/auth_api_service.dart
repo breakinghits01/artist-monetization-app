@@ -26,6 +26,9 @@ class AuthApiService {
     required String role,
   }) async {
     try {
+      print('🔥 AuthApiService: Sending registration request');
+      print('🔥 Username: $username, Email: $email, Role: $role');
+      
       final response = await _dio.post(
         AppConstants.registerEndpoint,
         data: {
@@ -36,19 +39,26 @@ class AuthApiService {
         },
       );
 
+      print('🔥 AuthApiService: Got response - success: ${response.data['success']}');
+      
       if (response.data['success'] == true) {
         final data = response.data['data'];
         
+        print('🔥 AuthApiService: Saving tokens...');
         // Save tokens
         if (data['accessToken'] != null) {
           await _storage.saveAccessToken(data['accessToken']);
+          print('✅ Access token saved');
         }
         if (data['refreshToken'] != null) {
           await _storage.saveRefreshToken(data['refreshToken']);
+          print('✅ Refresh token saved');
         }
 
+        print('✅ AuthApiService: Registration completed successfully');
         return data;
       } else {
+        print('❌ AuthApiService: API returned success=false');
         throw ApiException(
           message: response.data['message'] ?? 'Registration failed',
           statusCode: response.statusCode,
@@ -56,11 +66,16 @@ class AuthApiService {
         );
       }
     } on DioException catch (e) {
+      print('❌ AuthApiService: DioException - ${e.message}');
+      print('❌ Response data: ${e.response?.data}');
       throw ApiException(
         message: handleApiError(e),
         statusCode: e.response?.statusCode,
         data: e.response?.data,
       );
+    } catch (e) {
+      print('❌ AuthApiService: Unexpected error - $e (type: ${e.runtimeType})');
+      rethrow;
     }
   }
 

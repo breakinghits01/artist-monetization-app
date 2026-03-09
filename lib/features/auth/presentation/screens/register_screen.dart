@@ -37,17 +37,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
-    // Show loading feedback
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Creating your account...'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
+    // Capture context-dependent objects BEFORE async operations
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = GoRouter.of(context);
 
     try {
+      print('🔥 Starting registration...');
       await ref.read(authProvider.notifier).register(
         username: _usernameController.text.trim(),
         email: _emailController.text.trim(),
@@ -55,64 +50,71 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         role: _selectedRole,
       );
 
-      print('🔥 REGISTRATION SUCCESS');
+      print('🔥 REGISTRATION SUCCESS - No exception thrown');
+      print('🔥 About to show snackbar...');
       
-      // Registration successful - show success message with dialog (more reliable)
-      if (mounted) {
-        print('🔥 Showing SUCCESS dialog');
-        
-        ScaffoldMessenger.of(context).clearSnackBars();
-        
-        // Show success dialog
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            backgroundColor: Colors.green,
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white, size: 48),
-                const SizedBox(height: 16),
-                const Text(
-                  'Registration successful!',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
+      // Use captured scaffoldMessenger (works even if widget unmounts)
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.check_circle_rounded, color: Colors.white, size: 24),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '✅ Registration successful! Redirecting to login...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Please login with your new account',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-        
-        // Auto close after 2 seconds
-        await Future.delayed(const Duration(seconds: 2));
-        
-        if (mounted) {
-          Navigator.of(context).pop(); // Close dialog
-          context.go(AppConstants.loginRoute);
-        }
-      }
+          backgroundColor: Color(0xFF4CAF50),
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
+        ),
+      );
+      
+      print('✅ Snackbar shown! Waiting 2 seconds...');
+      
+      // Wait for user to see the success message
+      await Future.delayed(const Duration(seconds: 2));
+      
+      print('🔥 Navigating to login screen now...');
+      // Use captured navigator
+      navigator.go(AppConstants.loginRoute);
+      
+      print('✅ Navigation complete');
     } on ApiException catch (e) {
+      print('❌ ApiException caught: ${e.message}');
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
     } catch (e) {
+      print('❌ Generic exception caught: $e');
+      print('❌ Exception type: ${e.runtimeType}');
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Registration failed: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }

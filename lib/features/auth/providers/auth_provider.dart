@@ -156,12 +156,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     
     try {
+      debugPrint('🔥 AuthProvider: Starting registration for $email');
       await _authService.register(
         username: username,
         email: email,
         password: password,
         role: role,
       );
+      
+      debugPrint('🔥 AuthProvider: Registration API call completed successfully');
       
       // Do NOT save user data or set isAuthenticated
       // User needs to login manually after registration
@@ -172,14 +175,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       
       debugPrint('✅ Registration successful: $email');
     } on ApiException catch (e) {
-      debugPrint('❌ Registration error: ${e.message}');
+      debugPrint('❌ Registration ApiException: ${e.message}');
       state = state.copyWith(
         isLoading: false,
         error: e.message,
       );
       rethrow;
     } catch (e) {
-      debugPrint('❌ Unexpected registration error: $e');
+      debugPrint('❌ Unexpected registration error: $e (type: ${e.runtimeType})');
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
