@@ -105,12 +105,20 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     final currentUser = ref.watch(currentUserProvider);
     final currentUserId = currentUser?['_id'] ?? currentUser?['id'];
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+    // Calculate mini player height to position bottom sheet above it
+    // Mini player is approximately 88px on desktop, 72px on mobile
+    final miniPlayerHeight = MediaQuery.of(context).size.width > 900 ? 88.0 : 72.0;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final bottomSheetHeight = screenHeight * 0.65; // 65% of screen height
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: miniPlayerHeight),
+      child: Container(
+        height: bottomSheetHeight,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
       child: Column(
         children: [
           // Handle bar
@@ -368,6 +376,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
           ),
         ],
       ),
+    ),
     );
   }
 }
