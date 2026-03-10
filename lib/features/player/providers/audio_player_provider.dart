@@ -47,6 +47,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   bool _hasRewardedCurrentSong = false;
   bool _hasIncrementedPlayCount = false;
   bool _isDisposed = false;
+  double? _volumeBeforeMute; // Store volume before muting
 
   AudioPlayerNotifier(this._ref) : super(const models.PlayerState()) {
     _initPlayer();
@@ -156,6 +157,15 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       _audioPlayer.shuffleModeEnabledStream.listen((shuffleEnabled) {
         if (!_isDisposed) {
           state = state.copyWith(shuffleMode: shuffleEnabled);
+        }
+      }),
+    );
+    
+    // Listen to volume changes
+    _subscriptions.add(
+      _audioPlayer.volumeStream.listen((volume) {
+        if (!_isDisposed) {
+          state = state.copyWith(volume: volume);
         }
       }),
     );
@@ -683,6 +693,26 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     final newShuffle = !state.shuffleMode;
     await _audioPlayer.setShuffleModeEnabled(newShuffle);
     state = state.copyWith(shuffleMode: newShuffle);
+  }
+
+  /// Set volume (0.0 to 1.0)
+  Future<void> setVolume(double volume) async {
+    // Clamp volume to valid range
+    final clampedVolume = volume.clamp(0.0, 1.0);
+    await _audioPlayer.setVolume(clampedVolume);
+    state = state.copyWith(volume: clampedVolume);
+  }
+
+  /// Toggle mute
+  Future<void> toggleMute() async {
+    if (state.volume > 0) {
+      // Store current volume before muting
+      _volumeBeforeMute = state.volume;
+      await setVolume(0.0);
+    } else {
+      // Restore previous volume or default to 0.5
+      await setVolume(_volumeBeforeMute ?? 0.5);
+    }
   }
 
   /// Stop playback

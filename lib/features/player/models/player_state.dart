@@ -10,6 +10,7 @@ class PlayerState {
   final double speed;
   final LoopMode loopMode;
   final bool shuffleMode;
+  final double volume; // 0.0 (mute) to 1.0 (max)
 
   const PlayerState({
     this.isPlaying = false,
@@ -20,6 +21,7 @@ class PlayerState {
     this.speed = 1.0,
     this.loopMode = LoopMode.off,
     this.shuffleMode = false,
+    this.volume = 1.0,
   });
 
   /// Get progress as a percentage (0.0 - 1.0)
@@ -59,6 +61,7 @@ class PlayerState {
     double? speed,
     LoopMode? loopMode,
     bool? shuffleMode,
+    double? volume,
   }) {
     return PlayerState(
       isPlaying: isPlaying ?? this.isPlaying,
@@ -69,6 +72,7 @@ class PlayerState {
       speed: speed ?? this.speed,
       loopMode: loopMode ?? this.loopMode,
       shuffleMode: shuffleMode ?? this.shuffleMode,
+      volume: volume ?? this.volume,
     );
   }
 }

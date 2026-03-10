@@ -14,11 +14,18 @@ import '../../engagement/widgets/share_bottom_sheet.dart';
 
 /// Desktop mini player with enhanced controls and features
 /// This is a feature-rich version designed for larger screens
-class MiniPlayerDesktop extends ConsumerWidget {
+class MiniPlayerDesktop extends ConsumerStatefulWidget {
   const MiniPlayerDesktop({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MiniPlayerDesktop> createState() => _MiniPlayerDesktopState();
+}
+
+class _MiniPlayerDesktopState extends ConsumerState<MiniPlayerDesktop> {
+  bool _showVolumeSlider = false;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final song = ref.watch(currentSongProvider);
     final playerState = ref.watch(audioPlayerProvider);
@@ -50,17 +57,17 @@ class MiniPlayerDesktop extends ConsumerWidget {
               child: Row(
                 children: [
                   // LEFT: Album art + Song info + Time
-                  _buildLeftSection(context, song, theme, ref, playerState),
+                  _buildLeftSection(context, song, theme, playerState),
                   const SizedBox(width: 24),
                   // CENTER: Playback controls (centered)
                   Expanded(
                     child: Center(
-                      child: _buildControls(ref, playerState, theme),
+                      child: _buildControls(playerState, theme),
                     ),
                   ),
                   const SizedBox(width: 24),
                   // RIGHT: Engagement buttons + Volume
-                  _buildRightSection(context, ref, song, theme),
+                  _buildRightSection(context, song, theme),
                 ],
               ),
             ),
@@ -74,7 +81,6 @@ class MiniPlayerDesktop extends ConsumerWidget {
     BuildContext context,
     SongModel song,
     ThemeData theme,
-    WidgetRef ref,
     models.PlayerState playerState,
   ) {
     return SizedBox(
@@ -86,7 +92,7 @@ class MiniPlayerDesktop extends ConsumerWidget {
           const SizedBox(width: 12),
           // Song info
           Expanded(
-            child: _buildSongInfoWithDownloadIndicator(context, ref, song, theme),
+            child: _buildSongInfoWithDownloadIndicator(context, song, theme),
           ),
         ],
       ),
@@ -95,7 +101,6 @@ class MiniPlayerDesktop extends ConsumerWidget {
 
   Widget _buildSongInfoWithDownloadIndicator(
     BuildContext context,
-    WidgetRef ref,
     SongModel song,
     ThemeData theme,
   ) {
@@ -142,7 +147,6 @@ class MiniPlayerDesktop extends ConsumerWidget {
 
   Widget _buildRightSection(
     BuildContext context,
-    WidgetRef ref,
     SongModel song,
     ThemeData theme,
   ) {
@@ -209,12 +213,12 @@ class MiniPlayerDesktop extends ConsumerWidget {
         _buildEngagementButton(
           icon: Icons.more_vert,
           theme: theme,
-          onPressed: () => _showOptionsMenu(context, ref, song),
+          onPressed: () => _showOptionsMenu(context, song),
         ),
         const SizedBox(width: 16),
         
         // Volume control
-        _buildVolumeControl(ref, theme),
+        _buildVolumeControl(theme),
       ],
     );
   }
@@ -274,30 +278,83 @@ class MiniPlayerDesktop extends ConsumerWidget {
     );
   }
 
-  Widget _buildVolumeControl(WidgetRef ref, ThemeData theme) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          // TODO: Implement volume control
-          // For now, just show icon
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.volume_up,
-            size: 22,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-          ),
+  Widget _buildVolumeControl(ThemeData theme) {
+    final playerState = ref.watch(audioPlayerProvider);
+    final volume = playerState.volume;
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => _showVolumeSlider = true),
+      onExit: (_) => setState(() => _showVolumeSlider = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: _showVolumeSlider ? 140 : 40,
+        height: 40,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Volume icon button (mute/unmute)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  ref.read(audioPlayerProvider.notifier).toggleMute();
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  child: Icon(
+                    _getVolumeIcon(volume),
+                    size: 22,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+            ),
+            
+            // Volume slider (shown on hover)
+            if (_showVolumeSlider)
+              Expanded(
+                child: SliderTheme(
+                  data: SliderThemeData(
+                    trackHeight: 3,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                    activeTrackColor: theme.colorScheme.primary,
+                    inactiveTrackColor: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                    thumbColor: theme.colorScheme.primary,
+                    overlayColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+                  ),
+                  child: Slider(
+                    value: volume,
+                    min: 0.0,
+                    max: 1.0,
+                    onChanged: (value) {
+                      ref.read(audioPlayerProvider.notifier).setVolume(value);
+                    },
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  void _showOptionsMenu(BuildContext context, WidgetRef ref, SongModel song) {
+  IconData _getVolumeIcon(double volume) {
+    if (volume == 0) {
+      return Icons.volume_off;
+    } else if (volume < 0.3) {
+      return Icons.volume_mute;
+    } else if (volume < 0.7) {
+      return Icons.volume_down;
+    } else {
+      return Icons.volume_up;
+    }
+  }
+
+  void _showOptionsMenu(BuildContext context, SongModel song) {
     final theme = Theme.of(context);
     
     showModalBottomSheet(
@@ -388,7 +445,6 @@ class MiniPlayerDesktop extends ConsumerWidget {
   }
 
   Widget _buildControls(
-    WidgetRef ref,
     models.PlayerState playerState,
     ThemeData theme,
   ) {
