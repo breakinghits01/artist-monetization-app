@@ -66,8 +66,8 @@ class AuthApiService {
         );
       }
     } on DioException catch (e) {
-      print('❌ AuthApiService: DioException - ${e.message}');
-      print('❌ Response data: ${e.response?.data}');
+      final errorMsg = e.response?.data?['message'] ?? handleApiError(e);
+      print('❌ Registration failed: $errorMsg');
       throw ApiException(
         message: handleApiError(e),
         statusCode: e.response?.statusCode,

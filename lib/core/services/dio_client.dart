@@ -53,8 +53,10 @@ class DioClient {
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          // Log response
-          print('RESPONSE[${response.statusCode}] => DATA: ${response.data}');
+          // Log response (only in development)
+          if (response.statusCode! >= 400) {
+            print('⚠️ [${response.statusCode}] ${response.requestOptions.path}');
+          }
           return handler.next(response);
         },
         onError: (error, handler) async {
@@ -69,9 +71,9 @@ class DioClient {
               error.type == DioExceptionType.sendTimeout;
           
           if (isCriticalError && !isConnectionError) {
-            // Log error
-            print('ERROR[${error.response?.statusCode}] => DATA: ${error.response?.data}');
-            print('MESSAGE: ${error.message}');
+            // Log error with minimal details
+            final message = error.response?.data?['message'] ?? 'Request failed';
+            print('❌ [${error.response?.statusCode}] $message');
           } else if (isConnectionError) {
             print('⚠️ Network unavailable (offline mode)');
           }
@@ -169,6 +171,8 @@ String handleApiError(dynamic error) {
             return 'Access forbidden.';
           case 404:
             return 'Resource not found.';
+          case 409:
+            return message ?? 'Resource already exists.';
           case 422:
             return message ?? AppConstants.validationErrorMessage;
           case 500:

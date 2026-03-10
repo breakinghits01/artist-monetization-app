@@ -147,14 +147,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Register new user
+  /// Note: Does NOT update provider state to avoid triggering router redirects
   Future<void> register({
     required String username,
     required String email,
     required String password,
     required String role,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
-    
     try {
       debugPrint('🔥 AuthProvider: Starting registration for $email');
       await _authService.register(
@@ -164,29 +163,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         role: role,
       );
       
-      debugPrint('🔥 AuthProvider: Registration API call completed successfully');
-      
-      // Do NOT save user data or set isAuthenticated
-      // User needs to login manually after registration
-      state = state.copyWith(
-        isLoading: false,
-        error: null,
-      );
-      
       debugPrint('✅ Registration successful: $email');
-    } on ApiException catch (e) {
-      debugPrint('❌ Registration ApiException: ${e.message}');
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
-      rethrow;
+      // Success - don't update state, let the screen handle navigation
     } catch (e) {
-      debugPrint('❌ Unexpected registration error: $e (type: ${e.runtimeType})');
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      if (e is ApiException) {
+        debugPrint('❌ Registration ApiException: ${e.message}');
+      } else {
+        debugPrint('❌ Unexpected registration error: $e (type: ${e.runtimeType})');
+      }
+      // Error - don't update state, let the screen handle the error display
       rethrow;
     }
   }

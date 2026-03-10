@@ -22,7 +22,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   String _selectedRole = 'fan'; // Default role
-  bool _isRegistering = false; // Guard against double submission
+  final ValueNotifier<bool> _isRegistering = ValueNotifier<bool>(false); // Use ValueNotifier instead of setState
 
   @override
   void dispose() {
@@ -30,6 +30,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _isRegistering.dispose();
     super.dispose();
   }
 
@@ -39,14 +40,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
 
     // Prevent double submission
-    if (_isRegistering) {
+    if (_isRegistering.value) {
       print('⚠️ Registration already in progress, ignoring duplicate call');
       return;
     }
 
-    setState(() {
-      _isRegistering = true;
-    });
+    _isRegistering.value = true; // No setState - just update ValueNotifier
 
     // Capture ScaffoldMessenger BEFORE any async operations
     final messenger = ScaffoldMessenger.of(context);
@@ -103,18 +102,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // Check if widget is still mounted before navigating
       if (!mounted) {
         print('⚠️ Widget unmounted, cannot navigate');
+        _isRegistering.value = false;
         return;
       }
+      
+      // Reset flag before navigation
+      _isRegistering.value = false;
       
       // Navigate using fresh context
       context.go(AppConstants.loginRoute);
       
       print('✅ Navigation complete - You should be on login screen now');
     } on ApiException catch (e) {
-      print('❌ ApiException caught: ${e.message}');
-      print('🛑 STAYING ON REGISTRATION SCREEN - NOT NAVIGATING');
+      print('❌ Registration error: ${e.message} (${e.statusCode})');
       
-      // Show error snackbar FIRST (works even if widget unmounts)
+      // Reset flag FIRST
+      _isRegistering.value = false;
+      
+      // Show error snackbar (works even if widget unmounts)
       messenger.clearSnackBars();
       messenger.showSnackBar(
         SnackBar(
@@ -145,24 +150,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
       );
       
-      // Delay before resetting flag to prevent navigation issues
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Reset flag if still mounted
-      if (mounted) {
-        setState(() {
-          _isRegistering = false;
-        });
-      }
-      
-      // IMPORTANT: Do NOT navigate on error - stay on registration screen
-      print('✅ Error handled, staying on registration screen');
-      return; // Explicitly return to prevent any further execution
+      // Stay on registration screen - error shown in snackbar
+      return;
     } catch (e) {
-      print('❌ Generic exception caught: $e');
-      print('❌ Exception type: ${e.runtimeType}');
+      print('❌ Unexpected error: $e');
       
-      // Show error snackbar FIRST (works even if widget unmounts)
+      // Reset flag FIRST
+      _isRegistering.value = false;
+      
+      // Show error snackbar (works even if widget unmounts)
       messenger.clearSnackBars();
       messenger.showSnackBar(
         SnackBar(
@@ -193,19 +189,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
       );
       
-      // Delay before resetting flag to prevent navigation issues
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Reset flag if still mounted
-      if (mounted) {
-        setState(() {
-          _isRegistering = false;
-        });
-      }
-      
-      // IMPORTANT: Do NOT navigate on error - stay on registration screen
-      print('✅ Error handled, staying on registration screen');
-      return; // Explicitly return to prevent any further execution
+      // Stay on registration screen
+      return;
     }
   }
 
@@ -395,12 +380,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 24),
 
                   // Register Button
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final isLoading = ref.watch(isAuthLoadingProvider);
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _isRegistering,
+                    builder: (context, isRegistering, child) {
                       return ElevatedButton(
-                        onPressed: isLoading ? null : _handleRegister,
-                        child: isLoading
+                        onPressed: isRegistering ? null : _handleRegister,
+                        child: isRegistering
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
