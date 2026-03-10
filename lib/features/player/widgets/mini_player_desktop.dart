@@ -285,14 +285,12 @@ class _MiniPlayerDesktopState extends ConsumerState<MiniPlayerDesktop> {
     return MouseRegion(
       onEnter: (_) => setState(() => _showVolumeSlider = true),
       onExit: (_) => setState(() => _showVolumeSlider = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: _showVolumeSlider ? 140 : 40,
+      child: SizedBox(
         height: 40,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Volume icon button (mute/unmute)
+            // Volume icon button (mute/unmute) - Always visible
             Material(
               color: Colors.transparent,
               child: InkWell(
@@ -300,42 +298,56 @@ class _MiniPlayerDesktopState extends ConsumerState<MiniPlayerDesktop> {
                   ref.read(audioPlayerProvider.notifier).toggleMute();
                 },
                 borderRadius: BorderRadius.circular(20),
-                child: Container(
+                child: SizedBox(
                   width: 40,
                   height: 40,
-                  alignment: Alignment.center,
-                  child: Icon(
-                    _getVolumeIcon(volume),
-                    size: 22,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  child: Center(
+                    child: Icon(
+                      _getVolumeIcon(volume),
+                      size: 22,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
                   ),
                 ),
               ),
             ),
             
-            // Volume slider (shown on hover)
-            if (_showVolumeSlider)
-              Expanded(
-                child: SliderTheme(
-                  data: SliderThemeData(
-                    trackHeight: 3,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                    activeTrackColor: theme.colorScheme.primary,
-                    inactiveTrackColor: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                    thumbColor: theme.colorScheme.primary,
-                    overlayColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-                  ),
-                  child: Slider(
-                    value: volume,
-                    min: 0.0,
-                    max: 1.0,
-                    onChanged: (value) {
-                      ref.read(audioPlayerProvider.notifier).setVolume(value);
-                    },
+            // Volume slider with clip to prevent overflow
+            ClipRect(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                width: _showVolumeSlider ? 100 : 0,
+                height: 40,
+                child: OverflowBox(
+                  maxWidth: 100,
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: 100,
+                    height: 40,
+                    child: SliderTheme(
+                      data: SliderThemeData(
+                        trackHeight: 3,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                        activeTrackColor: theme.colorScheme.primary,
+                        inactiveTrackColor: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                        thumbColor: theme.colorScheme.primary,
+                        overlayColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+                      ),
+                      child: Slider(
+                        value: volume,
+                        min: 0.0,
+                        max: 1.0,
+                        onChanged: (value) {
+                          ref.read(audioPlayerProvider.notifier).setVolume(value);
+                        },
+                      ),
+                    ),
                   ),
                 ),
               ),
+            ),
           ],
         ),
       ),
