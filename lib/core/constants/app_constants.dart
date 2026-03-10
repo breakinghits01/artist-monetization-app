@@ -6,6 +6,9 @@ class AppConstants {
   static const String appName = 'Artist Monetization';
   static const String appVersion = '1.0.0';
 
+  // Feature Flags
+  static const bool useRedesignedRegisterScreen = true; // Toggle new register UI
+
   // API Configuration
   // Production Cloudflare tunnel URL - PERMANENT & UNLIMITED bandwidth
   static const String cloudflareBaseUrl = 'https://artistmonetization.xyz';
