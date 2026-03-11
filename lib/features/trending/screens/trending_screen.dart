@@ -226,7 +226,7 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
 }
 
 /// Individual trending song tile with ranking
-class _TrendingSongTile extends ConsumerWidget {
+class _TrendingSongTile extends ConsumerStatefulWidget {
   final SongModel song;
   final int rank;
   final List<SongModel> allSongs;
@@ -238,7 +238,17 @@ class _TrendingSongTile extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_TrendingSongTile> createState() => _TrendingSongTileState();
+}
+
+class _TrendingSongTileState extends ConsumerState<_TrendingSongTile> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final song = widget.song;
+    final rank = widget.rank;
+    final allSongs = widget.allSongs;
     final theme = Theme.of(context);
     final currentSong = ref.watch(currentSongProvider);
     final playerState = ref.watch(audioPlayerProvider);
@@ -373,23 +383,29 @@ class _TrendingSongTile extends ConsumerWidget {
 
             // Song info - tap to navigate to detail screen
             Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  // Navigate to song detail screen - push to maintain navigation stack
-                  context.push('/song/${song.id}', extra: song);
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      song.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isCurrentSong ? theme.colorScheme.primary : null,
+              child: MouseRegion(
+                onEnter: (_) => setState(() => _isHovering = true),
+                onExit: (_) => setState(() => _isHovering = false),
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () {
+                    // Navigate to song detail screen - push to maintain navigation stack
+                    context.push('/song/${song.id}', extra: song);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        song.title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isCurrentSong ? theme.colorScheme.primary : null,
+                          decoration: _isHovering ? TextDecoration.underline : null,
+                          decorationColor: isCurrentSong ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                     const SizedBox(height: 4),
                     Text(
                       song.artist,
@@ -667,6 +683,7 @@ class _TrendingSongTile extends ConsumerWidget {
                   ],
                 ),
               ),
+            ),
             ),
 
             // Play button
