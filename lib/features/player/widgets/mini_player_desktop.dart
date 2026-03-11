@@ -22,8 +22,6 @@ class MiniPlayerDesktop extends ConsumerStatefulWidget {
 }
 
 class _MiniPlayerDesktopState extends ConsumerState<MiniPlayerDesktop> {
-  bool _showVolumeSlider = false;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -282,74 +280,55 @@ class _MiniPlayerDesktopState extends ConsumerState<MiniPlayerDesktop> {
     final playerState = ref.watch(audioPlayerProvider);
     final volume = playerState.volume;
     
-    return MouseRegion(
-      onEnter: (_) => setState(() => _showVolumeSlider = true),
-      onExit: (_) => setState(() => _showVolumeSlider = false),
-      child: SizedBox(
-        height: 40,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Volume icon button (mute/unmute) - Always visible
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  ref.read(audioPlayerProvider.notifier).toggleMute();
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Center(
-                    child: Icon(
-                      _getVolumeIcon(volume),
-                      size: 22,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            
-            // Volume slider with clip to prevent overflow
-            ClipRect(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                width: _showVolumeSlider ? 100 : 0,
+    return SizedBox(
+      width: 140,
+      height: 40,
+      child: Row(
+        children: [
+          // Volume icon - always visible
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                ref.read(audioPlayerProvider.notifier).toggleMute();
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: 40,
                 height: 40,
-                child: OverflowBox(
-                  maxWidth: 100,
-                  alignment: Alignment.centerLeft,
-                  child: SizedBox(
-                    width: 100,
-                    height: 40,
-                    child: SliderTheme(
-                      data: SliderThemeData(
-                        trackHeight: 3,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                        activeTrackColor: theme.colorScheme.primary,
-                        inactiveTrackColor: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                        thumbColor: theme.colorScheme.primary,
-                        overlayColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-                      ),
-                      child: Slider(
-                        value: volume,
-                        min: 0.0,
-                        max: 1.0,
-                        onChanged: (value) {
-                          ref.read(audioPlayerProvider.notifier).setVolume(value);
-                        },
-                      ),
-                    ),
-                  ),
+                alignment: Alignment.center,
+                child: Icon(
+                  _getVolumeIcon(volume),
+                  size: 22,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+          
+          // Slider - always visible
+          Expanded(
+            child: SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 3,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                activeTrackColor: theme.colorScheme.primary,
+                inactiveTrackColor: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                thumbColor: theme.colorScheme.primary,
+                overlayColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+              ),
+              child: Slider(
+                value: volume,
+                min: 0.0,
+                max: 1.0,
+                onChanged: (value) {
+                  ref.read(audioPlayerProvider.notifier).setVolume(value);
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
