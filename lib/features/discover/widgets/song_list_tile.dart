@@ -396,8 +396,8 @@ class SongListTile extends ConsumerWidget {
           },
         ),
         onTap: onTap ?? () {
-          // Navigate to song detail screen with URL change
-          context.go('/song/${song.id}', extra: song);
+          // Navigate to song detail screen - push to maintain navigation stack
+          context.push('/song/${song.id}', extra: song);
         },
       ),
     );

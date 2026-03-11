@@ -38,7 +38,8 @@ class SongDetailScreen extends ConsumerWidget {
             if (context.canPop()) {
               context.pop();
             } else {
-              context.go('/');
+              // Fallback to discover if accessed directly via URL
+              context.go('/discover');
             }
           },
         ),
