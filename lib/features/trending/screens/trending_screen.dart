@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../../player/models/song_model.dart';
 import '../../player/providers/audio_player_provider.dart';
 import '../../player/widgets/audio_wave_indicator.dart';
@@ -8,7 +9,6 @@ import '../providers/trending_provider.dart';
 import '../../../shared/widgets/token_icon.dart';
 import '../../../core/theme/app_colors_extension.dart';
 import '../../engagement/providers/like_provider.dart';
-import '../../engagement/providers/comment_provider.dart';
 import '../../engagement/widgets/comments_bottom_sheet.dart';
 import '../../engagement/widgets/share_bottom_sheet.dart';
 
@@ -52,7 +52,6 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final trendingSongsAsync = ref.watch(trendingSongsProvider);
-    final currentSong = ref.watch(currentSongProvider);
 
     return Stack(
       children: [
@@ -263,40 +262,41 @@ class _TrendingSongTile extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       elevation: isCurrentSong ? 8 : 2,
-      child: InkWell(
-        onTap: () {
-          if (isCurrentSong) {
-            ref.read(audioPlayerProvider.notifier).playPause();
-          } else {
-            ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs);
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // Rank number or medal
-              SizedBox(
-                width: 50,
-                child: medal != null
-                    ? Text(
-                        medal,
-                        style: const TextStyle(fontSize: 32),
-                        textAlign: TextAlign.center,
-                      )
-                    : Text(
-                        '$rank',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
-                        textAlign: TextAlign.center,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // Rank number or medal
+            SizedBox(
+              width: 50,
+              child: medal != null
+                  ? Text(
+                      medal,
+                      style: const TextStyle(fontSize: 32),
+                      textAlign: TextAlign.center,
+                    )
+                  : Text(
+                      '$rank',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                       ),
-              ),
-              const SizedBox(width: 12),
+                      textAlign: TextAlign.center,
+                    ),
+            ),
+            const SizedBox(width: 12),
 
-              // Album art
-              Stack(
+            // Album art - tap to play/pause
+            InkWell(
+              onTap: () {
+                if (isCurrentSong) {
+                  ref.read(audioPlayerProvider.notifier).playPause();
+                } else {
+                  ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs);
+                }
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Stack(
                 children: [
                   Container(
                     width: 60,
@@ -368,10 +368,16 @@ class _TrendingSongTile extends ConsumerWidget {
                     ),
                 ],
               ),
-              const SizedBox(width: 12),
+            ),
+            const SizedBox(width: 12),
 
-              // Song info
-              Expanded(
+            // Song info - tap to navigate to detail screen
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  // Navigate to song detail screen - push to maintain navigation stack
+                  context.push('/song/${song.id}', extra: song);
+                },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -661,9 +667,10 @@ class _TrendingSongTile extends ConsumerWidget {
                   ],
                 ),
               ),
+            ),
 
-              // Play button
-              IconButton(
+            // Play button
+            IconButton(
                 icon: Icon(
                   isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
                   color: rankColor ?? theme.colorScheme.primary,
@@ -679,8 +686,7 @@ class _TrendingSongTile extends ConsumerWidget {
               ),
             ], // End of Row children
           ), // End of Padding child (Row)
-        ), // End of InkWell child (Padding)
-      ), // End of Card child (InkWell)
+        ), // End of Card child (Padding)
     ); // End of return Card
   }
 }
