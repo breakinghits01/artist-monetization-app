@@ -13,7 +13,7 @@ import '../../engagement/widgets/comments_bottom_sheet.dart';
 import '../../engagement/widgets/share_bottom_sheet.dart';
 
 /// Song list tile for browse/discover screens
-class SongListTile extends ConsumerWidget {
+class SongListTile extends ConsumerStatefulWidget {
   final SongModel song;
   final List<SongModel>? allSongs; // For queue context
   final VoidCallback? onTap;
@@ -26,7 +26,16 @@ class SongListTile extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SongListTile> createState() => _SongListTileState();
+}
+
+class _SongListTileState extends ConsumerState<SongListTile> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final song = widget.song;
+    final allSongs = widget.allSongs;
     final theme = Theme.of(context);
     final currentSong = ref.watch(currentSongProvider);
     final playerState = ref.watch(audioPlayerProvider);
@@ -92,14 +101,29 @@ class SongListTile extends ConsumerWidget {
               ),
           ],
         ),
-        title: Text(
-          song.title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: isCurrentSong ? theme.colorScheme.primary : null,
+        title: MouseRegion(
+          onEnter: (_) => setState(() => _isHovering = true),
+          onExit: (_) => setState(() => _isHovering = false),
+          child: GestureDetector(
+            onTap: widget.onTap ?? () {
+              // Navigate to song detail screen - push to maintain navigation stack
+              context.push('/song/${song.id}', extra: song);
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Text(
+                song.title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isCurrentSong ? theme.colorScheme.primary : null,
+                  decoration: _isHovering ? TextDecoration.underline : null,
+                  decorationColor: isCurrentSong ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,10 +419,6 @@ class SongListTile extends ConsumerWidget {
             }
           },
         ),
-        onTap: onTap ?? () {
-          // Navigate to song detail screen - push to maintain navigation stack
-          context.push('/song/${song.id}', extra: song);
-        },
       ),
     );
   }
