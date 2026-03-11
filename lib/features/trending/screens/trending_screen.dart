@@ -386,7 +386,6 @@ class _TrendingSongTileState extends ConsumerState<_TrendingSongTile> {
               child: MouseRegion(
                 onEnter: (_) => setState(() => _isHovering = true),
                 onExit: (_) => setState(() => _isHovering = false),
-                cursor: SystemMouseCursors.click,
                 child: GestureDetector(
                   onTap: () {
                     // Navigate to song detail screen - push to maintain navigation stack
@@ -395,16 +394,19 @@ class _TrendingSongTileState extends ConsumerState<_TrendingSongTile> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        song.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: isCurrentSong ? theme.colorScheme.primary : null,
-                          decoration: _isHovering ? TextDecoration.underline : null,
-                          decorationColor: isCurrentSong ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Text(
+                          song.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: isCurrentSong ? theme.colorScheme.primary : null,
+                            decoration: _isHovering ? TextDecoration.underline : null,
+                            decorationColor: isCurrentSong ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     const SizedBox(height: 4),
                     Text(
