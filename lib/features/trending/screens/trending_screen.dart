@@ -383,31 +383,30 @@ class _TrendingSongTileState extends ConsumerState<_TrendingSongTile> {
 
             // Song info - tap to navigate to detail screen
             Expanded(
-              child: MouseRegion(
-                onEnter: (_) => setState(() => _isHovering = true),
-                onExit: (_) => setState(() => _isHovering = false),
-                child: GestureDetector(
-                  onTap: () {
-                    // Navigate to song detail screen - push to maintain navigation stack
-                    context.push('/song/${song.id}', extra: song);
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: Text(
-                          song.title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: isCurrentSong ? theme.colorScheme.primary : null,
-                            decoration: _isHovering ? TextDecoration.underline : null,
-                            decorationColor: isCurrentSong ? theme.colorScheme.primary : theme.colorScheme.onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+              child: GestureDetector(
+                onTap: () {
+                  // Navigate to song detail screen - push to maintain navigation stack
+                  context.push('/song/${song.id}', extra: song);
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    MouseRegion(
+                      onEnter: (_) => setState(() => _isHovering = true),
+                      onExit: (_) => setState(() => _isHovering = false),
+                      cursor: SystemMouseCursors.click,
+                      child: Text(
+                        song.title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isCurrentSong ? theme.colorScheme.primary : null,
+                          decoration: _isHovering ? TextDecoration.underline : null,
+                          decorationColor: isCurrentSong ? theme.colorScheme.primary : theme.colorScheme.onSurface,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       song.artist,
@@ -685,7 +684,6 @@ class _TrendingSongTileState extends ConsumerState<_TrendingSongTile> {
                   ],
                 ),
               ),
-            ),
             ),
 
             // Play button

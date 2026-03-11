@@ -8,7 +8,6 @@ import '../../player/widgets/audio_wave_indicator.dart';
 import '../../../shared/widgets/token_icon.dart';
 import '../../../core/theme/app_colors_extension.dart';
 import '../../engagement/providers/like_provider.dart';
-import '../../engagement/providers/comment_provider.dart';
 import '../../engagement/widgets/comments_bottom_sheet.dart';
 import '../../engagement/widgets/share_bottom_sheet.dart';
 
@@ -411,8 +410,8 @@ class _SongListTileState extends ConsumerState<SongListTile> {
               ref.read(audioPlayerProvider.notifier).playPause();
             } else {
               // Use queue if available, otherwise single song
-              if (allSongs != null && allSongs!.isNotEmpty) {
-                ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs!);
+              if (allSongs != null && allSongs.isNotEmpty) {
+                ref.read(audioPlayerProvider.notifier).playSongWithQueue(song, allSongs);
               } else {
                 ref.read(audioPlayerProvider.notifier).playSong(song);
               }
