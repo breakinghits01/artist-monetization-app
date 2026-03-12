@@ -170,7 +170,6 @@ class SongDetailScreen extends ConsumerWidget {
 
   Widget _buildStats(ThemeData theme, WidgetRef ref) {
     final likeState = ref.watch(likeProvider(song.id));
-    final commentState = ref.watch(commentProvider(song.id));
     
     return Wrap(
       spacing: 20,

@@ -17,7 +17,6 @@ class MiniPlayer extends ConsumerWidget {
     final song = ref.watch(currentSongProvider);
     final playerState = ref.watch(audioPlayerProvider);
     final tokenState = ref.watch(tokenEarnProvider);
-    final isPlayingFromDownload = ref.watch(playingFromDownloadProvider);
 
     if (song == null) return const SizedBox.shrink();
 

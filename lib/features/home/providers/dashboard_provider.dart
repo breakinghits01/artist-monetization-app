@@ -23,9 +23,6 @@ class DashboardCardsNotifier
 
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // Fetch rising artist dynamically (most active content creator)
-      final featuredArtist = await _ref.read(featuredArtistProvider.future);
-
       // Build cards list
       final cards = <DashboardCardModel>[
         DashboardCardModel(
@@ -90,15 +87,6 @@ class DashboardCardsNotifier
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }
-  }
-
-  String _formatCount(int count) {
-    if (count >= 1000000) {
-      return '${(count / 1000000).toStringAsFixed(1)}M';
-    } else if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(1)}K';
-    }
-    return count.toString();
   }
 
   Future<void> refresh() async {

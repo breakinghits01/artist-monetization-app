@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../artist/models/artist_model.dart';
 import '../../artist/services/artist_api_service.dart';
 import '../../player/models/song_model.dart';
-import '../../../core/config/api_config.dart';
 import '../../../core/api/api_client.dart';
 
 /// Provider for fetching any user's public profile by userId

@@ -21,9 +21,6 @@ import '../../providers/treasure_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/story_provider.dart';
 import '../../providers/wallet_provider.dart';
-import '../../providers/dashboard_view_provider.dart';
-import '../../../trending/screens/trending_screen.dart';
-import '../../../rising_stars/screens/rising_stars_screen.dart';
 import '../../../../services/providers/download_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {

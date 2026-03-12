@@ -8,7 +8,6 @@ import '../models/player_state.dart' as models;
 import 'glass_container.dart';
 import '../../../core/theme/app_colors_extension.dart';
 import '../../engagement/providers/like_provider.dart';
-import '../../engagement/providers/comment_provider.dart';
 import '../../engagement/widgets/comments_bottom_sheet.dart';
 import '../../engagement/widgets/share_bottom_sheet.dart';
 
@@ -149,7 +148,6 @@ class _MiniPlayerDesktopState extends ConsumerState<MiniPlayerDesktop> {
     ThemeData theme,
   ) {
     final likeState = ref.watch(likeProvider(song.id));
-    final commentState = ref.watch(commentProvider(song.id));
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -542,20 +540,6 @@ class _MiniPlayerDesktopState extends ConsumerState<MiniPlayerDesktop> {
           },
         ),
       ],
-    );
-  }
-
-  Widget _buildTimeDisplay(models.PlayerState playerState, ThemeData theme) {
-    return SizedBox(
-      width: 100, // Fixed width to prevent layout shifts
-      child: Text(
-        '${_formatDuration(playerState.position)} / ${_formatDuration(playerState.duration)}',
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
     );
   }
 

@@ -26,12 +26,10 @@ final playingFromDownloadProvider = StateProvider<bool>((ref) => false);
 
 /// Audio player provider - kept alive for app lifetime, manual cleanup available
 final audioPlayerProvider =
-    StateNotifierProvider<AudioPlayerNotifier, models.PlayerState>(
-      (ref) {
-        final notifier = AudioPlayerNotifier(ref);
-        return notifier;
-      },
-    );
+    StateNotifierProvider<AudioPlayerNotifier, models.PlayerState>((ref) {
+      final notifier = AudioPlayerNotifier(ref);
+      return notifier;
+    });
 
 /// Token earn state provider
 final tokenEarnProvider =
@@ -46,6 +44,8 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   AudioServiceHandler? _audioServiceHandler;
   bool _hasRewardedCurrentSong = false;
   bool _hasIncrementedPlayCount = false;
+  bool _playCountIncrementSuccessful = false; // Track successful API response
+  DateTime? _sessionStartTime; // Track when session actually started
   bool _isDisposed = false;
   double? _volumeBeforeMute; // Store volume before muting
 
@@ -54,21 +54,23 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     _initAudioService();
     _configureOptimalPlayback();
   }
-  
+
   /// Configure optimal playback settings for Cloudflare R2
   Future<void> _configureOptimalPlayback() async {
     try {
       // OPTIMIZATION: Disable automatic stalling to start playback faster
       // Cloudflare R2 has fast CDN delivery, so we don't need to wait for large buffer
       await _audioPlayer.setAutomaticallyWaitsToMinimizeStalling(false);
-      
+
       // CRITICAL: Ensure shuffle is OFF by default (prevents queue jumping)
       await _audioPlayer.setShuffleModeEnabled(false);
-      
+
       // CRITICAL: Set loop mode to OFF by default (prevents unexpected behavior)
       await _audioPlayer.setLoopMode(LoopMode.off);
-      
-      print('✅ Audio player configured: fast CDN playback, shuffle OFF, loop OFF');
+
+      print(
+        '✅ Audio player configured: fast CDN playback, shuffle OFF, loop OFF',
+      );
     } catch (e) {
       print('⚠️ Could not configure optimal playback (non-critical): $e');
     }
@@ -142,7 +144,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         }
       }),
     );
-    
+
     // Listen to loop mode changes
     _subscriptions.add(
       _audioPlayer.loopModeStream.listen((loopMode) {
@@ -151,7 +153,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         }
       }),
     );
-    
+
     // Listen to shuffle mode changes
     _subscriptions.add(
       _audioPlayer.shuffleModeEnabledStream.listen((shuffleEnabled) {
@@ -160,7 +162,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         }
       }),
     );
-    
+
     // Listen to volume changes
     _subscriptions.add(
       _audioPlayer.volumeStream.listen((volume) {
@@ -169,7 +171,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         }
       }),
     );
-    
+
     // CRITICAL: Listen to current index changes (lockscreen skip sync)
     // This is the SINGLE SOURCE OF TRUTH for queue position
     // All track changes (next, previous, lockscreen) flow through here
@@ -179,60 +181,72 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           final queueState = _ref.read(queueProvider);
           if (index >= 0 && index < queueState.queue.length) {
             final newSong = queueState.queue[index];
-            
+
             // Update current song in provider
             _ref.read(currentSongProvider.notifier).state = newSong;
-            
+
             // Update queue index (single source of truth)
             _ref.read(queueProvider.notifier).setCurrentIndex(index);
-            
+
             // Reset tracking flags when track changes
             _hasRewardedCurrentSong = false;
             _hasIncrementedPlayCount = false;
+            _playCountIncrementSuccessful = false;
+            _sessionStartTime = null;
             _ref.read(tokenEarnProvider.notifier).reset();
-            
+
             // Start play session for track changes (fire and forget)
             // Note: This is safe because backend validates session age
             _startPlaySessionForCurrentSong(newSong.id);
-            
+
             // Update Android notification with new song metadata
             if (_audioServiceHandler != null) {
               _audioServiceHandler!.updateQueueIndex(index);
-              
+
               // Get album art for the new song
               String? albumArtUrl;
-              if (newSong.albumArt != null && 
+              if (newSong.albumArt != null &&
                   newSong.albumArt!.isNotEmpty &&
                   !newSong.albumArt!.contains('placeholder') &&
                   !newSong.albumArt!.contains('picsum.photos') &&
-                  !newSong.albumArt!.startsWith('data:')) { // Skip data URIs for Android
+                  !newSong.albumArt!.startsWith('data:')) {
+                // Skip data URIs for Android
                 // Support http/https URLs only
                 albumArtUrl = newSong.albumArt!.startsWith('http')
                     ? newSong.albumArt!
                     : '${ApiConfig.baseUrl}${newSong.albumArt}';
               }
-              
+
               _audioServiceHandler!.setMediaItem(newSong, artUri: albumArtUrl);
             }
-            
+
             print('🔄 Synced to track $index: ${newSong.title}');
           }
         }
       }),
     );
   }
-  
+
   /// Start play session for current song (fire and forget)
   void _startPlaySessionForCurrentSong(String songId) {
     try {
       final apiService = _ref.read(songApiServiceProvider);
-      apiService.startPlaySession(songId).then((_) {
-        print('✅ Play session started for song: $songId');
-      }).catchError((error) {
-        print('⚠️ Failed to start play session (non-critical): $error');
-      });
+      apiService
+          .startPlaySession(songId)
+          .then((_) {
+            _sessionStartTime =
+                DateTime.now(); // Track when session was created
+            print(
+              '✅ Play session started for song: $songId at ${_sessionStartTime}',
+            );
+          })
+          .catchError((error) {
+            print('⚠️ Failed to start play session (non-critical): $error');
+            _sessionStartTime = null;
+          });
     } catch (e) {
       print('⚠️ Error starting play session: $e');
+      _sessionStartTime = null;
     }
   }
 
@@ -242,13 +256,15 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       print('⚠️ Cannot play song - player is disposed');
       return;
     }
-    
+
     try {
       print('🎵 Starting to play: ${song.title} - ${song.audioUrl}');
       state = state.copyWith(isLoading: true);
       _ref.read(currentSongProvider.notifier).state = song;
       _hasRewardedCurrentSong = false;
       _hasIncrementedPlayCount = false;
+      _playCountIncrementSuccessful = false;
+      _sessionStartTime = null;
 
       // Reset token earn state
       _ref.read(tokenEarnProvider.notifier).reset();
@@ -261,12 +277,16 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // This prevents Android Keystore access errors when app is backgrounded
       String? localFilePath;
       bool isPlayingFromDownload = false;
-      
+
       try {
-        final offlineDownloadNotifier = _ref.read(offlineDownloadStateProvider.notifier);
+        final offlineDownloadNotifier = _ref.read(
+          offlineDownloadStateProvider.notifier,
+        );
         // Get the decrypted file path for playback (decrypts if needed)
-        localFilePath = await offlineDownloadNotifier.getDecryptedFilePath(song.id);
-        
+        localFilePath = await offlineDownloadNotifier.getDecryptedFilePath(
+          song.id,
+        );
+
         if (localFilePath != null && await File(localFilePath).exists()) {
           print('📦 Playing from decrypted offline file: $localFilePath');
           isPlayingFromDownload = true;
@@ -285,17 +305,21 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         try {
           final apiService = _ref.read(songApiServiceProvider);
           await apiService.startPlaySession(song.id);
-          print('✅ Play session started for: ${song.id}');
+          _sessionStartTime = DateTime.now(); // Track when session was created
+          print('✅ Play session started for: ${song.id} at $_sessionStartTime');
         } catch (e) {
           print('⚠️ Failed to start play session (non-critical): $e');
+          _sessionStartTime = null;
           // Continue playback even if session start fails
         }
       } else {
-        print('📦 Playing from offline storage - skipping play session tracking');
+        print(
+          '📦 Playing from offline storage - skipping play session tracking',
+        );
       }
-      
+
       print('🔗 Loading audio source...');
-      
+
       // Determine audio URL (local file or network stream)
       String audioUrl;
       if (isPlayingFromDownload && localFilePath != null) {
@@ -312,30 +336,31 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           print('🔗 Using provided absolute URL: $audioUrl');
         }
       }
-      
+
       print('🔗 Final URL: $audioUrl');
       if (!isPlayingFromDownload) {
         print('🔗 Base URL from config: ${ApiConfig.baseUrl}');
       }
-      
+
       // Prepare album art URL - filter out placeholder URLs and data URIs
       String? albumArtUrl;
-      if (song.albumArt != null && 
+      if (song.albumArt != null &&
           !song.albumArt!.contains('placeholder') &&
           !song.albumArt!.contains('picsum.photos') &&
-          !song.albumArt!.startsWith('data:')) { // Skip data URIs for Android
+          !song.albumArt!.startsWith('data:')) {
+        // Skip data URIs for Android
         // Support http/https URLs only
         albumArtUrl = song.albumArt!.startsWith('http')
             ? song.albumArt
             : '${ApiConfig.baseUrl}${song.albumArt}';
       }
-      
+
       // Ensure audio service is initialized before setting metadata
       if (_audioServiceHandler == null) {
         print('⏳ Waiting for audio service initialization...');
         await _initAudioService();
       }
-      
+
       // Set lock screen metadata BEFORE loading audio (prevents "Unknown" display)
       if (_audioServiceHandler != null) {
         try {
@@ -345,13 +370,15 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           print('⚠️ Failed to set lock screen metadata: $e');
         }
       } else {
-        print('⚠️ Audio service not available - lockscreen will show "Unknown"');
+        print(
+          '⚠️ Audio service not available - lockscreen will show "Unknown"',
+        );
       }
-      
+
       // Load audio and start playback with iOS lockscreen metadata
       try {
         print('🎧 Setting audio source: $audioUrl');
-        
+
         // CRITICAL for iOS: Use AudioSource with MediaItem tag (not setUrl)
         final audioSource = isPlayingFromDownload
             ? AudioSource.file(
@@ -359,7 +386,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
                 tag: MediaItem(
                   id: song.id,
                   title: song.title, // REQUIRED: Must be non-empty
-                  artist: song.artist, // REQUIRED: Must be non-empty  
+                  artist: song.artist, // REQUIRED: Must be non-empty
                   album: 'Breaking Hits',
                   duration: song.duration,
                   artUri: albumArtUrl != null ? Uri.parse(albumArtUrl) : null,
@@ -370,13 +397,13 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
                 tag: MediaItem(
                   id: song.id,
                   title: song.title, // REQUIRED: Must be non-empty
-                  artist: song.artist, // REQUIRED: Must be non-empty  
+                  artist: song.artist, // REQUIRED: Must be non-empty
                   album: 'Breaking Hits',
                   duration: song.duration,
                   artUri: albumArtUrl != null ? Uri.parse(albumArtUrl) : null,
                 ),
               );
-        
+
         // OPTIMIZATION: Set initialPosition to 0 and preload=false for faster start
         // This starts playback immediately without waiting for full buffer
         await _audioPlayer.setAudioSource(
@@ -384,7 +411,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           initialPosition: Duration.zero,
           preload: true, // Preload to get duration, but play() won't wait
         );
-        
+
         if (isPlayingFromDownload) {
           print('▶️ Starting playback from downloaded file (instant)...');
         } else {
@@ -400,10 +427,8 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       }
 
       // Clear loading state - playing state updated by playerStateStream listener
-      state = state.copyWith(
-        isLoading: false,
-      );
-      
+      state = state.copyWith(isLoading: false);
+
       print('✅ Playback started with lock screen controls');
     } catch (e) {
       print('❌ Error playing song: $e');
@@ -415,20 +440,22 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
 
   /// Play a song with queue context (creates queue from list)
   Future<void> playSongWithQueue(
-    SongModel song, 
+    SongModel song,
     List<SongModel> allSongs,
   ) async {
     if (_isDisposed) {
       print('⚠️ Cannot play with queue - player is disposed');
       return;
     }
-    
+
     try {
       print('📋 Playing with queue: ${allSongs.length} songs');
-      
+
       // Reset tracking flags
       _hasRewardedCurrentSong = false;
       _hasIncrementedPlayCount = false;
+      _playCountIncrementSuccessful = false;
+      _sessionStartTime = null;
       _ref.read(currentSongProvider.notifier).state = song;
 
       // Reset token earn state
@@ -437,9 +464,12 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Check if song is downloaded (offline)
       bool isPlayingFromDownload = false;
       try {
-        final offlineDownloadNotifier = _ref.read(offlineDownloadStateProvider.notifier);
-        final localFilePath = await offlineDownloadNotifier.getDecryptedFilePath(song.id);
-        
+        final offlineDownloadNotifier = _ref.read(
+          offlineDownloadStateProvider.notifier,
+        );
+        final localFilePath = await offlineDownloadNotifier
+            .getDecryptedFilePath(song.id);
+
         if (localFilePath != null && await File(localFilePath).exists()) {
           print('📦 Playing from decrypted offline file');
           isPlayingFromDownload = true;
@@ -457,49 +487,57 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         try {
           final apiService = _ref.read(songApiServiceProvider);
           await apiService.startPlaySession(song.id);
-          print('✅ Play session started for: ${song.id}');
+          _sessionStartTime = DateTime.now(); // Track when session was created
+          print('✅ Play session started for: ${song.id} at $_sessionStartTime');
         } catch (e) {
           print('⚠️ Failed to start play session (non-critical): $e');
+          _sessionStartTime = null;
           // Continue playback even if session start fails
         }
       } else {
-        print('📦 Playing from offline storage - skipping play session tracking');
+        print(
+          '📦 Playing from offline storage - skipping play session tracking',
+        );
       }
-      
+
       // Find song index in list
       final songIndex = allSongs.indexWhere((s) => s.id == song.id);
       final startIndex = songIndex >= 0 ? songIndex : 0;
-      
+
       // Set queue in provider
-      _ref.read(queueProvider.notifier).setQueue(
-        allSongs,
-        startIndex: startIndex,
-      );
-      
+      _ref
+          .read(queueProvider.notifier)
+          .setQueue(allSongs, startIndex: startIndex);
+
       // Pre-decrypt all offline songs in queue BEFORE building audio sources
       // This ensures decryption happens while app is in foreground (before backgrounding)
       // Critical for background playback: Android Keystore doesn't allow background access
       print('🔓 Pre-decrypting offline songs for background playback...');
-      final offlineDownloadNotifier = _ref.read(offlineDownloadStateProvider.notifier);
+      final offlineDownloadNotifier = _ref.read(
+        offlineDownloadStateProvider.notifier,
+      );
       final Map<String, String> decryptedPaths = {};
-      
+
       for (final s in allSongs) {
         if (offlineDownloadNotifier.isDownloaded(s.id)) {
-          final decryptedPath = await offlineDownloadNotifier.getDecryptedFilePath(s.id);
+          final decryptedPath = await offlineDownloadNotifier
+              .getDecryptedFilePath(s.id);
           if (decryptedPath != null && await File(decryptedPath).exists()) {
             decryptedPaths[s.id] = decryptedPath;
             print('✅ Pre-decrypted: ${s.title}');
           }
         }
       }
-      print('🔓 Pre-decryption complete: ${decryptedPaths.length}/${allSongs.length} songs offline');
-      
+      print(
+        '🔓 Pre-decryption complete: ${decryptedPaths.length}/${allSongs.length} songs offline',
+      );
+
       // Build audio sources for entire queue using pre-decrypted paths
       final List<AudioSource> audioSources = [];
-      
+
       for (final s in allSongs) {
         Uri audioUri;
-        
+
         // Use pre-decrypted path if available (already decrypted above)
         if (decryptedPaths.containsKey(s.id)) {
           final filePath = decryptedPaths[s.id]!;
@@ -514,20 +552,21 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           audioUri = Uri.parse(audioUrl);
           print('🌐 Queue: Using network stream for ${s.title}');
         }
-        
+
         // Filter out placeholder images and data URIs (data URIs don't work in Android notifications)
         String? albumArtUrl;
-        if (s.albumArt != null && 
+        if (s.albumArt != null &&
             s.albumArt!.isNotEmpty &&
             !s.albumArt!.contains('placeholder') &&
             !s.albumArt!.contains('picsum.photos') &&
-            !s.albumArt!.startsWith('data:')) { // Skip data URIs for Android
+            !s.albumArt!.startsWith('data:')) {
+          // Skip data URIs for Android
           // Support http/https URLs only
           albumArtUrl = s.albumArt!.startsWith('http')
               ? s.albumArt!
               : '${ApiConfig.baseUrl}${s.albumArt}';
         }
-        
+
         audioSources.add(
           AudioSource.uri(
             audioUri,
@@ -542,13 +581,13 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           ),
         );
       }
-      
+
       final playlist = ConcatenatingAudioSource(children: audioSources);
-      
+
       // CRITICAL: Disable shuffle before setting playlist to ensure correct queue order
       await _audioPlayer.setShuffleModeEnabled(false);
       print('🔀 Shuffle disabled for queue playback');
-      
+
       // Load playlist and seek to start index
       // OPTIMIZATION: Use preload=true for instant playback
       await _audioPlayer.setAudioSource(
@@ -557,36 +596,42 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         initialPosition: Duration.zero,
         preload: true, // Preload first song for instant start
       );
-      
-      print('📋 Playlist loaded: ${allSongs.length} songs, starting at index $startIndex');
-      
+
+      print(
+        '📋 Playlist loaded: ${allSongs.length} songs, starting at index $startIndex',
+      );
+
       // Update Android audio service notification with current song
       if (_audioServiceHandler != null) {
         final currentSong = allSongs[startIndex];
-        
+
         // Get album art URL for the current song (exclude data URIs for Android)
         String? albumArtUrl;
-        if (currentSong.albumArt != null && 
+        if (currentSong.albumArt != null &&
             currentSong.albumArt!.isNotEmpty &&
             !currentSong.albumArt!.contains('placeholder') &&
             !currentSong.albumArt!.contains('picsum.photos') &&
-            !currentSong.albumArt!.startsWith('data:')) { // Skip data URIs for Android
+            !currentSong.albumArt!.startsWith('data:')) {
+          // Skip data URIs for Android
           // Support http/https URLs only
           albumArtUrl = currentSong.albumArt!.startsWith('http')
               ? currentSong.albumArt!
               : '${ApiConfig.baseUrl}${currentSong.albumArt}';
         }
-        
+
         await _audioServiceHandler!.setQueue(allSongs);
         await _audioServiceHandler!.updateQueueIndex(startIndex);
-        await _audioServiceHandler!.setMediaItem(currentSong, artUri: albumArtUrl);
+        await _audioServiceHandler!.setMediaItem(
+          currentSong,
+          artUri: albumArtUrl,
+        );
         print('✅ Android notification updated with song metadata');
       }
-      
+
       // Start playing immediately
       print('▶️ Starting queue playback (optimized)...');
       await _audioPlayer.play();
-      
+
       print('✅ Queue loaded, playing from index $startIndex with fast start');
     } catch (e) {
       print('❌ Error playing with queue: $e');
@@ -601,7 +646,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Seek to next track - currentIndexStream will auto-sync everything
       // (including resetting tracking flags and starting new session)
       await _audioPlayer.seekToNext();
-      
+
       print('⏭️ Skipped to next track');
     } else {
       print('⏹️ No next song available');
@@ -615,7 +660,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Seek to previous track - currentIndexStream will auto-sync everything
       // (including resetting tracking flags and starting new session)
       await _audioPlayer.seekToPrevious();
-      
+
       print('⏮️ Skipped to previous track');
     } else {
       print('⏹️ No previous song available');
@@ -734,10 +779,13 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     _ref.read(tokenEarnProvider.notifier).updateProgress(progress);
 
     // Increment play count at 50% completion (industry standard)
+    // Backend handles all validation (session age, duration, etc.)
+    // Frontend only reports milestone - separation of concerns
     if (progress >= 0.5 && !_hasIncrementedPlayCount) {
+      _hasIncrementedPlayCount =
+          true; // Mark as attempted to prevent multiple tries
       _incrementPlayCount(song.id);
-      _hasIncrementedPlayCount = true;
-      print('✅ Play count will be incremented at 50% completion');
+      print('✅ Triggering play count increment at 50% completion');
     }
 
     // Reward tokens at 80% completion
@@ -753,40 +801,73 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     _ref.read(walletProvider.notifier).addTokens(amount);
   }
 
-  /// Increment play count on backend (fire and forget)
-  void _incrementPlayCount(String songId) {
+  /// Increment play count on backend (with retry logic)
+  void _incrementPlayCount(String songId, {int retryCount = 0}) {
     try {
       final songApiService = _ref.read(songApiServiceProvider);
-      songApiService.incrementPlayCount(songId).then((playCount) {
-        print('✅ Play count incremented: $playCount');
-        
-        // Update the current song model with new play count
-        final currentSong = _ref.read(currentSongProvider);
-        if (currentSong != null && currentSong.id == songId) {
-          final updatedSong = SongModel(
-            id: currentSong.id,
-            title: currentSong.title,
-            artistId: currentSong.artistId,
-            artist: currentSong.artist,
-            audioUrl: currentSong.audioUrl,
-            duration: currentSong.duration,
-            tokenReward: currentSong.tokenReward,
-            albumArt: currentSong.albumArt,
-            genre: currentSong.genre,
-            playCount: playCount, // Update with new count from backend
-          );
-          _ref.read(currentSongProvider.notifier).state = updatedSong;
-          print('✅ Updated current song play count to: $playCount');
-        }
+      songApiService
+          .incrementPlayCount(songId)
+          .then((playCount) {
+            print('✅ Play count incremented: $playCount');
+            _playCountIncrementSuccessful = true; // Mark as successful
 
-        // Update the song in user songs list (real-time update on profile screen)
-        _ref.read(userSongsProvider.notifier).updateSongPlayCount(songId, playCount);
-        
-        // Update the song in discover list (real-time update on discover screen)
-        _ref.read(songListProvider.notifier).updateSongPlayCount(songId, playCount);
-      }).catchError((error) {
-        print('⚠️ Failed to increment play count (non-critical): $error');
-      });
+            // Update the current song model with new play count
+            final currentSong = _ref.read(currentSongProvider);
+            if (currentSong != null && currentSong.id == songId) {
+              final updatedSong = SongModel(
+                id: currentSong.id,
+                title: currentSong.title,
+                artistId: currentSong.artistId,
+                artist: currentSong.artist,
+                audioUrl: currentSong.audioUrl,
+                duration: currentSong.duration,
+                tokenReward: currentSong.tokenReward,
+                albumArt: currentSong.albumArt,
+                genre: currentSong.genre,
+                playCount: playCount, // Update with new count from backend
+              );
+              _ref.read(currentSongProvider.notifier).state = updatedSong;
+              print('✅ Updated current song play count to: $playCount');
+            }
+
+            // Update the song in user songs list (real-time update on profile screen)
+            _ref
+                .read(userSongsProvider.notifier)
+                .updateSongPlayCount(songId, playCount);
+
+            // Update the song in discover list (real-time update on discover screen)
+            _ref
+                .read(songListProvider.notifier)
+                .updateSongPlayCount(songId, playCount);
+          })
+          .catchError((error) {
+            final errorMessage = error.toString();
+            print('⚠️ Failed to increment play count: $errorMessage');
+
+            // Retry logic for timing issues (backend validation failed due to session age)
+            if (retryCount < 2 && errorMessage.contains('listen to at least')) {
+              final retryDelay = Duration(
+                seconds: 5 * (retryCount + 1),
+              ); // 5s, then 10s
+              print(
+                '🔄 Will retry play count increment in ${retryDelay.inSeconds}s (attempt ${retryCount + 2}/3)',
+              );
+
+              Future.delayed(retryDelay, () {
+                // Only retry if song is still playing and not successfully incremented yet
+                final currentSong = _ref.read(currentSongProvider);
+                if (currentSong?.id == songId &&
+                    !_playCountIncrementSuccessful) {
+                  print('🔄 Retrying play count increment...');
+                  _incrementPlayCount(songId, retryCount: retryCount + 1);
+                } else {
+                  print('⏭️ Skipping retry - song changed or already counted');
+                }
+              });
+            } else if (retryCount >= 2) {
+              print('❌ Max retries reached for play count increment');
+            }
+          });
     } catch (e) {
       print('⚠️ Error calling increment play count: $e');
     }
@@ -805,7 +886,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     print('🎵 Song completed, checking for next song...');
     final queueNotifier = _ref.read(queueProvider.notifier);
     final nextSong = queueNotifier.playNext();
-    
+
     if (nextSong != null) {
       print('⏭️ Auto-playing next song: ${nextSong.title}');
       await playSong(nextSong);
@@ -814,12 +895,9 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Reset to beginning and pause
       await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.pause();
-      
+
       // Update state to show play button
-      state = state.copyWith(
-        isPlaying: false,
-        position: Duration.zero,
-      );
+      state = state.copyWith(isPlaying: false, position: Duration.zero);
     }
   }
 
@@ -827,23 +905,23 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   void disposePlayer() {
     if (_isDisposed) return;
     _isDisposed = true;
-    
+
     print('🧹 Cleaning up audio player...');
-    
+
     // Cancel all stream subscriptions
     for (var subscription in _subscriptions) {
       subscription.cancel();
     }
     _subscriptions.clear();
-    
+
     // Dispose audio service handler
     if (_audioServiceHandler != null) {
       _audioServiceHandler!.dispose();
     }
-    
+
     // Dispose audio player
     _audioPlayer.dispose();
-    
+
     print('✅ Audio player cleaned up');
   }
 

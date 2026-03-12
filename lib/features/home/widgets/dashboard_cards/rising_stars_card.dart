@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/utils/responsive.dart';
 import '../../models/dashboard_card_model.dart';
-import '../../providers/dashboard_view_provider.dart';
 
 /// Rising Stars card for dashboard
 class RisingStarsCard extends ConsumerWidget {
