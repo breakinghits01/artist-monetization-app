@@ -405,6 +405,15 @@ class _SongListTileState extends ConsumerState<SongListTile> {
             color: theme.colorScheme.primary,
             size: 40,
           ),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: 48,
+            minHeight: 48,
+          ),
+          style: IconButton.styleFrom(
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
+          ),
           onPressed: () {
             if (isCurrentSong) {
               ref.read(audioPlayerProvider.notifier).playPause();

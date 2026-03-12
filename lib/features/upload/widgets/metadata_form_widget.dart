@@ -53,7 +53,7 @@ class _MetadataFormWidgetState extends ConsumerState<MetadataFormWidget> {
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 140), // Extra bottom padding for mini player
       child: Form(
         key: _formKey,
         child: Column(
