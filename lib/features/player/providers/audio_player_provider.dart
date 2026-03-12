@@ -13,6 +13,7 @@ import '../services/audio_service_handler.dart';
 import '../../discover/services/song_api_service.dart';
 import '../../profile/providers/user_songs_provider.dart';
 import '../../discover/providers/song_provider.dart';
+import '../../trending/providers/trending_provider.dart';
 import '../../../services/providers/offline_download_provider.dart';
 
 /// Current song provider
@@ -838,6 +839,11 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
             // Update the song in discover list (real-time update on discover screen)
             _ref
                 .read(songListProvider.notifier)
+                .updateSongPlayCount(songId, playCount);
+
+            // Update the song in trending list (real-time update on trending screen)
+            _ref
+                .read(trendingSongsProvider.notifier)
                 .updateSongPlayCount(songId, playCount);
           })
           .catchError((error) {

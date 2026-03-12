@@ -53,9 +53,13 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
     final theme = Theme.of(context);
     final trendingSongsAsync = ref.watch(trendingSongsProvider);
 
-    return Stack(
-      children: [
-        CustomScrollView(
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(trendingSongsProvider.notifier).refresh();
+      },
+      child: Stack(
+        children: [
+          CustomScrollView(
           key: const PageStorageKey<String>('trending_scroll'),
           controller: _scrollController,
           slivers: [
@@ -220,7 +224,8 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
           ),
         ],
       ),
-      ],
+        ],
+      ),
     );
   }
 }
