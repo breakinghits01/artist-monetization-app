@@ -276,6 +276,89 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
     await refresh();
   }
 
+  /// Delete a song (optimistic update, then confirm from backend)
+  /// Throws exception on failure for UI error handling
+  Future<void> deleteSong(String songId) async {
+    try {
+      print('🗑️ Deleting song: $songId');
+      
+      // Get auth token
+      String? token;
+      try {
+        token = await _storage.getAccessToken();
+      } catch (e) {
+        print('❌ Keystore error when reading token: $e');
+        throw Exception('Authentication failed. Please log in again.');
+      }
+      
+      if (token == null) {
+        throw Exception('Authentication required. Please log in.');
+      }
+      
+      // Find song before deletion for rollback
+      final songToDelete = state.songs.firstWhere(
+        (song) => song.id == songId,
+        orElse: () => throw Exception('Song not found'),
+      );
+      
+      // Optimistic update - remove from UI immediately
+      final updatedSongs = state.songs.where((song) => song.id != songId).toList();
+      state = state.copyWith(songs: updatedSongs);
+      print('✅ Song removed from UI optimistically');
+      
+      // Call backend DELETE endpoint
+      final endpoint = '${ApiConfig.songsEndpoint}/$songId';
+      print('🌐 DELETE: ${ApiConfig.baseUrl}$endpoint');
+      
+      final response = await _dio.delete(
+        endpoint,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        print('✅ Song deleted successfully from backend');
+        
+        // Update cache to reflect deletion
+        await _saveToCache(updatedSongs);
+        
+        // Refresh from backend to ensure consistency
+        await Future.delayed(const Duration(milliseconds: 300));
+        await refresh();
+      } else {
+        // Unexpected response - rollback and throw
+        print('⚠️ Unexpected response: ${response.statusCode}');
+        state = state.copyWith(songs: [...state.songs, songToDelete]);
+        throw Exception('Failed to delete song (${response.statusCode})');
+      }
+    } on DioException catch (e) {
+      print('❌ Network error deleting song: ${e.message}');
+      
+      // Refresh to restore correct state from backend
+      await refresh();
+      
+      if (e.response?.statusCode == 404) {
+        throw Exception('Song not found or you don\'t have permission to delete it');
+      } else if (e.response?.statusCode == 401) {
+        throw Exception('Authentication failed. Please log in again.');
+      } else if (e.response?.statusCode == 403) {
+        throw Exception('You don\'t have permission to delete this song');
+      } else {
+        throw Exception('Failed to delete song. Please check your connection.');
+      }
+    } catch (e) {
+      print('❌ Error deleting song: $e');
+      
+      // Refresh to restore correct state
+      await refresh();
+      
+      rethrow;
+    }
+  }
+
   /// Clear cache (for testing)
   Future<void> clearCache() async {
     final prefs = await SharedPreferences.getInstance();
