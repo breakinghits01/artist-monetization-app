@@ -27,7 +27,15 @@ final publicUserSongsProvider =
   try {
     // Use relative path without /api/v1 since dio baseUrl already includes it
     final endpoint = '/songs/artist/$userId';
-    final response = await dio.get(endpoint);
+    
+    // Fetch with higher limit to get all songs (up to 100)
+    final response = await dio.get(
+      endpoint,
+      queryParameters: {
+        'limit': 100, // Increased from default 10
+        'page': 1,
+      },
+    );
 
     if (response.statusCode == 200) {
       final data = response.data['data'];

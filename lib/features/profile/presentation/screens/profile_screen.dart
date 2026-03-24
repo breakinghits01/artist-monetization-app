@@ -214,6 +214,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               builder: (context, ref, _) {
                 final authState = ref.watch(authProvider);
                 final user = authState.user;
+                final userSongsState = ref.watch(userSongsProvider);
+                
+                // Use actual song count from provider (totalSongs from API pagination)
+                final actualSongCount = userSongsState.totalSongs > 0 
+                    ? userSongsState.totalSongs 
+                    : userSongsState.songs.length;
                 
                 // Create UserProfile from auth data
                 final profile = UserProfile(
@@ -227,7 +233,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   followerCount: 1234,
                   followingCount: 567,
                   totalPlays: 185600,
-                  songCount: 10,
+                  songCount: actualSongCount, // Use actual count from API
                   joinDate: DateTime.now(),
                   favoriteGenres: ['Electronic', 'Rock', 'Hip Hop', 'Pop'],
                 );
@@ -324,6 +330,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final sortedSongs = _getSortedSongs();
     final currentSong = ref.watch(currentSongProvider);
     final likedSongIds = ref.watch(likedSongsProvider);
+    final userSongsState = ref.watch(userSongsProvider);
     
     // Show empty state if no songs
     if (sortedSongs.isEmpty) {
@@ -361,6 +368,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ),
         ),
       ),
+      // Load More Button (shown when there are more songs to load)
+      if (userSongsState.hasMore)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                if (userSongsState.isLoadingMore)
+                  const CircularProgressIndicator()
+                else
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      ref.read(userSongsProvider.notifier).loadMore();
+                    },
+                    icon: const Icon(Icons.expand_more),
+                    label: Text(
+                      'Load More Songs (${userSongsState.songs.length}/${userSongsState.totalSongs})',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
     ];
   }
 

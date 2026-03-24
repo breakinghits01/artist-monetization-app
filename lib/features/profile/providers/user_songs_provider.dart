@@ -7,27 +7,47 @@ import '../../../core/services/storage_service.dart';
 import '../../player/models/song_model.dart';
 import '../../auth/providers/auth_provider.dart';
 
-/// User songs state
+/// User songs state with pagination support
 class UserSongsState {
   final List<SongModel> songs;
   final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
+  final int currentPage;
+  final int totalPages;
+  final int totalSongs;
+  final bool hasMore;
 
   const UserSongsState({
     this.songs = const [],
     this.isLoading = false,
+    this.isLoadingMore = false,
     this.error,
+    this.currentPage = 1,
+    this.totalPages = 1,
+    this.totalSongs = 0,
+    this.hasMore = false,
   });
 
   UserSongsState copyWith({
     List<SongModel>? songs,
     bool? isLoading,
+    bool? isLoadingMore,
     String? error,
+    int? currentPage,
+    int? totalPages,
+    int? totalSongs,
+    bool? hasMore,
   }) {
     return UserSongsState(
       songs: songs ?? this.songs,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error,
+      currentPage: currentPage ?? this.currentPage,
+      totalPages: totalPages ?? this.totalPages,
+      totalSongs: totalSongs ?? this.totalSongs,
+      hasMore: hasMore ?? this.hasMore,
     );
   }
 }
@@ -134,6 +154,8 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
           },
         ),
         queryParameters: {
+          'page': 1,
+          'limit': 100, // Fetch up to 100 songs (increased from default 10)
           '_t': DateTime.now().millisecondsSinceEpoch, // Cache buster
         },
       );
@@ -158,11 +180,30 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
         }
         
         final songs = songsList.map((json) => _parseSong(json)).toList();
-        state = state.copyWith(songs: songs, isLoading: false, error: null);
+        
+        // Extract pagination info from response
+        final paginationData = data is Map && data['data'] is Map 
+            ? data['data']['pagination'] as Map<String, dynamic>? 
+            : null;
+        
+        final currentPage = paginationData?['currentPage'] ?? 1;
+        final totalPages = paginationData?['totalPages'] ?? 1;
+        final totalSongs = paginationData?['totalSongs'] ?? songs.length;
+        final hasMore = paginationData?['hasMore'] ?? false;
+        
+        state = state.copyWith(
+          songs: songs,
+          isLoading: false,
+          error: null,
+          currentPage: currentPage,
+          totalPages: totalPages,
+          totalSongs: totalSongs,
+          hasMore: hasMore,
+        );
         
         // Save to cache for offline viewing only
         await _saveToCache(songs);
-        print('✅ Loaded ${songs.length} songs from database');
+        print('✅ Loaded ${songs.length} songs from database (page $currentPage/$totalPages, total: $totalSongs)');
       } else {
         throw Exception('Unexpected status: ${response.statusCode}');
       }
@@ -261,6 +302,106 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
   Future<void> refresh() async {
     print('🔄 Refreshing songs from backend...');
     await _loadFromBackend();
+  }
+
+  /// Load more songs (pagination support)
+  /// Call this when user scrolls to bottom or clicks "Load More"
+  Future<void> loadMore() async {
+    // Don't load if already loading or no more songs
+    if (state.isLoadingMore || !state.hasMore) {
+      print('⏸️ LoadMore skipped: isLoadingMore=${state.isLoadingMore}, hasMore=${state.hasMore}');
+      return;
+    }
+
+    print('📥 Loading more songs (page ${state.currentPage + 1})...');
+    state = state.copyWith(isLoadingMore: true);
+
+    try {
+      final currentUser = _ref.read(currentUserProvider);
+      final userId = currentUser?['_id'] ?? currentUser?['id'];
+
+      if (userId == null) {
+        print('❌ No user ID found');
+        state = state.copyWith(isLoadingMore: false);
+        return;
+      }
+
+      String? token;
+      try {
+        token = await _storage.getAccessToken();
+      } catch (e) {
+        print('⚠️ Keystore error: $e');
+        state = state.copyWith(isLoadingMore: false);
+        return;
+      }
+
+      if (token == null) {
+        print('⚠️ No auth token');
+        state = state.copyWith(isLoadingMore: false);
+        return;
+      }
+
+      final nextPage = state.currentPage + 1;
+      final endpoint = '${ApiConfig.songsEndpoint}/artist/$userId';
+      
+      final response = await _dio.get(
+        endpoint,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+        queryParameters: {
+          'page': nextPage,
+          'limit': 100,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        
+        // Parse new songs
+        List<dynamic> songsList = [];
+        if (data is Map && data['success'] == true) {
+          if (data['data'] is Map && data['data']['songs'] != null) {
+            songsList = data['data']['songs'] as List;
+          } else if (data['data'] is List) {
+            songsList = data['data'] as List;
+          }
+        }
+        
+        final newSongs = songsList.map((json) => _parseSong(json)).toList();
+        
+        // Extract pagination info
+        final paginationData = data is Map && data['data'] is Map 
+            ? data['data']['pagination'] as Map<String, dynamic>? 
+            : null;
+        
+        final currentPage = paginationData?['currentPage'] ?? nextPage;
+        final totalPages = paginationData?['totalPages'] ?? state.totalPages;
+        final totalSongs = paginationData?['totalSongs'] ?? state.totalSongs;
+        final hasMore = paginationData?['hasMore'] ?? false;
+        
+        // Append new songs to existing list
+        final allSongs = [...state.songs, ...newSongs];
+        
+        state = state.copyWith(
+          songs: allSongs,
+          isLoadingMore: false,
+          currentPage: currentPage,
+          totalPages: totalPages,
+          totalSongs: totalSongs,
+          hasMore: hasMore,
+        );
+        
+        // Update cache
+        await _saveToCache(allSongs);
+        print('✅ Loaded ${newSongs.length} more songs (page $currentPage/$totalPages)');
+      }
+    } catch (e) {
+      print('❌ Error loading more songs: $e');
+      state = state.copyWith(isLoadingMore: false);
+    }
   }
 
   /// Add a new song (optimistic update, then refresh from database)
