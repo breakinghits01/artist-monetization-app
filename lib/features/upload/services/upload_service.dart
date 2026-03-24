@@ -177,12 +177,100 @@ class UploadService {
         throw Exception('Upload failed with status ${response.statusCode}');
       }
     } on DioException catch (e) {
-      debugPrint('❌ Upload failed: ${e.message}');
-      debugPrint('❌ Response: ${e.response?.data}');
-      throw Exception('Upload failed: ${e.response?.data?['message'] ?? e.message}');
+      // Enhanced error extraction for better user experience
+      String errorMessage = _extractErrorMessage(e);
+      
+      debugPrint('❌ Upload failed: $errorMessage');
+      debugPrint('❌ Status Code: ${e.response?.statusCode}');
+      debugPrint('❌ Response Data: ${e.response?.data}');
+      
+      throw Exception(errorMessage);
     } catch (e) {
       debugPrint('❌ Unexpected error: $e');
       throw Exception('Upload failed: $e');
+    }
+  }
+
+  /// Extract meaningful error message from DioException
+  /// Handles various API response formats for future-proof error handling
+  String _extractErrorMessage(DioException e) {
+    // Handle no response (network errors)
+    if (e.response == null) {
+      return 'Network error. Please check your connection.';
+    }
+
+    final statusCode = e.response!.statusCode;
+    final data = e.response!.data;
+
+    // Handle non-JSON responses
+    if (data is! Map) {
+      return data?.toString() ?? 'Upload failed. Please try again.';
+    }
+
+    // Extract error from various API response formats
+    // Priority order: message > error > details > generic
+    String? errorMessage;
+
+    // Format 1: { success: false, message: "error text" }
+    if (data['message'] != null) {
+      errorMessage = data['message'].toString();
+    }
+    // Format 2: { success: false, error: "error text" }
+    else if (data['error'] != null) {
+      errorMessage = data['error'].toString();
+    }
+    // Format 3: { success: false, details: "error text" }
+    else if (data['details'] != null) {
+      errorMessage = data['details'].toString();
+    }
+    // Format 4: { success: false, data: { message: "error text" } }
+    else if (data['data'] is Map && data['data']['message'] != null) {
+      errorMessage = data['data']['message'].toString();
+    }
+
+    // Add status-specific context
+    if (errorMessage != null) {
+      // Clean up error message (remove "Exception: " prefix if present)
+      errorMessage = errorMessage
+          .replaceFirst('Exception: ', '')
+          .replaceFirst('Error: ', '');
+
+      // Add context for specific status codes
+      if (statusCode == 401) {
+        return 'Authentication required. Please login again.';
+      } else if (statusCode == 403) {
+        return errorMessage;
+      } else if (statusCode == 413) {
+        return 'File is too large. Maximum size is 50MB.';
+      } else if (statusCode == 429) {
+        return 'Too many requests. Please try again later.';
+      }
+
+      return errorMessage;
+    }
+
+    // Fallback messages based on status code
+    switch (statusCode) {
+      case 400:
+        return 'Invalid request. Please check your input.';
+      case 401:
+        return 'Authentication required. Please login again.';
+      case 403:
+        return 'You do not have permission to upload songs.';
+      case 404:
+        return 'Upload endpoint not found. Please contact support.';
+      case 413:
+        return 'File is too large. Maximum size is 50MB.';
+      case 422:
+        return 'Invalid file or metadata. Please check your input.';
+      case 429:
+        return 'Too many requests. Please try again later.';
+      case 500:
+        return 'Server error. Please try again later.';
+      case 503:
+        return 'Service temporarily unavailable. Please try again.';
+      default:
+        return 'Upload failed. Please try again.';
     }
   }
 
