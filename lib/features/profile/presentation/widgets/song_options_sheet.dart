@@ -4,6 +4,7 @@ import '../../../player/models/song_model.dart';
 import '../../../playlist/widgets/add_to_playlist_sheet.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../providers/user_songs_provider.dart';
+import 'song_info_dialog.dart';
 
 /// Bottom sheet for song options (add to playlist, share, download, info, delete)
 class SongOptionsSheet extends ConsumerWidget {
@@ -85,7 +86,15 @@ class SongOptionsSheet extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.info_outline, color: Color(0xFF9C27B0)),
               title: const Text('Song Info'),
-              onTap: () => Navigator.pop(context),
+              subtitle: const Text('View song details'),
+              onTap: () {
+                Navigator.pop(context); // Close options sheet
+                // Show song info dialog
+                showDialog(
+                  context: context,
+                  builder: (context) => SongInfoDialog(song: song),
+                );
+              },
             ),
             // Show delete option only for song owner
             if (isOwner) ...[

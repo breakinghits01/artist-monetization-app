@@ -500,6 +500,129 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
     }
   }
 
+  /// Update a song (title, genre, description, price, exclusive)
+  /// Throws exception on failure for UI error handling
+  Future<void> updateSong(String songId, Map<String, dynamic> updates) async {
+    try {
+      print('📝 Updating song: $songId');
+      print('📋 Updates: $updates');
+      
+      // Get auth token
+      String? token;
+      try {
+        token = await _storage.getAccessToken();
+      } catch (e) {
+        print('❌ Keystore error when reading token: $e');
+        throw Exception('Authentication failed. Please log in again.');
+      }
+      
+      if (token == null) {
+        throw Exception('Authentication required. Please log in.');
+      }
+      
+      // Find original song for rollback
+      final originalSong = state.songs.firstWhere(
+        (song) => song.id == songId,
+        orElse: () => throw Exception('Song not found'),
+      );
+      
+      // Optimistic update - update UI immediately
+      final updatedSongs = state.songs.map((song) {
+        if (song.id == songId) {
+          return SongModel(
+            id: song.id,
+            title: updates['title'] ?? song.title,
+            artist: song.artist,
+            artistId: song.artistId,
+            albumArt: song.albumArt,
+            audioUrl: song.audioUrl,
+            duration: song.duration,
+            tokenReward: updates['price'] ?? song.tokenReward,
+            genre: updates['genre'] ?? song.genre,
+            playCount: song.playCount,
+            isPremium: updates['exclusive'] ?? song.isPremium,
+            likeCount: song.likeCount,
+            dislikeCount: song.dislikeCount,
+            commentCount: song.commentCount,
+            shareCount: song.shareCount,
+          );
+        }
+        return song;
+      }).toList();
+      
+      state = state.copyWith(songs: updatedSongs);
+      print('✅ Song updated in UI optimistically');
+      
+      // Call backend PATCH endpoint
+      final endpoint = '${ApiConfig.songsEndpoint}/$songId';
+      print('🌐 PATCH: ${ApiConfig.baseUrl}$endpoint');
+      
+      final response = await _dio.patch(
+        endpoint,
+        data: updates,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      
+      if (response.statusCode == 200) {
+        print('✅ Song updated successfully on backend');
+        
+        // Parse updated song from response
+        final data = response.data;
+        if (data is Map && data['data'] is Map && data['data']['song'] != null) {
+          final updatedSong = _parseSong(data['data']['song']);
+          
+          // Update with real backend data
+          final finalSongs = state.songs.map((song) {
+            return song.id == songId ? updatedSong : song;
+          }).toList();
+          
+          state = state.copyWith(songs: finalSongs);
+          
+          // Update cache
+          await _saveToCache(finalSongs);
+          print('✅ Cache updated with new song data');
+        }
+      } else {
+        // Unexpected response - rollback
+        print('⚠️ Unexpected response: ${response.statusCode}');
+        final rolledBackSongs = state.songs.map((song) {
+          return song.id == songId ? originalSong : song;
+        }).toList();
+        state = state.copyWith(songs: rolledBackSongs);
+        throw Exception('Failed to update song (${response.statusCode})');
+      }
+    } on DioException catch (e) {
+      print('❌ Network error updating song: ${e.message}');
+      
+      // Refresh to restore correct state from backend
+      await refresh();
+      
+      if (e.response?.statusCode == 404) {
+        throw Exception('Song not found or you don\'t have permission to update it');
+      } else if (e.response?.statusCode == 401) {
+        throw Exception('Authentication failed. Please log in again.');
+      } else if (e.response?.statusCode == 403) {
+        throw Exception('You don\'t have permission to update this song');
+      } else if (e.response?.statusCode == 400) {
+        final errorMsg = e.response?.data?['message'] ?? 'Invalid song data';
+        throw Exception(errorMsg);
+      } else {
+        throw Exception('Failed to update song. Please check your connection.');
+      }
+    } catch (e) {
+      print('❌ Error updating song: $e');
+      
+      // Refresh to restore correct state
+      await refresh();
+      
+      rethrow;
+    }
+  }
+
   /// Clear cache (for testing)
   Future<void> clearCache() async {
     final prefs = await SharedPreferences.getInstance();
