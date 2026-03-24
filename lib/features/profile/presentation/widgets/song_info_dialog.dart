@@ -33,6 +33,9 @@ class SongInfoDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isWeb = screenWidth > 600;
     
     // Check if current user owns this song
     final currentUser = ref.watch(currentUserProvider);
@@ -41,9 +44,15 @@ class SongInfoDialog extends ConsumerWidget {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isWeb ? 24 : 16,
+        vertical: isWeb ? 40 : 24,
+      ),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
+        constraints: BoxConstraints(
+          maxWidth: isWeb ? 500 : screenWidth * 0.9,
+          maxHeight: isWeb ? 700 : screenHeight * 0.85,
+        ),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1A1D2E) : Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -60,7 +69,7 @@ class SongInfoDialog extends ConsumerWidget {
           children: [
             // Header with cover art
             Container(
-              height: 200,
+              height: isWeb ? 200 : 160,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 gradient: LinearGradient(

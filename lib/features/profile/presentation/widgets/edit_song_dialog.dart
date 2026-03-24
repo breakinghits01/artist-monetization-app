@@ -156,12 +156,21 @@ class _EditSongDialogState extends ConsumerState<EditSongDialog> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final genresAsync = ref.watch(genresProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isWeb = screenWidth > 600;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isWeb ? 24 : 16,
+        vertical: isWeb ? 40 : 24,
+      ),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
+        constraints: BoxConstraints(
+          maxWidth: isWeb ? 500 : screenWidth * 0.9,
+          maxHeight: isWeb ? 700 : screenHeight * 0.85,
+        ),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1A1D2E) : Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -178,7 +187,7 @@ class _EditSongDialogState extends ConsumerState<EditSongDialog> {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(isWeb ? 24 : 16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -233,7 +242,7 @@ class _EditSongDialogState extends ConsumerState<EditSongDialog> {
             // Form
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(isWeb ? 24 : 16),
                 child: Form(
                   key: _formKey,
                   child: Column(
