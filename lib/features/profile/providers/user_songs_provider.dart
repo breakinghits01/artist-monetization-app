@@ -155,7 +155,7 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
         ),
         queryParameters: {
           'page': 1,
-          'limit': 100, // Fetch up to 100 songs (increased from default 10)
+          'limit': 50, // Fetch 50 songs per page (optimized for performance)
           '_t': DateTime.now().millisecondsSinceEpoch, // Cache buster
         },
       );
@@ -353,7 +353,7 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
         ),
         queryParameters: {
           'page': nextPage,
-          'limit': 100,
+          'limit': 50,
         },
       );
 
