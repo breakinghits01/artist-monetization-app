@@ -27,10 +27,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _sortBy = 'Recent';
+  String? _selectedGenre; // Genre filter state
   
   // Cache sorted songs to prevent re-shuffling on rebuild
   List<SongModel>? _cachedSortedSongs;
   String? _lastSortBy;
+  String? _lastSelectedGenre;
 
   @override
   void initState() {
@@ -121,14 +123,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     
     debugPrint('🎵 Total songs to display: ${allSongs.length}');
     
-    // Return cached songs if sort hasn't changed AND song count matches
+    // Return cached songs if sort and genre filter haven't changed AND song count matches
     if (_cachedSortedSongs != null && 
         _lastSortBy == _sortBy && 
+        _lastSelectedGenre == _selectedGenre &&
         _cachedSortedSongs!.length == allSongs.length) {
       return _cachedSortedSongs!;
     }
     
-    final songs = List<SongModel>.from(allSongs);
+    // Apply genre filter first
+    var songs = List<SongModel>.from(allSongs);
+    if (_selectedGenre != null && _selectedGenre != 'All Genres') {
+      songs = songs.where((song) => song.genre == _selectedGenre).toList();
+      debugPrint('🎭 Filtered by genre "$_selectedGenre": ${songs.length} songs');
+    }
     switch (_sortBy) {
       case 'Most Played':
         // Sort by playCount descending (highest first)
@@ -147,6 +155,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     // Cache the result
     _cachedSortedSongs = songs;
     _lastSortBy = _sortBy;
+    _lastSelectedGenre = _selectedGenre;
     
     return songs;
   }
@@ -267,39 +276,201 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         Tab(text: 'Playlists'),
                       ],
                     ),
-                    // Sort Options
+                    // Sort and Filter Options - Single Row
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 8,
                       ),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Sort by:',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            Text(
+                              'Sort by:',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          SortChip(
-                            label: 'Recent',
-                            isSelected: _sortBy == 'Recent',
-                            onTap: () => _updateSort('Recent'),
-                          ),
-                          const SizedBox(width: 8),
-                          SortChip(
-                            label: 'Most Played',
-                            isSelected: _sortBy == 'Most Played',
-                            onTap: () => _updateSort('Most Played'),
-                          ),
-                          const SizedBox(width: 8),
-                          SortChip(
-                            label: 'A-Z',
-                            isSelected: _sortBy == 'A-Z',
-                            onTap: () => _updateSort('A-Z'),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            SortChip(
+                              label: 'Recent',
+                              isSelected: _sortBy == 'Recent',
+                              onTap: () => _updateSort('Recent'),
+                            ),
+                            const SizedBox(width: 8),
+                            SortChip(
+                              label: 'Most Played',
+                              isSelected: _sortBy == 'Most Played',
+                              onTap: () => _updateSort('Most Played'),
+                            ),
+                            const SizedBox(width: 8),
+                            SortChip(
+                              label: 'A-Z',
+                              isSelected: _sortBy == 'A-Z',
+                              onTap: () => _updateSort('A-Z'),
+                            ),
+                            // Genre Filter - Inline (only show if user has songs with genres)
+                            Consumer(
+                              builder: (context, ref, _) {
+                                // Get genres from user's uploaded songs only
+                                final availableGenres = _getAvailableGenres();
+                                
+                                // Hide if no genres available
+                                if (availableGenres.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                
+                                // Only show if user has multiple genres or 1+ genre
+                                if (availableGenres.length < 1) {
+                                  return const SizedBox.shrink();
+                                }
+                                
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(width: 16),
+                                    Container(
+                                      width: 1,
+                                      height: 24,
+                                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Text(
+                                      'Genre:',
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    PopupMenuButton<String?>(
+                                      tooltip: 'Filter by genre',
+                                      initialValue: _selectedGenre,
+                                      onSelected: (value) {
+                                        setState(() {
+                                          _selectedGenre = value;
+                                          _cachedSortedSongs = null;
+                                        });
+                                      },
+                                      position: PopupMenuPosition.under,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _selectedGenre != null && _selectedGenre != 'All Genres'
+                                              ? theme.colorScheme.primaryContainer
+                                              : theme.colorScheme.surfaceContainerHighest,
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: _selectedGenre != null && _selectedGenre != 'All Genres'
+                                                ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                                                : theme.colorScheme.outline.withValues(alpha: 0.2),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.category_outlined,
+                                              size: 14,
+                                              color: _selectedGenre != null && _selectedGenre != 'All Genres'
+                                                  ? theme.colorScheme.onPrimaryContainer
+                                                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              _selectedGenre ?? 'All Genres',
+                                              style: theme.textTheme.bodySmall?.copyWith(
+                                                fontWeight: _selectedGenre != null && _selectedGenre != 'All Genres'
+                                                    ? FontWeight.bold
+                                                    : FontWeight.normal,
+                                                color: _selectedGenre != null && _selectedGenre != 'All Genres'
+                                                    ? theme.colorScheme.onPrimaryContainer
+                                                    : theme.colorScheme.onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.arrow_drop_down,
+                                              size: 16,
+                                              color: _selectedGenre != null && _selectedGenre != 'All Genres'
+                                                  ? theme.colorScheme.onPrimaryContainer
+                                                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem<String?>(
+                                          value: 'All Genres',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.clear_all,
+                                                size: 20,
+                                                color: _selectedGenre == null || _selectedGenre == 'All Genres'
+                                                    ? theme.colorScheme.primary
+                                                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                'All Genres',
+                                                style: TextStyle(
+                                                  fontWeight: _selectedGenre == null || _selectedGenre == 'All Genres'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: _selectedGenre == null || _selectedGenre == 'All Genres'
+                                                      ? theme.colorScheme.primary
+                                                      : theme.colorScheme.onSurface,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuDivider(),
+                                        // Only show genres that exist in user's songs
+                                        ...availableGenres.map(
+                                          (genre) => PopupMenuItem<String?>(
+                                            value: genre,
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.music_note,
+                                                  size: 20,
+                                                  color: _selectedGenre == genre
+                                                      ? theme.colorScheme.primary
+                                                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Text(
+                                                  genre,
+                                                  style: TextStyle(
+                                                    fontWeight: _selectedGenre == genre
+                                                        ? FontWeight.bold
+                                                        : FontWeight.normal,
+                                                    color: _selectedGenre == genre
+                                                        ? theme.colorScheme.primary
+                                                        : theme.colorScheme.onSurface,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -403,9 +574,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   void _updateSort(String sortBy) {
     setState(() {
       _sortBy = sortBy;
-      // Clear cache to force re-sort
+      // Clear cache to force re-sort and re-filter
       _cachedSortedSongs = null;
     });
+  }
+
+  /// Get unique genres from user's uploaded songs
+  List<String> _getAvailableGenres() {
+    final userSongsState = ref.watch(userSongsProvider);
+    final uploadedSongs = userSongsState.songs;
+    
+    if (uploadedSongs.isEmpty) return [];
+    
+    // Extract unique genres from songs, filtering out nulls and empty strings
+    final genresSet = uploadedSongs
+        .map((song) => song.genre)
+        .where((genre) => genre != null && genre.isNotEmpty)
+        .cast<String>()
+        .toSet();
+    
+    // Convert to sorted list for consistent ordering
+    final genresList = genresSet.toList()..sort();
+    
+    debugPrint('🎭 Available genres in user songs: $genresList');
+    return genresList;
   }
 }
 
