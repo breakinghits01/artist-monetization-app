@@ -407,15 +407,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                             : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                                       ),
                                       const SizedBox(width: 6),
-                                      Text(
-                                        _selectedGenre ?? 'All Genres',
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          fontWeight: _selectedGenre != null && _selectedGenre != 'All Genres'
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                          color: _selectedGenre != null && _selectedGenre != 'All Genres'
-                                              ? theme.colorScheme.onPrimaryContainer
-                                              : theme.colorScheme.onSurface,
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 80, // Prevent overflow on mobile
+                                        ),
+                                        child: Text(
+                                          _selectedGenre ?? 'All Genres',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            fontWeight: _selectedGenre != null && _selectedGenre != 'All Genres'
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            color: _selectedGenre != null && _selectedGenre != 'All Genres'
+                                                ? theme.colorScheme.onPrimaryContainer
+                                                : theme.colorScheme.onSurface,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
                                       ),
                                       const SizedBox(width: 4),
