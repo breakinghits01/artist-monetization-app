@@ -545,6 +545,9 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
             dislikeCount: song.dislikeCount,
             commentCount: song.commentCount,
             shareCount: song.shareCount,
+            averageRating: song.averageRating,
+            ratingCount: song.ratingCount,
+            engagementScore: song.engagementScore,
           );
         }
         return song;
@@ -651,6 +654,7 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
       audioUrl: json['fileUrl'] ?? json['audioUrl'] ?? '',
       genre: json['genre'] ?? 'Unknown',
       tokenReward: json['price'] ?? json['tokenReward'] ?? 10,
+      isPremium: json['exclusive'] ?? json['isPremium'] ?? false,
       playCount: json['playCount'] ?? 0,
       likeCount: json['likeCount'] ?? 0,
       dislikeCount: json['dislikeCount'] ?? 0,
@@ -658,6 +662,7 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
       shareCount: json['shareCount'] ?? 0,
       averageRating: (json['averageRating'] ?? 0.0).toDouble(),
       ratingCount: json['ratingCount'] ?? 0,
+      engagementScore: json['engagementScore'] ?? 0,
     );
   }
 
@@ -675,7 +680,15 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
           tokenReward: song.tokenReward,
           albumArt: song.albumArt,
           genre: song.genre,
+          isPremium: song.isPremium,
           playCount: newPlayCount, // Update with new count
+          likeCount: song.likeCount,
+          dislikeCount: song.dislikeCount,
+          commentCount: song.commentCount,
+          shareCount: song.shareCount,
+          averageRating: song.averageRating,
+          ratingCount: song.ratingCount,
+          engagementScore: song.engagementScore,
         );
       }
       return song;
@@ -697,6 +710,7 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
       'audioUrl': song.audioUrl,
       'genre': song.genre,
       'tokenReward': song.tokenReward,
+      'isPremium': song.isPremium,
       'playCount': song.playCount,
       'likeCount': song.likeCount,
       'dislikeCount': song.dislikeCount,
@@ -704,6 +718,7 @@ class UserSongsNotifier extends StateNotifier<UserSongsState> {
       'shareCount': song.shareCount,
       'averageRating': song.averageRating,
       'ratingCount': song.ratingCount,
+      'engagementScore': song.engagementScore,
     };
   }
 }
