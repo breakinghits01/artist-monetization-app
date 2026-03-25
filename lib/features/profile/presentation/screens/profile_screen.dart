@@ -324,14 +324,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                               height: 24,
                               color: theme.colorScheme.outline.withValues(alpha: 0.3),
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Sort by:',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             SortChip(
                               label: 'Recent',
                               isSelected: _sortBy == 'Recent',
@@ -357,13 +350,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                 width: 1,
                                 height: 24,
                                 color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                              ),
-                              const SizedBox(width: 16),
-                              Text(
-                                'Genre:',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                ),
                               ),
                               const SizedBox(width: 12),
                               PopupMenuButton<String?>(
