@@ -79,8 +79,13 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
       // Get current user ID
       final currentUser = _ref.read(currentUserProvider);
       final userId = currentUser?['_id'] ?? currentUser?['id'];
+      
+      debugPrint('🔍 [PLAYLIST DEBUG] Current user data: $currentUser');
+      debugPrint('🔍 [PLAYLIST DEBUG] Extracted userId: $userId');
+      debugPrint('🔍 [PLAYLIST DEBUG] Username: ${currentUser?['username']}');
 
       if (userId == null) {
+        debugPrint('❌ [PLAYLIST DEBUG] No userId found - user not logged in');
         state = state.copyWith(
           isLoading: false,
           error: 'User not logged in',
@@ -107,21 +112,22 @@ class PlaylistsNotifier extends StateNotifier<PlaylistsState> {
         debugPrint('📋 Loading playlists from network for user: $userId');
         final fresh = await _service.getUserPlaylists(userId);
         
-        // Only update if we got data OR if we had no cache
-        // Don't overwrite cached playlists with empty response
-        if (fresh.isNotEmpty || cached.isEmpty) {
-          // Save to cache for next time
-          await _savePlaylists(fresh, userId);
-          
-          state = state.copyWith(
-            playlists: fresh,
-            isLoading: false,
-          );
-          debugPrint('✅ Network sync complete: ${fresh.length} playlists');
-        } else {
-          // Network returned empty but we have cache - keep cache
-          debugPrint('⚠️ Network returned 0 playlists, keeping ${cached.length} cached playlists');
+        debugPrint('🔍 [PLAYLIST DEBUG] Received ${fresh.length} playlists from API');
+        if (fresh.isNotEmpty) {
+          debugPrint('🔍 [PLAYLIST DEBUG] First playlist: ${fresh.first.name}');
+          debugPrint('🔍 [PLAYLIST DEBUG] First playlist userId: ${fresh.first.userId}');
         }
+        
+        // ALWAYS update with network data (even if empty)
+        // This ensures we show the correct data for the current user
+        // and don't keep stale cache from a different user session
+        await _savePlaylists(fresh, userId);
+        
+        state = state.copyWith(
+          playlists: fresh,
+          isLoading: false,
+        );
+        debugPrint('✅ Network sync complete: ${fresh.length} playlists');
       } catch (networkError) {
         debugPrint('⚠️ Network sync failed: $networkError');
         

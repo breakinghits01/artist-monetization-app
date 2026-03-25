@@ -9,10 +9,12 @@ class PlaylistService {
   /// Get user's playlists
   Future<List<PlaylistModel>> getUserPlaylists(String userId) async {
     try {
+      final apiUrl = '${ApiConfig.baseUrl}/api/v1/playlists/user/$userId';
       debugPrint('📋 Fetching playlists for user: $userId');
+      debugPrint('🔍 [API DEBUG] Full URL: $apiUrl');
       
       final response = await _dio.get(
-        '${ApiConfig.baseUrl}/api/v1/playlists/user/$userId',
+        apiUrl,
         options: Options(
           headers: {
             'Authorization': 'Bearer ${ApiConfig.tempToken}',
@@ -21,14 +23,20 @@ class PlaylistService {
       );
 
       if (response.statusCode == 200) {
+        debugPrint('🔍 [API DEBUG] Response status: ${response.statusCode}');
+        debugPrint('🔍 [API DEBUG] Response data: ${response.data}');
+        
         final data = response.data['data'];
         final playlistsJson = data['playlists'] as List;
+        
+        debugPrint('🔍 [API DEBUG] Playlists count: ${playlistsJson.length}');
         
         final playlists = playlistsJson.map((json) {
           // Convert MongoDB _id to id
           if (json['_id'] != null) {
             json['id'] = json['_id'];
           }
+          debugPrint('🔍 [API DEBUG] Playlist: ${json['name']} (userId: ${json['userId']})');
           return PlaylistModel.fromJson(json);
         }).toList();
         
