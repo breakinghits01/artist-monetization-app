@@ -302,7 +302,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
-                        vertical: 8,
+                        vertical: 4,
                       ),
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,

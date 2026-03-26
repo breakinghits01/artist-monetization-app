@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../player/models/song_model.dart';
 import 'playing_indicator_overlay.dart';
 import '../../../../services/providers/offline_download_provider.dart';
 import '../../../../services/offline_download_manager.dart';
+import '../../../../widgets/offline_download_button.dart';
 
 /// Song list item widget for displaying song information
 class SongListItem extends ConsumerWidget {
@@ -251,8 +253,22 @@ class SongListItem extends ConsumerWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Download button (mobile only)
+            if (!kIsWeb)
+              OfflineDownloadButton(
+                songId: song.id,
+                songTitle: song.title,
+                artistName: song.artist,
+                artistId: song.artistId,
+                albumArt: song.albumArt,
+                audioUrl: song.audioUrl,
+                duration: song.duration,
+                iconSize: 18,
+              ),
+            if (!kIsWeb) const SizedBox(width: 2),
+            // Token reward badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.amber.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
@@ -260,32 +276,33 @@ class SongListItem extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.monetization_on, size: 14, color: Colors.amber),
-                  const SizedBox(width: 4),
+                  Icon(Icons.monetization_on, size: 12, color: Colors.amber),
+                  const SizedBox(width: 2),
                   Text(
                     '+${song.tokenReward}',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: Colors.amber,
                       fontWeight: FontWeight.bold,
+                      fontSize: 11,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             IconButton(
               icon: Icon(
                 isLiked ? Icons.favorite : Icons.favorite_border,
                 color: isLiked ? Colors.red : null,
-                size: 20,
+                size: 18,
               ),
               onPressed: onLike,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(Icons.more_vert, size: 20),
+              icon: const Icon(Icons.more_vert, size: 18),
               onPressed: onOptions,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
