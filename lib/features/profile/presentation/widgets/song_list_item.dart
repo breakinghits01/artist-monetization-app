@@ -166,10 +166,10 @@ class SongListItem extends ConsumerWidget {
                               children: [
                                 Icon(
                                   Icons.headphones,
-                                  size: 12,
+                                  size: 11,
                                   color: theme.colorScheme.onSurface.withOpacity(0.5),
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 2),
                                 Text(
                                   '${song.playCount}',
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -183,10 +183,10 @@ class SongListItem extends ConsumerWidget {
                                   final status = ref.watch(songDownloadStatusProvider(song.id));
                                   if (status == OfflineDownloadStatus.downloaded) {
                                     return Padding(
-                                      padding: const EdgeInsets.only(left: 6),
+                                      padding: const EdgeInsets.only(left: 4),
                                       child: Icon(
                                         Icons.check_circle,
-                                        size: 14,
+                                        size: 12,
                                         color: Colors.green,
                                       ),
                                     );
@@ -263,46 +263,11 @@ class SongListItem extends ConsumerWidget {
                 albumArt: song.albumArt,
                 audioUrl: song.audioUrl,
                 duration: song.duration,
-                iconSize: 18,
+                iconSize: 20,
               ),
-            if (!kIsWeb) const SizedBox(width: 2),
-            // Token reward badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.monetization_on, size: 12, color: Colors.amber),
-                  const SizedBox(width: 2),
-                  Text(
-                    '+${song.tokenReward}',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.amber,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 4),
+            if (!kIsWeb) const SizedBox(width: 8),
             IconButton(
-              icon: Icon(
-                isLiked ? Icons.favorite : Icons.favorite_border,
-                color: isLiked ? Colors.red : null,
-                size: 18,
-              ),
-              onPressed: onLike,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: const Icon(Icons.more_vert, size: 18),
+              icon: const Icon(Icons.more_vert, size: 20),
               onPressed: onOptions,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),

@@ -300,9 +300,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     ),
                     // Sort and Filter Options - Single Row
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 4,
+                      padding: const EdgeInsets.only(
+                        left: 24,
+                        right: 24,
+                        top: 2,
+                        bottom: 2,
                       ),
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,

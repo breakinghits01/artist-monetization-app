@@ -4,6 +4,7 @@ import '../../../player/models/song_model.dart';
 import '../../../playlist/widgets/add_to_playlist_sheet.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../providers/user_songs_provider.dart';
+import '../../providers/liked_songs_provider.dart';
 import 'song_info_dialog.dart';
 
 /// Bottom sheet for song options (add to playlist, share, download, info, delete)
@@ -58,6 +59,66 @@ class SongOptionsSheet extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 20),
+            // Token Reward Info
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.monetization_on, color: Colors.amber, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Token Reward',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          '+${song.tokenReward} tokens per play',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Like/Unlike Option
+            Consumer(
+              builder: (context, ref, child) {
+                final likedSongs = ref.watch(likedSongsProvider);
+                final isLiked = likedSongs.contains(song.id);
+                
+                return ListTile(
+                  leading: Icon(
+                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: isLiked ? Colors.red : theme.colorScheme.secondary,
+                  ),
+                  title: Text(isLiked ? 'Unlike' : 'Like'),
+                  subtitle: Text(isLiked ? 'Remove from liked songs' : 'Add to liked songs'),
+                  onTap: () {
+                    ref.read(likedSongsProvider.notifier).toggleLike(song.id);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+            const Divider(height: 1),
             ListTile(
               leading: Icon(Icons.add_to_photos, color: theme.colorScheme.primary),
               title: const Text('Add to Playlist'),
