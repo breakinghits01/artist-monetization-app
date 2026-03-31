@@ -141,6 +141,68 @@ class FileEncryptionService {
     }
   }
 
+  // ─── Per-song IV API ────────────────────────────────────────────────────────
+  // Each song gets its own randomly-generated IV at download time.
+  // This means:
+  //   • A Keystore invalidation for one song does NOT affect others.
+  //   • Identical audio files produce different ciphertext (no pattern leakage).
+  //   • Legacy songs (no 'iv' in metadata) fall back to the global IV via the
+  //     original decryptFile() above.
+
+  /// Generate a cryptographically-secure random IV for one song.
+  /// Call once at download time and persist the result in song metadata.
+  static String generateSongIV() => encrypt_lib.IV.fromSecureRandom(16).base64;
+
+  /// Encrypt [inputFile] using the caller-supplied [ivBase64] (per-song IV).
+  /// [ivBase64] must be the value previously returned by [generateSongIV].
+  Future<bool> encryptFileWithIV(
+    File inputFile,
+    File outputFile,
+    String ivBase64,
+  ) async {
+    try {
+      final fileBytes = await inputFile.readAsBytes();
+      final key = await _getEncryptionKey();
+      final iv = encrypt_lib.IV.fromBase64(ivBase64);
+      final encrypter = encrypt_lib.Encrypter(
+        encrypt_lib.AES(key, mode: encrypt_lib.AESMode.cbc),
+      );
+      final encrypted = encrypter.encryptBytes(fileBytes, iv: iv);
+      await outputFile.writeAsBytes(encrypted.bytes);
+      debugPrint('✅ File encrypted with per-song IV: ${outputFile.path}');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error encrypting file with per-song IV: $e');
+      return false;
+    }
+  }
+
+  /// Decrypt [inputFile] using the per-song [ivBase64] that was stored in
+  /// metadata at download time.  For files downloaded before per-song IVs
+  /// were introduced, call [decryptFile] instead (uses the global IV).
+  Future<bool> decryptFileWithIV(
+    File inputFile,
+    File outputFile,
+    String ivBase64,
+  ) async {
+    try {
+      final encryptedBytes = await inputFile.readAsBytes();
+      final key = await _getEncryptionKey();
+      final iv = encrypt_lib.IV.fromBase64(ivBase64);
+      final encrypter = encrypt_lib.Encrypter(
+        encrypt_lib.AES(key, mode: encrypt_lib.AESMode.cbc),
+      );
+      final encrypted = encrypt_lib.Encrypted(encryptedBytes);
+      final decrypted = encrypter.decryptBytes(encrypted, iv: iv);
+      await outputFile.writeAsBytes(decrypted);
+      debugPrint('✅ File decrypted with per-song IV: ${outputFile.path}');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error decrypting file with per-song IV: $e');
+      return false;
+    }
+  }
+
   /// Encrypt bytes in memory (for smaller files)
   Future<Uint8List?> encryptBytes(Uint8List data) async {
     try {

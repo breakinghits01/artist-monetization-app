@@ -72,19 +72,29 @@ class OfflineDownloadManager {
     return File('${dir.path}/metadata.json');
   }
 
-  /// Save song metadata (encrypted)
-  Future<void> _saveMetadata(String songId, SongModel song) async {
+  /// Save song metadata.
+  ///
+  /// Pass [ivBase64] (the per-song IV returned by
+  /// [FileEncryptionService.generateSongIV]) so that [getDecryptedFilePath]
+  /// can decrypt with the correct IV later.  Legacy entries where [ivBase64]
+  /// is null fall back to the global IV.
+  Future<void> _saveMetadata(
+    String songId,
+    SongModel song, {
+    String? ivBase64,
+  }) async {
     try {
       final metadataFile = await _getMetadataFile();
       Map<String, dynamic> allMetadata = {};
 
       // Load existing metadata
       if (await metadataFile.exists()) {
-        final decrypted = await _secureStorage.read(key: 'offline_metadata') ?? '{}';
-        allMetadata = json.decode(decrypted);
+        final stored =
+            await _secureStorage.read(key: 'offline_metadata') ?? '{}';
+        allMetadata = json.decode(stored) as Map<String, dynamic>;
       }
 
-      // Add new song metadata
+      // Add / overwrite song metadata
       allMetadata[songId] = {
         'id': song.id,
         'title': song.title,
@@ -95,12 +105,14 @@ class OfflineDownloadManager {
         'genre': song.genre,
         'audioUrl': song.audioUrl,
         'downloadedAt': DateTime.now().toIso8601String(),
+        // Per-song encryption IV.  null means the file was encrypted with the
+        // legacy global IV and decryptFile() will be used instead.
+        'iv': ivBase64,
       };
 
-      // Encrypt and save
       final jsonStr = json.encode(allMetadata);
       await _secureStorage.write(key: 'offline_metadata', value: jsonStr);
-      await metadataFile.writeAsString('encrypted'); // Marker file
+      await metadataFile.writeAsString('encrypted'); // Presence marker
     } catch (e) {
       debugPrint('Error saving metadata: $e');
       rethrow; // Propagate so downloadSong() can mark the download as failed
@@ -227,17 +239,26 @@ class OfflineDownloadManager {
       );
 
       debugPrint('✅ Download completed successfully');
-      debugPrint('🔒 Encrypting file...');
-      
+      debugPrint('🔒 Encrypting file with per-song IV...');
+
       // Update progress for encryption phase
       _updateProgress(songId, 0.85, OfflineDownloadStatus.downloading);
-      
+
+      // Generate a fresh cryptographically-secure IV for this song.
+      // Each song has its own IV so a Keystore invalidation on one file
+      // does not affect the rest of the library.
+      final songIvBase64 = FileEncryptionService.generateSongIV();
+
       // Encrypt the downloaded file
       final tempFile = File(tempFilePath);
       final encryptedFile = File(encryptedFilePath);
-      
-      final encrypted = await _encryptionService.encryptFile(tempFile, encryptedFile);
-      
+
+      final encrypted = await _encryptionService.encryptFileWithIV(
+        tempFile,
+        encryptedFile,
+        songIvBase64,
+      );
+
       if (!encrypted) {
         throw Exception('Failed to encrypt file');
       }
@@ -252,8 +273,8 @@ class OfflineDownloadManager {
       
       _updateProgress(songId, 0.95, OfflineDownloadStatus.downloading);
 
-      // Save metadata
-      await _saveMetadata(songId, song);
+      // Save metadata (IV is stored so getDecryptedFilePath can decrypt later)
+      await _saveMetadata(songId, song, ivBase64: songIvBase64);
 
       // Mark as completed
       _updateProgress(songId, 1.0, OfflineDownloadStatus.downloaded);
@@ -339,60 +360,143 @@ class OfflineDownloadManager {
     return await _getLocalFilePath(songId, 'mp3');
   }
 
-  /// Get decrypted file for playback
-  /// This creates a temporary decrypted file for the audio player
+  /// Returns the path to a decrypted copy of [songId] ready for ExoPlayer.
+  ///
+  /// Strategy:
+  ///   1. Fast-path — return existing cached decrypted file if still on disk.
+  ///   2. Evict oldest cached files if the cache directory is near its limit.
+  ///   3. Decrypt using the per-song IV stored in metadata (new songs), or the
+  ///      global IV (legacy songs downloaded before per-song IVs were added).
   Future<String?> getDecryptedFilePath(String songId) async {
     try {
-      if (!await isDownloaded(songId)) {
-        debugPrint('⚠️ Song not downloaded: $songId');
+      // Load metadata once — used for existence check AND IV retrieval.
+      final metadata = await _loadMetadata();
+      if (!metadata.containsKey(songId)) {
+        debugPrint('⚠️ Song not in metadata: $songId');
         return null;
       }
 
       final encryptedPath = await _getLocalFilePath(songId, 'mp3');
       final encryptedFile = File(encryptedPath);
-
       if (!await encryptedFile.exists()) {
-        debugPrint('⚠️ Encrypted file not found: $encryptedPath');
+        debugPrint('⚠️ Encrypted file missing on disk: $encryptedPath');
         return null;
       }
 
-      // Create temp directory for decrypted playback files
-      final tempDir = await _getTempPlaybackDirectory();
-      final decryptedPath = '${tempDir.path}/$songId.mp3';
+      final cacheDir = await _getTempPlaybackDirectory();
+      final decryptedPath = '${cacheDir.path}/$songId.mp3';
       final decryptedFile = File(decryptedPath);
 
-      // Check if already decrypted
+      // Fast-path: already decrypted and cached.
       if (await decryptedFile.exists()) {
-        debugPrint('✅ Using cached decrypted file: $decryptedPath');
+        debugPrint('✅ Cache hit — using decrypted file: $decryptedPath');
         return decryptedPath;
       }
 
-      debugPrint('🔓 Decrypting file for playback...');
-      final decrypted = await _encryptionService.decryptFile(encryptedFile, decryptedFile);
+      // Evict old cache entries before writing a new one.
+      await _evictPlaybackCacheIfNeeded();
 
-      if (!decrypted) {
-        debugPrint('❌ Failed to decrypt file');
+      debugPrint('🔓 Decrypting for playback: $songId');
+
+      // Use the per-song IV if it was stored at download time; otherwise fall
+      // back to the global IV for files encrypted with the legacy scheme.
+      final songMeta = metadata[songId] as Map<String, dynamic>;
+      final ivBase64 = songMeta['iv'] as String?;
+
+      final bool ok;
+      if (ivBase64 != null) {
+        ok = await _encryptionService.decryptFileWithIV(
+          encryptedFile,
+          decryptedFile,
+          ivBase64,
+        );
+      } else {
+        // Legacy path — song was downloaded before per-song IVs were introduced.
+        ok = await _encryptionService.decryptFile(encryptedFile, decryptedFile);
+      }
+
+      if (!ok) {
+        debugPrint('❌ Decryption failed for: $songId');
         return null;
       }
 
-      debugPrint('✅ File decrypted for playback: $decryptedPath');
+      debugPrint('✅ Decrypted and cached: $decryptedPath');
       return decryptedPath;
     } catch (e) {
-      debugPrint('❌ Error getting decrypted file: $e');
+      debugPrint('❌ Error in getDecryptedFilePath($songId): $e');
       return null;
     }
   }
 
-  /// Get temporary playback directory
+  /// Returns the stable directory used to cache decrypted playback files.
+  ///
+  /// Uses [getApplicationSupportDirectory] instead of [getTemporaryDirectory].
+  /// The OS **never** clears the support directory, whereas the temp/cache
+  /// directory can be wiped at any time under memory pressure — which caused
+  /// mid-session ExoPlayer "Playback error" failures.
   Future<Directory> _getTempPlaybackDirectory() async {
-    final tempDir = await getTemporaryDirectory();
-    final playbackDir = Directory('${tempDir.path}/playback_cache');
-    
+    final appSupportDir = await getApplicationSupportDirectory();
+    final playbackDir = Directory('${appSupportDir.path}/playback_cache');
     if (!await playbackDir.exists()) {
       await playbackDir.create(recursive: true);
     }
-    
     return playbackDir;
+  }
+
+  // Maximum size of the decrypted-file playback cache before LRU eviction runs.
+  static const int _maxPlaybackCacheBytes = 500 * 1024 * 1024; // 500 MB
+  // Target size after eviction (avoids thrashing on every write).
+  static const int _targetPlaybackCacheBytes = 300 * 1024 * 1024; // 300 MB
+
+  /// Delete the oldest decrypted files when the playback cache exceeds
+  /// [_maxPlaybackCacheBytes].  Only the cached *decrypted* copies are removed;
+  /// the encrypted source files are untouched, so songs stay "downloaded".
+  Future<void> _evictPlaybackCacheIfNeeded() async {
+    try {
+      final cacheDir = await _getTempPlaybackDirectory();
+      if (!await cacheDir.exists()) return;
+
+      final entities = await cacheDir.list().toList();
+      final stats = <File, FileStat>{};
+      int totalBytes = 0;
+
+      for (final e in entities) {
+        if (e is File) {
+          final st = await e.stat();
+          stats[e] = st;
+          totalBytes += st.size;
+        }
+      }
+
+      if (totalBytes <= _maxPlaybackCacheBytes) return;
+
+      debugPrint(
+        '🗑️ Playback cache ${(totalBytes / 1024 / 1024).toStringAsFixed(1)} MB '
+        '> ${_maxPlaybackCacheBytes ~/ 1024 ~/ 1024} MB — evicting oldest files',
+      );
+
+      // Sort oldest-modified first (LRU)
+      final sorted = stats.entries.toList()
+        ..sort((a, b) => a.value.modified.compareTo(b.value.modified));
+
+      for (final entry in sorted) {
+        if (totalBytes <= _targetPlaybackCacheBytes) break;
+        try {
+          totalBytes -= entry.value.size;
+          await entry.key.delete();
+          debugPrint('🗑️ Evicted: ${entry.key.path}');
+        } catch (e) {
+          debugPrint('⚠️ Eviction failed for ${entry.key.path}: $e');
+        }
+      }
+      debugPrint(
+        '✅ Cache eviction done. '
+        'Remaining ≈ ${(totalBytes / 1024 / 1024).toStringAsFixed(1)} MB',
+      );
+    } catch (e) {
+      // Non-critical — eviction failure should never break playback.
+      debugPrint('⚠️ Playback cache eviction check failed: $e');
+    }
   }
 
   /// Clear temporary playback cache

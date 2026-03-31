@@ -49,8 +49,6 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   DateTime? _sessionStartTime; // Track when session actually started
   bool _isDisposed = false;
   double? _volumeBeforeMute; // Store volume before muting
-  ConcatenatingAudioSource? _currentPlaylist; // For background offline source swaps
-  List<SongModel>? _currentQueueSongs; // Tracks active queue for background tasks
 
   AudioPlayerNotifier(this._ref) : super(const models.PlayerState()) {
     _initPlayer();
@@ -227,6 +225,22 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           }
         }
       }),
+    );
+
+    // ExoPlayer error recovery — skip to next instead of silently stalling.
+    // Without this a single bad source (deleted temp file, network blip, etc.)
+    // leaves the player in an idle/error state with no auto-advance.
+    _subscriptions.add(
+      _audioPlayer.playbackEventStream.listen(
+        (_) {},
+        onError: (Object error, StackTrace stackTrace) {
+          if (!_isDisposed) {
+            print('⚠️ ExoPlayer playback error — attempting recovery: $error');
+            _recoverFromPlaybackError();
+          }
+        },
+        cancelOnError: false, // Keep listening after each individual error
+      ),
     );
   }
 
@@ -599,17 +613,15 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         );
       }
 
-      _currentPlaylist = ConcatenatingAudioSource(children: audioSources);
-      _currentQueueSongs = allSongs;
+      final playlist = ConcatenatingAudioSource(children: audioSources);
 
       // CRITICAL: Disable shuffle before setting playlist to ensure correct queue order
       await _audioPlayer.setShuffleModeEnabled(false);
       print('🔀 Shuffle disabled for queue playback');
 
       // Load playlist and seek to start index
-      // OPTIMIZATION: Use preload=true for instant playback
       await _audioPlayer.setAudioSource(
-        _currentPlaylist!,
+        playlist,
         initialIndex: startIndex,
         initialPosition: Duration.zero,
         preload: true, // Preload first song for instant start
@@ -650,14 +662,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       print('▶️ Starting queue playback (optimized)...');
       await _audioPlayer.play();
 
-      // Phase 3: background-decrypt remaining downloaded songs (non-blocking)
-      unawaited(_backgroundPreDecrypt(
-        allSongs,
-        offlineDownloadNotifier,
-        decryptedPaths.keys.toSet(),
-      ));
-
-      print('✅ Queue loaded, playing from index $startIndex with fast start');
+      print('✅ Queue loaded, playing from index $startIndex');
     } catch (e) {
       print('❌ Error playing with queue: $e');
       state = state.copyWith(isLoading: false, isPlaying: false);
@@ -931,99 +936,24 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     }
   }
 
-  /// Background phase: decrypt remaining downloaded songs after playback starts.
-  /// Swaps network-URL audio sources for local-file sources in ConcatenatingAudioSource
-  /// so the full playlist becomes available for truly offline playback.
-  Future<void> _backgroundPreDecrypt(
-    List<SongModel> songs,
-    OfflineDownloadStateNotifier notifier,
-    Set<String> alreadyDecrypted,
-  ) async {
-    // Outer catch: ensures no exception ever escapes an unawaited() Future
+  /// Attempt to recover from an ExoPlayer playback error by skipping to the
+  /// next available source in the queue.
+  ///
+  /// This handles: deleted temp files, bad network sources, format errors, etc.
+  /// The player would otherwise remain in an idle/error state with no auto-advance.
+  void _recoverFromPlaybackError() {
+    if (_isDisposed) return;
     try {
-      for (int i = 0; i < songs.length; i++) {
-        if (_isDisposed) return;
-        if (_currentQueueSongs != songs) return; // Queue changed, abort
-
-        final s = songs[i];
-
-        try {
-          // Guard currentIndex access — player may be disposed between iterations
-          final currentIdx = _isDisposed ? null : _audioPlayer.currentIndex;
-
-          // Skip the currently-playing index to avoid interrupting active playback
-          if (currentIdx == i) continue;
-
-          if (!notifier.isDownloaded(s.id) ||
-              alreadyDecrypted.contains(s.id)) continue;
-
-          final path = await notifier.getDecryptedFilePath(s.id);
-
-          // Re-check all guards after every await (async gap — state may have changed)
-          if (path == null) continue;
-          if (_isDisposed || _currentQueueSongs != songs) return;
-
-          final playlist = _currentPlaylist;
-          if (playlist == null) continue;
-
-          // Bounds guard: playlist may have shrunk since the loop started
-          if (i >= playlist.children.length) continue;
-
-          // Re-check current index after await to avoid swapping the active source
-          if (!_isDisposed && _audioPlayer.currentIndex == i) continue;
-
-          final localSource = AudioSource.file(
-            path,
-            tag: MediaItem(
-              id: s.id,
-              title: s.title,
-              artist: s.artist,
-              album: 'Breaking Hits',
-              duration: s.duration,
-              artUri: _buildArtUri(s),
-            ),
-          );
-
-          await playlist.removeAt(i);
-
-          // Guard again after removeAt — don't leave playlist in a shorter state
-          if (_isDisposed || _currentQueueSongs != songs) {
-            // Best-effort restore: re-insert so the playlist stays consistent
-            try {
-              await playlist.insert(i, localSource);
-            } catch (_) {}
-            return;
-          }
-
-          await playlist.insert(i, localSource);
-          print('🔄 Background: swapped to local for ${s.title} (idx $i)');
-        } catch (e, st) {
-          // Per-song error: log and continue with next song
-          print('⚠️ Background pre-decrypt error for ${s.title}: $e\n$st');
-        }
+      if (_audioPlayer.hasNext) {
+        print('⏭️ Recovery: skipping to next song after playback error');
+        _audioPlayer.seekToNext();
+      } else {
+        print('⏹️ Recovery: no next song available — stopping cleanly');
+        _audioPlayer.stop();
+        state = state.copyWith(isPlaying: false, position: Duration.zero);
       }
-      print('✅ Background pre-decrypt finished');
-    } catch (e, st) {
-      // Outer safety net: prevents unhandled async exception via unawaited()
-      print('❌ Background pre-decrypt fatal: $e\n$st');
-    }
-  }
-
-  /// Build an album art URI, filtering out placeholders and data URIs.
-  Uri? _buildArtUri(SongModel s) {
-    if (s.albumArt == null || s.albumArt!.isEmpty) return null;
-    if (s.albumArt!.contains('placeholder') ||
-        s.albumArt!.contains('picsum.photos') ||
-        s.albumArt!.startsWith('data:')) {
-      return null;
-    }
-    final url = s.albumArt!.startsWith('http')
-        ? s.albumArt!
-        : '${ApiConfig.baseUrl}${s.albumArt}';
-    try {
-      return Uri.parse(url);
-    } catch (_) {
-      return null;
+    } catch (e) {
+      print('⚠️ Recovery attempt itself failed: $e');
     }
   }
 
@@ -1044,10 +974,6 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     if (_audioServiceHandler != null) {
       _audioServiceHandler!.dispose();
     }
-
-    // Clear queue references so any in-flight background tasks abort gracefully
-    _currentPlaylist = null;
-    _currentQueueSongs = null;
 
     // Dispose audio player
     _audioPlayer.dispose();
