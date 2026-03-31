@@ -103,6 +103,7 @@ class OfflineDownloadManager {
       await metadataFile.writeAsString('encrypted'); // Marker file
     } catch (e) {
       debugPrint('Error saving metadata: $e');
+      rethrow; // Propagate so downloadSong() can mark the download as failed
     }
   }
 
@@ -275,6 +276,17 @@ class OfflineDownloadManager {
       return true;
     } catch (e) {
       debugPrint('❌ Error downloading song: $e');
+      // Clean up any partial encrypted file to avoid stale/corrupt data
+      try {
+        final encryptedPath = await _getLocalFilePath(songId, 'mp3');
+        final encryptedFile = File(encryptedPath);
+        if (await encryptedFile.exists()) {
+          await encryptedFile.delete();
+          debugPrint('🗑️ Cleaned up partial download: $encryptedPath');
+        }
+      } catch (cleanupError) {
+        debugPrint('⚠️ Cleanup failed: $cleanupError');
+      }
       _updateProgress(
         songId,
         0.0,
@@ -396,14 +408,39 @@ class OfflineDownloadManager {
     }
   }
 
-  /// Get all downloaded songs
+  /// Fast check: is the temporary decrypted playback file already cached?
+  /// Does NOT perform decryption — only checks disk existence.
+  /// Use this to avoid blocking the UI thread with unnecessary decryption work.
+  Future<bool> hasCachedDecryptedFile(String songId) async {
+    try {
+      final tempDir = await _getTempPlaybackDirectory();
+      return await File('${tempDir.path}/$songId.mp3').exists();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get all downloaded songs.
+  /// Verifies each encrypted file still exists on disk and purges stale metadata
+  /// entries whose files were removed (e.g. OS cleared app storage).
   Future<List<SongModel>> getDownloadedSongs() async {
     try {
       final metadata = await _loadMetadata();
       final songs = <SongModel>[];
+      final staleIds = <String>[];
 
       for (final entry in metadata.entries) {
+        final songId = entry.key;
         final data = entry.value;
+
+        // Verify the encrypted file still exists on disk
+        final filePath = await _getLocalFilePath(songId, 'mp3');
+        if (!await File(filePath).exists()) {
+          staleIds.add(songId);
+          debugPrint('⚠️ Stale metadata (file missing): $songId');
+          continue;
+        }
+
         songs.add(SongModel(
           id: data['id'],
           title: data['title'],
@@ -414,6 +451,18 @@ class OfflineDownloadManager {
           audioUrl: data['audioUrl'],
           genre: data['genre'],
         ));
+      }
+
+      // Purge stale metadata so SecureStorage stays in sync with disk
+      if (staleIds.isNotEmpty) {
+        for (final id in staleIds) {
+          metadata.remove(id);
+        }
+        await _secureStorage.write(
+          key: 'offline_metadata',
+          value: json.encode(metadata),
+        );
+        debugPrint('🗑️ Purged ${staleIds.length} stale metadata entries');
       }
 
       return songs;

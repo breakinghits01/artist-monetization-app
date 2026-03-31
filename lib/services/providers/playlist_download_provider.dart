@@ -181,18 +181,20 @@ final playlistDownloadStateProvider = Provider.family<PlaylistDownloadState?, St
   return allStates[playlistId];
 });
 
-/// Provider to check if playlist is fully downloaded (synchronous check)
-final playlistDownloadedProvider = Provider.family<bool, List<String>>((ref, songIds) {
-  if (songIds.isEmpty) return false;
-  
+/// Provider to check if playlist is fully downloaded (synchronous check).
+/// Uses a comma-separated String key instead of List<String>.
+/// Dart's List uses reference equality, so two identical List instances would
+/// be treated as different Riverpod family keys — causing cache misses and leaks.
+final playlistDownloadedProvider = Provider.family<bool, String>((ref, songIdsKey) {
+  if (songIdsKey.isEmpty) return false;
+
   final downloadedSongIds = ref.watch(offlineDownloadStateProvider).downloadedSongIds;
-  
-  // Check if all songs in the playlist are in the downloaded set
-  for (final songId in songIds) {
-    if (!downloadedSongIds.contains(songId)) {
+
+  for (final songId in songIdsKey.split(',')) {
+    if (songId.isNotEmpty && !downloadedSongIds.contains(songId)) {
       return false;
     }
   }
-  
+
   return true;
 });

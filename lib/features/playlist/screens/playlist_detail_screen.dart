@@ -588,8 +588,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
 
   Widget _buildDownloadIcon(ThemeData theme) {
     final downloadState = ref.watch(playlistDownloadStateProvider(widget.playlistId));
-    final songIds = _songs.map((s) => s.id).toList();
-    final isFullyDownloaded = ref.watch(playlistDownloadedProvider(songIds));
+    final songIdsKey = _songs.map((s) => s.id).join(',');
+    final isFullyDownloaded = ref.watch(playlistDownloadedProvider(songIdsKey));
 
     if (downloadState?.isDownloading == true) {
       // Show animated progress with circular indicator
@@ -635,7 +635,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           color: Colors.green.withValues(alpha: 0.15),
         ),
         child: IconButton(
-          onPressed: () => _showDownloadOptions(theme, songIds),
+          onPressed: () => _showDownloadOptions(theme, songIdsKey.split(',').where((s) => s.isNotEmpty).toList()),
           icon: const Icon(
             Icons.check_circle,
             size: 28,

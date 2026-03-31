@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,9 +24,13 @@ class PlaylistCard extends ConsumerWidget {
         elevation: isDark ? 4 : 2,
         child: InkWell(
           onTap: () {
-            // Navigate to trending route with URL update
-            // Desktop will show in content area, mobile shows full screen
-            context.go('/trending');
+            // Web/desktop: go() keeps the URL and sidebar selection in sync
+            // Mobile: push() preserves the back stack so the back button works
+            if (kIsWeb) {
+              context.go('/trending');
+            } else {
+              context.push('/trending');
+            }
           },
           child: Container(
             height: cardHeight,

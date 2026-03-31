@@ -1,88 +1,58 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import '../../../core/config/api_config.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/api/api_client.dart';
 import '../models/playlist_model.dart';
 
-class PlaylistService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
+/// Provider — uses the app-wide DioClient which already has the auth interceptor.
+/// The real JWT is attached automatically to every request; no manual token
+/// handling needed anywhere in this service.
+final playlistServiceProvider = Provider<PlaylistService>((ref) {
+  final dio = ref.watch(dioProvider);
+  return PlaylistService(dio);
+});
 
-  /// Get user's playlists
+class PlaylistService {
+  final Dio _dio;
+
+  PlaylistService(this._dio);
+
+  // ─── Playlists ─────────────────────────────────────────────────────────────
+
+  /// Fetch all playlists owned by [userId].
   Future<List<PlaylistModel>> getUserPlaylists(String userId) async {
     try {
-      final apiUrl = '${ApiConfig.baseUrl}/api/v1/playlists/user/$userId';
       debugPrint('📋 Fetching playlists for user: $userId');
-      debugPrint('🔍 [API DEBUG] Full URL: $apiUrl');
-      
-      final response = await _dio.get(
-        apiUrl,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer ${ApiConfig.tempToken}',
-          },
-        ),
-      );
+      final response = await _dio.get('/playlists/user/$userId');
 
-      if (response.statusCode == 200) {
-        debugPrint('🔍 [API DEBUG] Response status: ${response.statusCode}');
-        debugPrint('🔍 [API DEBUG] Response data: ${response.data}');
-        
-        final data = response.data['data'];
-        final playlistsJson = data['playlists'] as List;
-        
-        debugPrint('🔍 [API DEBUG] Playlists count: ${playlistsJson.length}');
-        
-        final playlists = playlistsJson.map((json) {
-          // Convert MongoDB _id to id
-          if (json['_id'] != null) {
-            json['id'] = json['_id'];
-          }
-          debugPrint('🔍 [API DEBUG] Playlist: ${json['name']} (userId: ${json['userId']})');
-          return PlaylistModel.fromJson(json);
-        }).toList();
-        
-        debugPrint('✅ Loaded ${playlists.length} playlists');
-        return playlists;
-      }
+      final playlistsJson = response.data['data']['playlists'] as List;
+      final playlists = playlistsJson.map((json) {
+        if (json['_id'] != null) json['id'] = json['_id'];
+        return PlaylistModel.fromJson(json);
+      }).toList();
 
-      throw Exception('Failed to load playlists');
+      debugPrint('✅ Loaded ${playlists.length} playlists');
+      return playlists;
     } on DioException catch (e) {
-      debugPrint('❌ Failed to fetch playlists: ${e.message}');
-      debugPrint('Response: ${e.response?.data}');
-      rethrow; // Re-throw instead of returning empty list
-    } catch (e) {
-      debugPrint('❌ Unexpected error: $e');
-      rethrow; // Re-throw instead of returning empty list
+      debugPrint('❌ Failed to fetch playlists: ${e.response?.data}');
+      rethrow;
     }
   }
 
-  /// Get playlist by ID with songs
+  /// Fetch a single playlist by ID (includes songs).
   Future<PlaylistModel?> getPlaylistById(String playlistId) async {
     try {
-      final response = await _dio.get(
-        '${ApiConfig.baseUrl}/api/v1/playlists/$playlistId',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer ${ApiConfig.tempToken}',
-          },
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        final data = response.data['data']['playlist'];
-        if (data['_id'] != null) {
-          data['id'] = data['_id'];
-        }
-        return PlaylistModel.fromJson(data);
-      }
-
-      return null;
-    } catch (e) {
-      debugPrint('❌ Failed to fetch playlist: $e');
+      final response = await _dio.get('/playlists/$playlistId');
+      final data = response.data['data']['playlist'];
+      if (data['_id'] != null) data['id'] = data['_id'];
+      return PlaylistModel.fromJson(data);
+    } on DioException catch (e) {
+      debugPrint('❌ Failed to fetch playlist: ${e.response?.data}');
       return null;
     }
   }
 
-  /// Create new playlist
+  /// Create a new playlist.
   Future<PlaylistModel?> createPlaylist({
     required String name,
     String? description,
@@ -91,115 +61,68 @@ class PlaylistService {
   }) async {
     try {
       debugPrint('📋 Creating playlist: $name');
-      
       final response = await _dio.post(
-        '${ApiConfig.baseUrl}/api/v1/playlists',
+        '/playlists',
         data: {
           'name': name,
           if (description != null) 'description': description,
           if (coverImage != null) 'coverImage': coverImage,
           'isPublic': isPublic,
         },
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${ApiConfig.tempToken}',
-          },
-        ),
       );
 
-      if (response.statusCode == 201) {
-        final data = response.data['data']['playlist'];
-        if (data['_id'] != null) {
-          data['id'] = data['_id'];
-        }
-        debugPrint('✅ Playlist created successfully');
-        return PlaylistModel.fromJson(data);
-      }
-
-      throw Exception('Failed to create playlist');
+      final data = response.data['data']['playlist'];
+      if (data['_id'] != null) data['id'] = data['_id'];
+      debugPrint('✅ Playlist created successfully');
+      return PlaylistModel.fromJson(data);
     } on DioException catch (e) {
-      debugPrint('❌ Failed to create playlist: ${e.message}');
-      debugPrint('Response: ${e.response?.data}');
+      debugPrint('❌ Failed to create playlist: ${e.response?.data}');
       rethrow;
     }
   }
 
-  /// Add song to playlist
+  // ─── Songs ─────────────────────────────────────────────────────────────────
+
+  /// Add [songId] to [playlistId].
+  /// Throws an [Exception] with a user-facing message if the song is already present.
   Future<bool> addSongToPlaylist(String playlistId, String songId) async {
     try {
       debugPrint('📋 Adding song $songId to playlist $playlistId');
-      
-      final response = await _dio.post(
-        '${ApiConfig.baseUrl}/api/v1/playlists/$playlistId/songs/$songId',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer ${ApiConfig.tempToken}',
-          },
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        debugPrint('✅ Song added to playlist');
-        return true;
-      }
-
-      return false;
+      await _dio.post('/playlists/$playlistId/songs/$songId');
+      debugPrint('✅ Song added to playlist');
+      return true;
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {
-        // Song already in playlist
         debugPrint('ℹ️ Song already in playlist');
         throw Exception('Song already in this playlist');
       }
-      debugPrint('❌ Failed to add song: ${e.message}');
+      debugPrint('❌ Failed to add song: ${e.response?.data}');
       rethrow;
     }
   }
 
-  /// Remove song from playlist
+  /// Remove [songId] from [playlistId].
   Future<bool> removeSongFromPlaylist(String playlistId, String songId) async {
     try {
-      final response = await _dio.delete(
-        '${ApiConfig.baseUrl}/api/v1/playlists/$playlistId/songs/$songId',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer ${ApiConfig.tempToken}',
-          },
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        debugPrint('✅ Song removed from playlist');
-        return true;
-      }
-
-      return false;
-    } catch (e) {
-      debugPrint('❌ Failed to remove song: $e');
+      await _dio.delete('/playlists/$playlistId/songs/$songId');
+      debugPrint('✅ Song removed from playlist');
+      return true;
+    } on DioException catch (e) {
+      debugPrint('❌ Failed to remove song: ${e.response?.data}');
       return false;
     }
   }
 
-  /// Delete playlist
+  // ─── Lifecycle ─────────────────────────────────────────────────────────────
+
+  /// Permanently delete [playlistId].
   Future<bool> deletePlaylist(String playlistId) async {
     try {
-      final response = await _dio.delete(
-        '${ApiConfig.baseUrl}/api/v1/playlists/$playlistId',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer ${ApiConfig.tempToken}',
-          },
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        debugPrint('✅ Playlist deleted');
-        return true;
-      }
-
-      return false;
-    } catch (e) {
-      debugPrint('❌ Failed to delete playlist: $e');
+      await _dio.delete('/playlists/$playlistId');
+      debugPrint('✅ Playlist deleted');
+      return true;
+    } on DioException catch (e) {
+      debugPrint('❌ Failed to delete playlist: ${e.response?.data}');
       return false;
     }
   }

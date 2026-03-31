@@ -181,6 +181,13 @@ class OfflineDownloadStateNotifier extends StateNotifier<OfflineDownloadState> {
     return await _downloadManager.getDecryptedFilePath(songId);
   }
 
+  /// Fast check: is the temporary decrypted file already cached? (no decryption performed)
+  /// Use this as a quick pre-flight before committing to a full decrypt operation.
+  Future<bool> hasCachedDecryptedFile(String songId) async {
+    if (!isDownloaded(songId)) return false;
+    return await _downloadManager.hasCachedDecryptedFile(songId);
+  }
+
   /// Clear playback cache (temporary decrypted files)
   Future<void> clearPlaybackCache() async {
     await _downloadManager.clearPlaybackCache();

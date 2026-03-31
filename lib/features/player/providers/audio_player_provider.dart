@@ -49,6 +49,8 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
   DateTime? _sessionStartTime; // Track when session actually started
   bool _isDisposed = false;
   double? _volumeBeforeMute; // Store volume before muting
+  ConcatenatingAudioSource? _currentPlaylist; // For background offline source swaps
+  List<SongModel>? _currentQueueSongs; // Tracks active queue for background tasks
 
   AudioPlayerNotifier(this._ref) : super(const models.PlayerState()) {
     _initPlayer();
@@ -510,27 +512,41 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
           .read(queueProvider.notifier)
           .setQueue(allSongs, startIndex: startIndex);
 
-      // Pre-decrypt all offline songs in queue BEFORE building audio sources
-      // This ensures decryption happens while app is in foreground (before backgrounding)
-      // Critical for background playback: Android Keystore doesn't allow background access
-      print('🔓 Pre-decrypting offline songs for background playback...');
+      // Phased offline pre-decrypt for background-safe playback.
+      // Phase 1 (fast): collect already-cached temp files — disk check only, no decryption.
+      // Phase 2 (foreground): decrypt a small window around startIndex — blocks briefly.
+      // Phase 3 (background): decrypt the rest after playback starts — non-blocking.
+      const int preDecryptWindow = 5;
+      print('🔓 Phase 1: Scanning cached decrypted files...');
       final offlineDownloadNotifier = _ref.read(
         offlineDownloadStateProvider.notifier,
       );
       final Map<String, String> decryptedPaths = {};
 
+      // Phase 1: fast-path — collect already-cached temp files (no decryption)
       for (final s in allSongs) {
         if (offlineDownloadNotifier.isDownloaded(s.id)) {
-          final decryptedPath = await offlineDownloadNotifier
-              .getDecryptedFilePath(s.id);
-          if (decryptedPath != null && await File(decryptedPath).exists()) {
-            decryptedPaths[s.id] = decryptedPath;
-            print('✅ Pre-decrypted: ${s.title}');
+          final isCached = await offlineDownloadNotifier.hasCachedDecryptedFile(s.id);
+          if (isCached) {
+            final path = await offlineDownloadNotifier.getDecryptedFilePath(s.id);
+            if (path != null) decryptedPaths[s.id] = path;
           }
         }
       }
+      print('📦 Phase 1 complete: ${decryptedPaths.length} already cached');
+
+      // Phase 2: foreground-decrypt priority window (songs near startIndex only)
+      final int windowEnd = (startIndex + preDecryptWindow).clamp(0, allSongs.length);
+      for (int i = startIndex; i < windowEnd; i++) {
+        final s = allSongs[i];
+        if (offlineDownloadNotifier.isDownloaded(s.id) && !decryptedPaths.containsKey(s.id)) {
+          print('🔓 Foreground decrypting: ${s.title}');
+          final path = await offlineDownloadNotifier.getDecryptedFilePath(s.id);
+          if (path != null) decryptedPaths[s.id] = path;
+        }
+      }
       print(
-        '🔓 Pre-decryption complete: ${decryptedPaths.length}/${allSongs.length} songs offline',
+        '🔓 Foreground phase complete: ${decryptedPaths.length}/${allSongs.length} songs ready',
       );
 
       // Build audio sources for entire queue using pre-decrypted paths
@@ -583,7 +599,8 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
         );
       }
 
-      final playlist = ConcatenatingAudioSource(children: audioSources);
+      _currentPlaylist = ConcatenatingAudioSource(children: audioSources);
+      _currentQueueSongs = allSongs;
 
       // CRITICAL: Disable shuffle before setting playlist to ensure correct queue order
       await _audioPlayer.setShuffleModeEnabled(false);
@@ -592,7 +609,7 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Load playlist and seek to start index
       // OPTIMIZATION: Use preload=true for instant playback
       await _audioPlayer.setAudioSource(
-        playlist,
+        _currentPlaylist!,
         initialIndex: startIndex,
         initialPosition: Duration.zero,
         preload: true, // Preload first song for instant start
@@ -632,6 +649,13 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
       // Start playing immediately
       print('▶️ Starting queue playback (optimized)...');
       await _audioPlayer.play();
+
+      // Phase 3: background-decrypt remaining downloaded songs (non-blocking)
+      unawaited(_backgroundPreDecrypt(
+        allSongs,
+        offlineDownloadNotifier,
+        decryptedPaths.keys.toSet(),
+      ));
 
       print('✅ Queue loaded, playing from index $startIndex with fast start');
     } catch (e) {
@@ -907,6 +931,72 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     }
   }
 
+  /// Background phase: decrypt remaining downloaded songs after playback starts.
+  /// Swaps network-URL audio sources for local-file sources in ConcatenatingAudioSource
+  /// so the full playlist becomes available for truly offline playback.
+  Future<void> _backgroundPreDecrypt(
+    List<SongModel> songs,
+    OfflineDownloadStateNotifier notifier,
+    Set<String> alreadyDecrypted,
+  ) async {
+    for (int i = 0; i < songs.length; i++) {
+      if (_isDisposed) return;
+      if (_currentQueueSongs != songs) return; // Queue changed, abort
+
+      final s = songs[i];
+
+      // Skip the currently-playing index to avoid interrupting active playback
+      if (_audioPlayer.currentIndex == i) continue;
+
+      try {
+        if (!notifier.isDownloaded(s.id) || alreadyDecrypted.contains(s.id)) continue;
+
+        final path = await notifier.getDecryptedFilePath(s.id);
+        if (path == null || _isDisposed || _currentQueueSongs != songs) continue;
+
+        final playlist = _currentPlaylist;
+        if (playlist != null) {
+          final localSource = AudioSource.file(
+            path,
+            tag: MediaItem(
+              id: s.id,
+              title: s.title,
+              artist: s.artist,
+              album: 'Breaking Hits',
+              duration: s.duration,
+              artUri: _buildArtUri(s),
+            ),
+          );
+          // Atomically replace the network source with the local file source
+          await playlist.removeAt(i);
+          await playlist.insert(i, localSource);
+          print('🔄 Background: swapped to local file for ${s.title} (index $i)');
+        }
+      } catch (e) {
+        print('⚠️ Background pre-decrypt error for ${s.title}: $e');
+      }
+    }
+    print('✅ Background pre-decrypt finished');
+  }
+
+  /// Build an album art URI, filtering out placeholders and data URIs.
+  Uri? _buildArtUri(SongModel s) {
+    if (s.albumArt == null || s.albumArt!.isEmpty) return null;
+    if (s.albumArt!.contains('placeholder') ||
+        s.albumArt!.contains('picsum.photos') ||
+        s.albumArt!.startsWith('data:')) {
+      return null;
+    }
+    final url = s.albumArt!.startsWith('http')
+        ? s.albumArt!
+        : '${ApiConfig.baseUrl}${s.albumArt}';
+    try {
+      return Uri.parse(url);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Cleanup method to prevent memory leaks
   void disposePlayer() {
     if (_isDisposed) return;
@@ -924,6 +1014,10 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     if (_audioServiceHandler != null) {
       _audioServiceHandler!.dispose();
     }
+
+    // Clear queue references so any in-flight background tasks abort gracefully
+    _currentPlaylist = null;
+    _currentQueueSongs = null;
 
     // Dispose audio player
     _audioPlayer.dispose();

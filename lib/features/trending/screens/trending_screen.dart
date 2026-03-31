@@ -53,11 +53,13 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
     final theme = Theme.of(context);
     final trendingSongsAsync = ref.watch(trendingSongsProvider);
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        await ref.read(trendingSongsProvider.notifier).refresh();
-      },
-      child: Stack(
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(trendingSongsProvider.notifier).refresh();
+        },
+        child: Stack(
         children: [
           CustomScrollView(
           key: const PageStorageKey<String>('trending_scroll'),
@@ -68,6 +70,13 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
               expandedHeight: 200,
               pinned: true,
               automaticallyImplyLeading: false,
+              leading: context.canPop()
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => context.pop(),
+                      tooltip: 'Back',
+                    )
+                  : null,
               flexibleSpace: FlexibleSpaceBar(
                 title: const Text(
                   'Trending Now',
@@ -225,6 +234,7 @@ class _TrendingScreenState extends ConsumerState<TrendingScreen>
         ],
       ),
         ],
+      ),
       ),
     );
   }
