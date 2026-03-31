@@ -939,23 +939,39 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
     OfflineDownloadStateNotifier notifier,
     Set<String> alreadyDecrypted,
   ) async {
-    for (int i = 0; i < songs.length; i++) {
-      if (_isDisposed) return;
-      if (_currentQueueSongs != songs) return; // Queue changed, abort
+    // Outer catch: ensures no exception ever escapes an unawaited() Future
+    try {
+      for (int i = 0; i < songs.length; i++) {
+        if (_isDisposed) return;
+        if (_currentQueueSongs != songs) return; // Queue changed, abort
 
-      final s = songs[i];
+        final s = songs[i];
 
-      // Skip the currently-playing index to avoid interrupting active playback
-      if (_audioPlayer.currentIndex == i) continue;
+        try {
+          // Guard currentIndex access — player may be disposed between iterations
+          final currentIdx = _isDisposed ? null : _audioPlayer.currentIndex;
 
-      try {
-        if (!notifier.isDownloaded(s.id) || alreadyDecrypted.contains(s.id)) continue;
+          // Skip the currently-playing index to avoid interrupting active playback
+          if (currentIdx == i) continue;
 
-        final path = await notifier.getDecryptedFilePath(s.id);
-        if (path == null || _isDisposed || _currentQueueSongs != songs) continue;
+          if (!notifier.isDownloaded(s.id) ||
+              alreadyDecrypted.contains(s.id)) continue;
 
-        final playlist = _currentPlaylist;
-        if (playlist != null) {
+          final path = await notifier.getDecryptedFilePath(s.id);
+
+          // Re-check all guards after every await (async gap — state may have changed)
+          if (path == null) continue;
+          if (_isDisposed || _currentQueueSongs != songs) return;
+
+          final playlist = _currentPlaylist;
+          if (playlist == null) continue;
+
+          // Bounds guard: playlist may have shrunk since the loop started
+          if (i >= playlist.children.length) continue;
+
+          // Re-check current index after await to avoid swapping the active source
+          if (!_isDisposed && _audioPlayer.currentIndex == i) continue;
+
           final localSource = AudioSource.file(
             path,
             tag: MediaItem(
@@ -967,16 +983,30 @@ class AudioPlayerNotifier extends StateNotifier<models.PlayerState> {
               artUri: _buildArtUri(s),
             ),
           );
-          // Atomically replace the network source with the local file source
+
           await playlist.removeAt(i);
+
+          // Guard again after removeAt — don't leave playlist in a shorter state
+          if (_isDisposed || _currentQueueSongs != songs) {
+            // Best-effort restore: re-insert so the playlist stays consistent
+            try {
+              await playlist.insert(i, localSource);
+            } catch (_) {}
+            return;
+          }
+
           await playlist.insert(i, localSource);
-          print('🔄 Background: swapped to local file for ${s.title} (index $i)');
+          print('🔄 Background: swapped to local for ${s.title} (idx $i)');
+        } catch (e, st) {
+          // Per-song error: log and continue with next song
+          print('⚠️ Background pre-decrypt error for ${s.title}: $e\n$st');
         }
-      } catch (e) {
-        print('⚠️ Background pre-decrypt error for ${s.title}: $e');
       }
+      print('✅ Background pre-decrypt finished');
+    } catch (e, st) {
+      // Outer safety net: prevents unhandled async exception via unawaited()
+      print('❌ Background pre-decrypt fatal: $e\n$st');
     }
-    print('✅ Background pre-decrypt finished');
   }
 
   /// Build an album art URI, filtering out placeholders and data URIs.
