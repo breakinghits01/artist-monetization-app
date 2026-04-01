@@ -20,6 +20,7 @@ import '../../features/trending/screens/trending_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/song_detail/widgets/song_detail_wrapper.dart';
 import '../../features/rising_stars/screens/rising_stars_screen.dart';
+import '../../features/subscription/screens/plans_screen.dart';
 import '../../features/player/models/song_model.dart' as player_song;
 import '../constants/app_constants.dart';
 
@@ -195,6 +196,28 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: const RisingStarsScreen(),
+            ),
+          ),
+
+          // Subscription Plans Route
+          GoRoute(
+            path: AppConstants.plansRoute,
+            name: 'subscription-plans',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const PlansScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 1),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOut,
+                  )),
+                  child: child,
+                );
+              },
             ),
           ),
         ],

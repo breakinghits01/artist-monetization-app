@@ -67,6 +67,7 @@ class AppConstants {
   static const String treasureChestRoute = '/treasure-chest';
   static const String myMusicRoute = '/my-music';
   static const String purchasesRoute = '/purchases';
+  static const String plansRoute = '/subscription/plans';
 
   // Error Messages
   static const String networkErrorMessage = 'Network error. Please check your connection.';

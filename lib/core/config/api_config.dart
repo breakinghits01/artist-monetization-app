@@ -15,6 +15,10 @@ class ApiConfig {
   static const String songsEndpoint = '/api/$apiVersion/songs';
   static const String artistSongsEndpoint = '/api/$apiVersion/songs/artist';
   static const String uploadEndpoint = '/api/$apiVersion/songs/upload';
+  static const String subscriptionEndpoint = '/api/$apiVersion/subscription';
+  static const String subscriptionPlansEndpoint = '/api/$apiVersion/subscription/plans';
+  static const String mySubscriptionEndpoint = '/api/$apiVersion/subscription/me';
+  static const String downloadEndpoint = '/api/$apiVersion/download/song';
   
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);

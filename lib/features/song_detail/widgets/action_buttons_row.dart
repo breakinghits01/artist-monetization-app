@@ -5,6 +5,10 @@ import '../../player/providers/audio_player_provider.dart';
 import '../../engagement/providers/like_provider.dart';
 import '../../engagement/widgets/share_bottom_sheet.dart';
 import '../../engagement/widgets/comments_bottom_sheet.dart';
+import '../../subscription/providers/subscription_provider.dart';
+import '../../subscription/widgets/upgrade_prompt_widget.dart';
+import '../../../core/config/api_config.dart';
+import '../../../core/services/dio_client.dart';
 
 /// YouTube-style action buttons for song detail screen
 class ActionButtonsRow extends ConsumerWidget {
@@ -111,6 +115,9 @@ class ActionButtonsRow extends ConsumerWidget {
             );
           },
         ),
+
+        // Download Button — gated behind Premium / Advanced tier
+        _DownloadButton(song: song),
       ],
     );
   }
@@ -240,6 +247,126 @@ class _IconButton extends StatelessWidget {
                   ),
                 ),
               ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+/// Download button — shows upgrade prompt for Free users, triggers download for Premium+
+class _DownloadButton extends ConsumerStatefulWidget {
+  final SongModel song;
+  const _DownloadButton({required this.song});
+
+  @override
+  ConsumerState<_DownloadButton> createState() => _DownloadButtonState();
+}
+
+class _DownloadButtonState extends ConsumerState<_DownloadButton> {
+  bool _isDownloading = false;
+
+  Future<void> _handleDownload() async {
+    final canDownload = ref.read(canDownloadProvider);
+
+    if (!canDownload) {
+      // Free user — show upgrade bottom sheet
+      UpgradePromptWidget.show(context);
+      return;
+    }
+
+    if (_isDownloading) return;
+    setState(() => _isDownloading = true);
+
+    try {
+      final dio = DioClient.instance;
+      final response = await dio.get(
+        '${ApiConfig.baseUrl}${ApiConfig.downloadEndpoint}/${widget.song.id}',
+        queryParameters: {'format': 'mp3'},
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final downloadUrl = response.data['data']?['url'] as String? ??
+            response.data['data']?['downloadUrl'] as String?;
+
+        if (downloadUrl != null) {
+          // Platform-agnostic: open the presigned URL in the browser / OS handler
+          // On web this triggers a browser download; on native it opens the file manager
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                '✅ Download started!',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFF1DB954),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      }
+    } on Exception catch (e) {
+      if (!mounted) return;
+      final message = e.toString().contains('403')
+          ? 'Upgrade to Premium to download songs.'
+          : 'Download failed. Please try again.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(color: Colors.white)),
+          backgroundColor: const Color(0xFF272727),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canDownload = ref.watch(canDownloadProvider);
+
+    return Material(
+      color: const Color(0xFF272727),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: _handleDownload,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _isDownloading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(
+                      canDownload
+                          ? Icons.download_outlined
+                          : Icons.lock_outline_rounded,
+                      size: 18,
+                      color: canDownload ? Colors.white : Colors.white38,
+                    ),
+              const SizedBox(width: 8),
+              Text(
+                'Download',
+                style: TextStyle(
+                  color: canDownload ? Colors.white : Colors.white38,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),

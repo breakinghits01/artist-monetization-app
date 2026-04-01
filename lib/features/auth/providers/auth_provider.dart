@@ -42,6 +42,22 @@ class AuthState {
   bool get isFan => user?['role'] == 'fan';
   String? get username => user?['username'];
   String? get email => user?['email'];
+
+  // ── Subscription helpers ──────────────────────────────────────────────────
+  Map<String, dynamic>? get _sub =>
+      user?['subscription'] as Map<String, dynamic>?;
+
+  /// Raw tier string ('free' | 'premium' | 'advanced')
+  String get subscriptionTier => (_sub?['tier'] as String?) ?? 'free';
+
+  bool get isPremium =>
+      subscriptionTier == 'premium' && (_sub?['status'] == 'active');
+
+  bool get isAdvanced =>
+      subscriptionTier == 'advanced' && (_sub?['status'] == 'active');
+
+  /// True if the user can download songs offline (Premium or Advanced)
+  bool get canDownload => isPremium || isAdvanced;
 }
 
 /// Authentication Notifier
