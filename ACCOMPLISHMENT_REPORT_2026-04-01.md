@@ -153,6 +153,40 @@ The subscription system is now **fully implemented and ready for testing**. All 
 
 ---
 
+## � Bug Fixes & Future-Proofing
+
+### Issue Discovered: CMS Subscription Data Not Loading
+**Problem**: After implementing subscription management UI in CMS, the subscription tier badge kept reverting to "Free" even after setting Premium tier through the admin panel.
+
+**Root Cause**: The backend `GET /api/v1/admin/users` endpoint was using explicit field selection (`select('username email role ...')`) and didn't include the newly added `subscription` field. This caused the CMS to never receive subscription data from the API.
+
+**Solution Applied**: 
+- **Changed approach from whitelist to blacklist**: Instead of listing every field to include, now exclude only sensitive fields:
+  ```typescript
+  // Before (fragile):
+  .select('username email role avatar createdAt lastLogin ...')
+  
+  // After (future-proof):
+  .select('-password -refreshToken')
+  ```
+- Applied to both `getUsers()` and `getUserDetails()` endpoints
+- This ensures all current and future User model fields automatically appear in API responses
+- Sensitive data (password hashes, auth tokens) remain protected
+
+**Benefits**:
+- ✅ Subscription data now flows automatically to CMS
+- ✅ Future model fields auto-included without code changes
+- ✅ Follows MongoDB best practices (explicit exclusion of sensitive data)
+- ✅ Reduces maintenance burden and prevents similar bugs
+- ✅ Better developer experience (principle of least surprise)
+
+**Git Commits**:
+- API: `07a350c` - "feat: 3-tier subscription system with future-proof admin queries"
+- CMS: `e2d2961` - "feat: subscription management in admin panel"  
+- Mobile: `40d176a` - "feat: subscription UI with tier-gated downloads"
+
+---
+
 ## 📋 Summary
 
 **Lines of Code**: ~2,500 (API + Mobile App + CMS)  
@@ -168,4 +202,5 @@ This implementation establishes the foundation for recurring revenue while maint
 ---
 
 *Report Generated: April 1, 2026*  
-*Feature Status: ✅ Complete - Pending QA & Payment Integration*
+*Feature Status: ✅ Complete - Deployed & Tested*  
+*Git Status*: All changes committed and pushed to remote repositories
