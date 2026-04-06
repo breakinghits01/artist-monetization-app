@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/upload_state.dart';
 import '../models/upload_session.dart';
@@ -110,7 +111,13 @@ class UploadNotifier extends StateNotifier<UploadState> {
       state = UploadState.published(song: song);
 
       // Refresh user's song list from backend to get the latest
-      await _ref.read(userSongsProvider.notifier).refresh();
+      // Don't let refresh failure affect upload success
+      try {
+        await _ref.read(userSongsProvider.notifier).refresh();
+      } catch (refreshError) {
+        // Log but don't fail - song is already uploaded successfully
+        debugPrint('⚠️ Song uploaded successfully but refresh failed: $refreshError');
+      }
     } catch (e) {
       state = UploadState.error(
         message: 'Failed to publish song: ${e.toString()}',
