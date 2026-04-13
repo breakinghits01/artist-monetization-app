@@ -41,7 +41,12 @@ class OfflineDownloadManager {
   final FileEncryptionService _encryptionService;
   final Map<String, CancelToken> _cancelTokens = {};
   final Map<String, OfflineDownloadProgress> _downloadProgress = {};
-  
+  /// In-flight download Futures keyed by song ID.
+  /// Deduplicates concurrent requests for the same song (e.g. playlist sync
+  /// racing with a manual tap): every caller shares the same Future instead
+  /// of triggering separate downloads.
+  final Map<String, Future<bool>> _inFlight = {};
+
   /// Callback to notify state changes
   void Function(String, OfflineDownloadProgress)? onProgressUpdate;
 
@@ -173,14 +178,50 @@ class OfflineDownloadManager {
     return 0.0;
   }
 
-  /// Download song for offline playback
-  Future<bool> downloadSong(SongModel song) async {
+  /// Download song for offline playback.
+  ///
+  /// Concurrent calls for the same [song.id] are deduplicated: the second
+  /// (and any further) callers receive the same [Future] as the first, so
+  /// the file is downloaded and encrypted only once regardless of how many
+  /// widgets or background routines invoke this simultaneously.
+  Future<bool> downloadSong(SongModel song) {
+    final songId = song.id;
+
+    // Return the existing in-flight Future so concurrent callers for the
+    // same song share one download rather than starting duplicate requests.
+    if (_inFlight.containsKey(songId)) {
+      debugPrint('⏳ Download already in progress, sharing future: $songId');
+      return _inFlight[songId]!;
+    }
+
+    // Wrap the real download so _inFlight is cleaned up on both success and
+    // failure, even if an unhandled exception escapes _doDownloadSong.
+    Future<bool> run() async {
+      try {
+        return await _doDownloadSong(song);
+      } finally {
+        _inFlight.remove(songId);
+      }
+    }
+
+    final future = run();
+    _inFlight[songId] = future;
+    return future;
+  }
+
+  /// Internal implementation of [downloadSong].
+  /// Always call via [downloadSong] to get concurrent-request deduplication.
+  Future<bool> _doDownloadSong(SongModel song) async {
     final songId = song.id;
 
     try {
-      // Check if already downloaded
+      // Check if already downloaded — skip re-download and immediately fire
+      // a progress update so the UI reflects the correct state even if the
+      // Riverpod downloadedSongIds set hasn't been populated yet (e.g. right
+      // after a provider invalidation or a very fast initial render).
       if (await isDownloaded(songId)) {
-        debugPrint('Song already downloaded: $songId');
+        debugPrint('✅ Song already downloaded (skipping): $songId');
+        _updateProgress(songId, 1.0, OfflineDownloadStatus.downloaded);
         return true;
       }
 

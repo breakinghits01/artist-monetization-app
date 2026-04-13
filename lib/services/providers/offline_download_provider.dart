@@ -114,7 +114,15 @@ class OfflineDownloadStateNotifier extends StateNotifier<OfflineDownloadState> {
   /// Download a song
   Future<bool> downloadSong(SongModel song) async {
     final success = await _downloadManager.downloadSong(song);
-    // No need to reload - progress callback handles state updates
+    // Belt-and-suspenders: the manager may have returned true via the
+    // already-downloaded early-return path without firing the progress
+    // callback (e.g. right after provider invalidation when downloadedSongIds
+    // is momentarily empty).  Ensure the Riverpod state is always in sync.
+    if (success && mounted && !state.downloadedSongIds.contains(song.id)) {
+      state = state.copyWith(
+        downloadedSongIds: {...state.downloadedSongIds, song.id},
+      );
+    }
     return success;
   }
 
