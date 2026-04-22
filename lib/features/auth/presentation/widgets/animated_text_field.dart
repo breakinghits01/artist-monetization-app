@@ -230,6 +230,10 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
             textInputAction: widget.textInputAction,
             enabled: widget.enabled,
             maxLength: widget.maxLength,
+            // Extra bottom scroll-padding so Flutter always scrolls the field
+            // well clear of the soft keyboard.  120 px covers the keyboard's
+            // top edge plus a comfortable margin on most mobile screens.
+            scrollPadding: const EdgeInsets.only(bottom: 120),
             inputFormatters: widget.inputFormatters,
             style: theme.textTheme.bodyLarge?.copyWith(
               fontSize: 16,

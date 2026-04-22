@@ -32,7 +32,38 @@
 
   <title>dynamic_artist_monetization</title>
   <link rel="manifest" href="manifest.json">
-  
+
+  <style>
+    /*
+     * Viewport stability fix for Flutter Web on mobile Chrome/Safari.
+     *
+     * Problem: When the browser's address bar slides in/out (triggered by
+     * scrolling), the browser reports a viewport resize. CanvasKit treats
+     * this as a layout change and repaints the entire canvas, producing a
+     * visible white blink.
+     *
+     * Fix: Flutter manages all in-app scrolling internally via its own
+     * scroll physics engine. Suppressing body overflow is safe — it just
+     * prevents the browser's native scroll from interfering. The dynamic
+     * viewport unit (100dvh) locks the body to the real visible height,
+     * ignoring transient browser-chrome size changes.
+     *
+     * Impact: Desktop layout unaffected (no overflow to suppress).
+     *         All Flutter widget scrolling, animations unchanged.
+     */
+    html,
+    body {
+      overflow: hidden;
+      height: 100%;
+    }
+
+    /* Modern browsers: use dynamic viewport height to account for
+       on-screen keyboard and collapsible browser chrome. */
+    body {
+      height: 100dvh;
+    }
+  </style>
+
   <script>
     // Configure Flutter web renderer and suppress warnings
     window.flutterConfiguration = {

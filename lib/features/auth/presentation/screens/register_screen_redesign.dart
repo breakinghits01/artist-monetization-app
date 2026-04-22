@@ -170,6 +170,10 @@ class _RegisterScreenRedesignState
     final isWebLayout = kIsWeb && screenWidth > 900;
 
     return Scaffold(
+      // Explicitly enable body resize when soft keyboard appears.
+      // Flutter default is true, but being explicit documents intent and
+      // ensures future refactors don't accidentally disable it.
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: isWebLayout ? _buildWebLayout() : _buildMobileLayout(),
       ),
@@ -195,6 +199,11 @@ class _RegisterScreenRedesignState
   }
 
   Widget _buildMobileLayout() {
+    // viewInsets.bottom is the keyboard height reported by Flutter.
+    // We add this as AnimatedPadding so the form lifts smoothly above
+    // the keyboard as it slides up, complementing Scaffold's own resize.
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
     return Column(
       children: [
         // Header with back button
@@ -213,9 +222,15 @@ class _RegisterScreenRedesignState
           ),
         ),
 
-        // Form content
+        // Form content — AnimatedPadding provides a smooth lift animation
+        // as the keyboard slides up, preventing abrupt layout jumps.
         Expanded(
-          child: _buildFormPanel(),
+          child: AnimatedPadding(
+            padding: EdgeInsets.only(bottom: keyboardHeight),
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            child: _buildFormPanel(),
+          ),
         ),
       ],
     );
@@ -345,8 +360,16 @@ class _RegisterScreenRedesignState
   }
 
   Widget _buildFormPanel() {
+    final isWebLayout = kIsWeb && MediaQuery.of(context).size.width > 900;
+    // Reduced horizontal/vertical padding on mobile so form fields have
+    // more room and the layout stays comfortable on small screens.
+    // Desktop keeps the original 32px for the split-screen aesthetic.
+    final padding = isWebLayout
+        ? const EdgeInsets.all(32)
+        : const EdgeInsets.symmetric(horizontal: 20, vertical: 12);
+
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: padding,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),

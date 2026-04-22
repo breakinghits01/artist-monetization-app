@@ -42,12 +42,44 @@ class _RegisterFormStepsState extends State<RegisterFormSteps> {
   int _currentStep = 0;
   final int _totalSteps = 3;
   final AvailabilityService _availabilityService = AvailabilityService();
-  
+
   // Track validation state for enabling/disabling continue button
   bool _isUsernameAvailable = false;
   bool _isEmailAvailable = false;
   bool _isCheckingUsername = false;
   bool _isCheckingEmail = false;
+
+  // Tracks the last known keyboard height so we can detect when the
+  // keyboard has fully appeared and trigger an ensureVisible scroll.
+  double _lastViewInsets = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+
+    // Fire only when the keyboard is opening (viewInsets grows).
+    // At this point the layout has already been updated, so
+    // Scrollable.ensureVisible will measure correct positions.
+    if (viewInsets > _lastViewInsets) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final focus = FocusManager.instance.primaryFocus;
+        if (focus?.context != null) {
+          // Walk all scrollable ancestors (SingleChildScrollView inside
+          // the PageView page, then PageView itself) and scroll each
+          // one so the focused field is centred in the visible area.
+          Scrollable.ensureVisible(
+            focus!.context!,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
+    _lastViewInsets = viewInsets;
+  }
 
   @override
   void dispose() {
