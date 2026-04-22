@@ -199,11 +199,6 @@ class _RegisterScreenRedesignState
   }
 
   Widget _buildMobileLayout() {
-    // viewInsets.bottom is the keyboard height reported by Flutter.
-    // We add this as AnimatedPadding so the form lifts smoothly above
-    // the keyboard as it slides up, complementing Scaffold's own resize.
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-
     return Column(
       children: [
         // Header with back button
@@ -222,15 +217,24 @@ class _RegisterScreenRedesignState
           ),
         ),
 
-        // Form content — AnimatedPadding provides a smooth lift animation
-        // as the keyboard slides up, preventing abrupt layout jumps.
+        // Form content.
+        // On native Android/iOS, resizeToAvoidBottomInset on the Scaffold
+        // already shrinks the body when the keyboard appears — no extra
+        // padding is needed here (adding it would double-shrink and cause
+        // RenderFlex overflow).
+        // On web the Scaffold body does NOT resize for virtual keyboards,
+        // so we manually push the form up with AnimatedPadding.
         Expanded(
-          child: AnimatedPadding(
-            padding: EdgeInsets.only(bottom: keyboardHeight),
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            child: _buildFormPanel(),
-          ),
+          child: kIsWeb
+              ? AnimatedPadding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  child: _buildFormPanel(),
+                )
+              : _buildFormPanel(),
         ),
       ],
     );
