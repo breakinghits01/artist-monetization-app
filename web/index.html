@@ -18,7 +18,12 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- interactive-widget=resizes-content: tells the browser that the
+       on-screen keyboard should resize the layout viewport (not just the
+       visual viewport). This prevents the CanvasKit canvas from receiving
+       a surprise resize event when the keyboard dismisses, eliminating the
+       half-white-screen repaint gap on mobile Chrome/Safari. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
   <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
@@ -53,14 +58,19 @@
      */
     html,
     body {
+      /* overflow:hidden prevents the browser's native scroll from
+         interfering with Flutter's internal scroll engine. Safe because
+         Flutter handles all scrolling itself via its own physics. */
       overflow: hidden;
+      /* Use 100% (layout viewport) NOT 100dvh (dynamic visual viewport).
+         dvh changes when the keyboard opens/closes, triggering a CanvasKit
+         canvas resize and a visible repaint gap (half-white screen).
+         100% stays anchored to the stable layout viewport height which is
+         already controlled by interactive-widget=resizes-content above. */
       height: 100%;
-    }
-
-    /* Modern browsers: use dynamic viewport height to account for
-       on-screen keyboard and collapsible browser chrome. */
-    body {
-      height: 100dvh;
+      width: 100%;
+      margin: 0;
+      padding: 0;
     }
   </style>
 

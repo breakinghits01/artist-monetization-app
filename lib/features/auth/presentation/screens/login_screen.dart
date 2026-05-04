@@ -158,6 +158,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isWebLayout = kIsWeb && screenWidth > 600;
 
     return Scaffold(
+      // Explicit — ensures the body shrinks when the soft keyboard appears
+      // on native Android/iOS. Default is true but being explicit prevents
+      // accidental breakage during future refactors.
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: isWebLayout ? _buildWebLayout() : _buildMobileLayout(),
       ),
@@ -273,11 +277,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  // Mobile Layout - Original centered design
+  // Mobile Layout
   Widget _buildMobileLayout() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+    // On native Android/iOS, Scaffold(resizeToAvoidBottomInset:true) already
+    // shrinks the body — SingleChildScrollView lets the form scroll if the
+    // shrunken space is still too small for the content.
+    // On web, the Scaffold body does NOT resize for the virtual keyboard, so
+    // we add AnimatedPadding(bottom: viewInsets) to push the form up.
+    final viewInsetBottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return SingleChildScrollView(
+      // keyboardDismissBehavior lets the user swipe down to dismiss the
+      // keyboard on mobile without tapping outside a field.
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      child: AnimatedPadding(
+        // On native the Scaffold already resizes so viewInsets.bottom is 0
+        // inside SafeArea — this only has effect on web.
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          kIsWeb ? viewInsetBottom + 24 : 24,
+        ),
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
         child: _buildLoginForm(isWebLayout: false),
       ),
     );

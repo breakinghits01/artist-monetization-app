@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -66,7 +67,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewInsetBottom = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
+      // Explicit — ensures the body shrinks when the soft keyboard appears
+      // on native Android/iOS.
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -74,9 +80,20 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         ),
       ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: AnimatedPadding(
+            // On native, Scaffold already resizes the body so viewInsets.bottom
+            // is 0 inside SafeArea — this only has effect on web where the
+            // Scaffold body does NOT resize for the virtual keyboard.
+            padding: EdgeInsets.fromLTRB(
+              24,
+              24,
+              24,
+              kIsWeb ? viewInsetBottom + 24 : 24,
+            ),
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
             child: _emailSent ? _buildSuccessView() : _buildFormView(),
           ),
         ),
